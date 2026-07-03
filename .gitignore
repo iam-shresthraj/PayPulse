@@ -1,0 +1,28 @@
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Flutter build and cache outputs
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock
+
+# Temporary migration scripts and data files
+*.py
+*.js
+*.json
+*.csv
+*.xlsx
+!setup_schema.sql
+!swarnayan_flutter/web/index.html
+
+# Obsolete custom backend
+swarnayan-backend/

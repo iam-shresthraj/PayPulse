@@ -19,9 +19,10 @@ extension BuildContextExtensions on BuildContext {
 
   // Show premium notification SnackBars
   void showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(this).clearSnackBars();
-    ScaffoldMessenger.of(this).showSnackBar(
-      SnackBar(
+    ScaffoldMessenger.of(this).clearMaterialBanners();
+    ScaffoldMessenger.of(this).showMaterialBanner(
+      MaterialBanner(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         content: Row(
           children: [
             Icon(
@@ -37,17 +38,20 @@ extension BuildContextExtensions on BuildContext {
             ),
           ],
         ),
-        backgroundColor: AppColors.surface,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: isError ? AppColors.error.withValues(alpha: 0.5) : AppColors.primary.withValues(alpha: 0.5),
-            width: 1,
+        backgroundColor: AppColors.surfaceContainer,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close, color: AppColors.onSurfaceMuted, size: 18),
+            onPressed: () {
+              ScaffoldMessenger.of(this).clearMaterialBanners();
+            },
           ),
-        ),
-        duration: const Duration(seconds: 3),
+        ],
       ),
     );
+    final messenger = ScaffoldMessenger.of(this);
+    Future.delayed(const Duration(seconds: 3), () {
+      messenger.clearMaterialBanners();
+    });
   }
 }

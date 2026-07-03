@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
@@ -46,7 +47,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _dueAmountController = TextEditingController();
   final _addressController = TextEditingController();
   final _panController = TextEditingController();
+  final _customerPhoneFocusNode = FocusNode();
+  final _customerNameFocusNode = FocusNode();
+  final _customerAddressFocusNode = FocusNode();
+  final _customerPanFocusNode = FocusNode();
+  final _addItemButtonFocusNode = FocusNode();
+  final _cashFocusNode = FocusNode();
+  final _upiFocusNode = FocusNode();
+  final _cardFocusNode = FocusNode();
   final _receivedAmountFocusNode = FocusNode();
+  final _generateButtonFocusNode = FocusNode();
+  List<FocusNode> _customerSuggestionFocusNodes = [];
 
   List<Customer> _suggestions = [];
   bool _showSuggestions = false;
@@ -89,7 +100,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _dueAmountController.dispose();
     _addressController.dispose();
     _panController.dispose();
+    _customerPhoneFocusNode.dispose();
+    _customerNameFocusNode.dispose();
+    _customerAddressFocusNode.dispose();
+    _customerPanFocusNode.dispose();
+    _addItemButtonFocusNode.dispose();
+    _cashFocusNode.dispose();
+    _upiFocusNode.dispose();
+    _cardFocusNode.dispose();
     _receivedAmountFocusNode.dispose();
+    _generateButtonFocusNode.dispose();
+    for (final node in _customerSuggestionFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -127,6 +150,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       setState(() {
         _suggestions = filtered;
         _showSuggestions = true;
+        for (final node in _customerSuggestionFocusNodes) {
+          node.dispose();
+        }
+        _customerSuggestionFocusNodes = List.generate(filtered.length, (_) => FocusNode());
       });
     }
   }
@@ -471,30 +498,49 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           const SizedBox(height: 12),
 
           // Phone Input
-          GlassInput(
-            controller: _phoneController,
-            label: 'Search Customer By Phone/Name',
-            hint: 'Type mobile number or customer name...',
-            prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
-            keyboardType: TextInputType.phone,
-            onChanged: (val) => _onPhoneChanged(val, ref),
-            suffixIcon: (billing.customerName != null || _phoneController.text.isNotEmpty)
-                ? IconButton(
-                    icon: const Icon(Icons.clear, color: AppColors.onSurfaceDim, size: 18),
-                    onPressed: () {
-                      _phoneController.clear();
-                      _nameController.clear();
-                      _addressController.clear();
-                      _panController.clear();
-                      ref.read(billingProvider.notifier).clearCustomer();
-                      setState(() {
-                        _showSuggestions = false;
-                        _suggestions = [];
-                        _registerNewCustomer = false;
-                      });
-                    },
-                  )
-                : null,
+          Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                if (_customerSuggestionFocusNodes.isNotEmpty) {
+                  _customerSuggestionFocusNodes.first.requestFocus();
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: GlassInput(
+              focusNode: _customerPhoneFocusNode,
+              controller: _phoneController,
+              label: 'Search Customer By Phone/Name',
+              hint: 'Type mobile number or customer name...',
+              prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
+              keyboardType: TextInputType.phone,
+              onChanged: (val) => _onPhoneChanged(val, ref),
+              onFieldSubmitted: (val) {
+                if (billing.customerId == null || billing.customerId == '') {
+                  _customerNameFocusNode.requestFocus();
+                } else {
+                  _addItemButtonFocusNode.requestFocus();
+                }
+              },
+              suffixIcon: (billing.customerName != null || _phoneController.text.isNotEmpty)
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, color: AppColors.onSurfaceDim, size: 18),
+                      onPressed: () {
+                        _phoneController.clear();
+                        _nameController.clear();
+                        _addressController.clear();
+                        _panController.clear();
+                        ref.read(billingProvider.notifier).clearCustomer();
+                        setState(() {
+                          _showSuggestions = false;
+                          _suggestions = [];
+                          _registerNewCustomer = false;
+                        });
+                      },
+                    )
+                  : null,
+            ),
           ),
 
           // Suggestions list
@@ -508,26 +554,54 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 child: ListView(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
-                  children: _suggestions.map((c) => ListTile(
-                    leading: const Icon(Icons.person, color: AppColors.primary, size: 20),
-                    title: Text(c.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
-                    subtitle: Text(c.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                    onTap: () {
-                      ref.read(billingProvider.notifier).setCustomer(c);
-                      _phoneController.text = c.mobile;
-                      setState(() {
-                        _showSuggestions = false;
-                        _suggestions = [];
-                      });
-                    },
-                  )).toList(),
+                  children: _suggestions.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final c = entry.value;
+                    final node = _customerSuggestionFocusNodes[idx];
+                    return Focus(
+                      focusNode: node,
+                      onFocusChange: (focused) {
+                        setState(() {});
+                      },
+                      onKeyEvent: (fNode, event) {
+                        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                          ref.read(billingProvider.notifier).setCustomer(c);
+                          _phoneController.text = c.mobile;
+                          setState(() {
+                            _showSuggestions = false;
+                            _suggestions = [];
+                          });
+                          _addItemButtonFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: Container(
+                        color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+                        child: ListTile(
+                          leading: const Icon(Icons.person, color: AppColors.primary, size: 20),
+                          title: Text(c.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                          subtitle: Text(c.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                          onTap: () {
+                            ref.read(billingProvider.notifier).setCustomer(c);
+                            _phoneController.text = c.mobile;
+                            setState(() {
+                              _showSuggestions = false;
+                              _suggestions = [];
+                            });
+                            _addItemButtonFocusNode.requestFocus();
+                          },
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
           ],
 
           // Auto-shown New Customer Registration fields
-          if (billing.customerId == null && _phoneController.text.isNotEmpty) ...[
+          if ((billing.customerId == null || billing.customerId == '') && _phoneController.text.isNotEmpty) ...[
             const SizedBox(height: 12),
             GlassCard(
               animationIndex: 2,
@@ -545,24 +619,30 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ),
                   const SizedBox(height: 12),
                   GlassInput(
+                    focusNode: _customerNameFocusNode,
                     controller: _nameController,
                     label: 'Customer Name',
                     hint: 'Enter customer name',
                     onChanged: (val) {
                       ref.read(billingProvider.notifier).setTemporaryCustomer(val, _phoneController.text);
                     },
+                    onFieldSubmitted: (_) => _customerAddressFocusNode.requestFocus(),
                   ),
                   const SizedBox(height: 12),
                   GlassInput(
+                    focusNode: _customerAddressFocusNode,
                     controller: _addressController,
                     label: 'Address',
                     hint: 'Enter address (e.g. Thakurbari Road, Patna)',
+                    onFieldSubmitted: (_) => _customerPanFocusNode.requestFocus(),
                   ),
                   const SizedBox(height: 12),
                   GlassInput(
+                    focusNode: _customerPanFocusNode,
                     controller: _panController,
                     label: 'PAN Card (Optional)',
                     hint: 'Enter PAN card number',
+                    onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
                   ),
                 ],
               ),
@@ -646,9 +726,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     onPressed: () => _showBarcodeDialog(context),
                   ),
                   const SizedBox(width: 8),
-                  SecondaryButton(
-                    label: '+ Add Item',
-                    onPressed: () => _showAddProductSheet(context),
+                  Focus(
+                    focusNode: _addItemButtonFocusNode,
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                        _showAddProductSheet(context);
+                        return KeyEventResult.handled;
+                      }
+                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.keyS || event.logicalKey == LogicalKeyboardKey.keyS)) {
+                        _cashFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: SecondaryButton(
+                      label: '+ Add Item',
+                      onPressed: () => _showAddProductSheet(context),
+                    ),
                   ),
                 ],
               ),
@@ -1097,6 +1191,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               });
             },
             index: 6,
+            focusNode: _cashFocusNode,
+            onFieldSubmitted: (_) => _upiFocusNode.requestFocus(),
           ),
           const SizedBox(height: 12),
 
@@ -1113,6 +1209,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               });
             },
             index: 7,
+            focusNode: _upiFocusNode,
+            onFieldSubmitted: (_) => _cardFocusNode.requestFocus(),
           ),
           const SizedBox(height: 12),
 
@@ -1129,6 +1227,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               });
             },
             index: 8,
+            focusNode: _cardFocusNode,
+            onFieldSubmitted: (_) => _receivedAmountFocusNode.requestFocus(),
           ),
 
           const SizedBox(height: 20),
@@ -1200,6 +1300,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             }
                           });
                         },
+                        onSubmitted: (_) => _generateButtonFocusNode.requestFocus(),
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: InputBorder.none,
@@ -1256,6 +1357,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     required String label,
     required void Function(String) onChanged,
     required int index,
+    FocusNode? focusNode,
+    void Function(String)? onFieldSubmitted,
   }) {
     return GlassCard(
       animationIndex: index,
@@ -1287,6 +1390,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             child: TextField(
               controller: controller,
               onChanged: onChanged,
+              focusNode: focusNode,
+              onSubmitted: onFieldSubmitted,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.right,
               style: AppTextStyles.amountMd.copyWith(color: AppColors.onBackground),
@@ -1314,7 +1419,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer.withValues(alpha: 0.9),
             border: const Border(
@@ -1323,6 +1428,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ),
           child: SafeArea(
             top: false,
+            bottom: true,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1334,61 +1440,86 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   _summaryRow('Coupon Discount', -billing.discountAmount, isDiscount: true),
                 _summaryRow('Estimated GST (3%)', billing.totalTax),
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(vertical: 4),
                   child: Divider(color: AppColors.border, height: 1),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'GRAND TOTAL',
-                      style: AppTextStyles.labelMd.copyWith(
-                        color: AppColors.onSurfaceMuted,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    if (billing.balanceDue > 0.05)
-                      Text(
-                        'DUE: ₹${_formatAmount(billing.balanceDue)}',
-                        style: AppTextStyles.labelMd.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
-                      )
-                    else
-                      const Icon(
-                        Icons.check_circle_outline_rounded,
-                        color: AppColors.success,
-                        size: 16,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: RichText(
-                    text: TextSpan(
+                    // Left side: Grand Total & Due Amount
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextSpan(
-                          text: '₹${_formatAmount(billing.finalPayable)}',
-                          style: AppTextStyles.amountXl.copyWith(
-                            color: AppColors.primary,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'GRAND TOTAL',
+                              style: AppTextStyles.labelMd.copyWith(
+                                color: AppColors.onSurfaceMuted,
+                                fontSize: 11,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            if (billing.balanceDue > 0.05)
+                              Text(
+                                '(DUE: ₹${_formatAmount(billing.balanceDue)})',
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 11),
+                              )
+                            else
+                              const Icon(
+                                Icons.check_circle_outline_rounded,
+                                color: AppColors.success,
+                                size: 12,
+                              ),
+                          ],
                         ),
-                        TextSpan(
-                          text: '.00',
-                          style: AppTextStyles.amountMd.copyWith(
-                            color: AppColors.onSurfaceMuted,
-                            fontSize: 16,
+                        const SizedBox(height: 2),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '₹${_formatAmount(billing.finalPayable)}',
+                                style: AppTextStyles.amountLg.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '.00',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: AppColors.onSurfaceMuted,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                PrimaryButton(
-                  label: 'Generate & Print Invoice',
-                  icon: Icons.receipt_long_rounded,
-                  isLoading: _isGenerating,
-                  onPressed: _generateInvoice,
+                    
+                    // Right side: Compact "Generate" Button
+                    SizedBox(
+                      width: 130,
+                      height: 40,
+                      child: Focus(
+                        focusNode: _generateButtonFocusNode,
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                            _generateInvoice();
+                            return KeyEventResult.handled;
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: PrimaryButton(
+                          label: 'Generate',
+                          icon: Icons.receipt_long_rounded,
+                          isLoading: _isGenerating,
+                          onPressed: _generateInvoice,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1464,9 +1595,21 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
   final _searchController = TextEditingController();
 
   Product? _selectedProduct;
-  String _makingChargeType = 'FIXED';
+  String _makingChargeType = 'PER_GRAM';
   List<Product> _suggestions = [];
   bool _showSuggestions = false;
+
+  final _searchFocusNode = FocusNode();
+  final _qtyFocusNode = FocusNode();
+  final _rateFocusNode = FocusNode();
+  final _weightFocusNode = FocusNode();
+  final _stoneWeightFocusNode = FocusNode();
+  final _stoneValueFocusNode = FocusNode();
+  final _makingChargeFocusNode = FocusNode();
+  final _makingChargeTypeFocusNode = FocusNode();
+  final _discountFocusNode = FocusNode();
+  final _submitButtonFocusNode = FocusNode();
+  List<FocusNode> _productSuggestionFocusNodes = [];
 
   @override
   void dispose() {
@@ -1478,6 +1621,19 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
     _stoneValueController.dispose();
     _discountController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
+    _qtyFocusNode.dispose();
+    _rateFocusNode.dispose();
+    _weightFocusNode.dispose();
+    _stoneWeightFocusNode.dispose();
+    _stoneValueFocusNode.dispose();
+    _makingChargeFocusNode.dispose();
+    _makingChargeTypeFocusNode.dispose();
+    _discountFocusNode.dispose();
+    _submitButtonFocusNode.dispose();
+    for (final node in _productSuggestionFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -1608,32 +1764,49 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      GlassInput(
-                        controller: _searchController,
-                        label: 'Select Product',
-                        hint: 'Type product name to search...',
-                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
-                        onChanged: (val) {
-                          final query = val.trim().toLowerCase();
-                          if (query.isEmpty) {
-                            setState(() {
-                              _suggestions = [];
-                              _showSuggestions = false;
-                            });
-                            return;
+                      Focus(
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                            if (_productSuggestionFocusNodes.isNotEmpty) {
+                              _productSuggestionFocusNodes.first.requestFocus();
+                              return KeyEventResult.handled;
+                            }
                           }
-                          final filtered = activeProducts.where((p) =>
-                            p.name.toLowerCase().contains(query) ||
-                            (p.id?.toLowerCase().contains(query) ?? false) ||
-                            (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
-                            (p.purity.toLowerCase().contains(query)) ||
-                            (p.category.toLowerCase().contains(query))
-                          ).toList();
-                          setState(() {
-                            _suggestions = filtered;
-                            _showSuggestions = true;
-                          });
+                          return KeyEventResult.ignored;
                         },
+                        child: GlassInput(
+                          focusNode: _searchFocusNode,
+                          controller: _searchController,
+                          label: 'Select Product',
+                          hint: 'Type product name to search...',
+                          prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                          onFieldSubmitted: (_) => _qtyFocusNode.requestFocus(),
+                          onChanged: (val) {
+                            final query = val.trim().toLowerCase();
+                            if (query.isEmpty) {
+                              setState(() {
+                                _suggestions = [];
+                                _showSuggestions = false;
+                              });
+                              return;
+                            }
+                            final filtered = activeProducts.where((p) =>
+                              p.name.toLowerCase().contains(query) ||
+                              (p.id?.toLowerCase().contains(query) ?? false) ||
+                              (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
+                              (p.purity.toLowerCase().contains(query)) ||
+                              (p.category.toLowerCase().contains(query))
+                            ).toList();
+                            setState(() {
+                              _suggestions = filtered;
+                              _showSuggestions = true;
+                              for (final node in _productSuggestionFocusNodes) {
+                                node.dispose();
+                              }
+                              _productSuggestionFocusNodes = List.generate(filtered.length, (_) => FocusNode());
+                            });
+                          },
+                        ),
                       ),
                       if (_showSuggestions && _suggestions.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -1645,19 +1818,47 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                             child: ListView(
                               shrinkWrap: true,
                               padding: EdgeInsets.zero,
-                              children: _suggestions.map((p) => ListTile(
-                                leading: const Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
-                                title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
-                                subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                onTap: () {
-                                  _onProductSelected(p);
-                                  _searchController.text = p.name;
-                                  setState(() {
-                                    _suggestions = [];
-                                    _showSuggestions = false;
-                                  });
-                                },
-                              )).toList(),
+                              children: _suggestions.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final p = entry.value;
+                                final node = _productSuggestionFocusNodes[idx];
+                                return Focus(
+                                  focusNode: node,
+                                  onFocusChange: (focused) {
+                                    setState(() {});
+                                  },
+                                  onKeyEvent: (fNode, event) {
+                                    if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                                      _onProductSelected(p);
+                                      _searchController.text = p.name;
+                                      setState(() {
+                                        _suggestions = [];
+                                        _showSuggestions = false;
+                                      });
+                                      _qtyFocusNode.requestFocus();
+                                      return KeyEventResult.handled;
+                                    }
+                                    return KeyEventResult.ignored;
+                                  },
+                                  child: Container(
+                                    color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+                                    child: ListTile(
+                                      leading: const Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
+                                      title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                                      subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                      onTap: () {
+                                        _onProductSelected(p);
+                                        _searchController.text = p.name;
+                                        setState(() {
+                                          _suggestions = [];
+                                          _showSuggestions = false;
+                                        });
+                                        _qtyFocusNode.requestFocus();
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ),
                         ),
@@ -1667,21 +1868,25 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                         children: [
                           Expanded(
                             child: GlassInput(
+                              focusNode: _qtyFocusNode,
                               controller: _qtyController,
                               label: 'Quantity',
                               hint: '1',
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              onFieldSubmitted: (_) => _rateFocusNode.requestFocus(),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: GlassInput(
+                              focusNode: _rateFocusNode,
                               controller: _rateController,
                               label: 'Metal Rate (₹/g)',
                               hint: '5,400',
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              onFieldSubmitted: (_) => _weightFocusNode.requestFocus(),
                             ),
                           ),
                         ],
@@ -1691,11 +1896,13 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                         children: [
                           Expanded(
                             child: GlassInput(
+                              focusNode: _weightFocusNode,
                               controller: _weightController,
                               label: 'Gross Weight (g)',
                               hint: '0.000',
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              onFieldSubmitted: (_) => _stoneWeightFocusNode.requestFocus(),
                             ),
                           ),
                         ],
@@ -1705,31 +1912,37 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                         children: [
                           Expanded(
                             child: GlassInput(
+                              focusNode: _stoneWeightFocusNode,
                               controller: _stoneWeightController,
                               label: 'Stone Weight (g)',
                               hint: '0.000',
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              onFieldSubmitted: (_) => _stoneValueFocusNode.requestFocus(),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: GlassInput(
+                              focusNode: _stoneValueFocusNode,
                               controller: _stoneValueController,
                               label: 'Stone Value (₹)',
                               hint: '0',
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              onFieldSubmitted: (_) => _makingChargeFocusNode.requestFocus(),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       GlassInput(
+                        focusNode: _makingChargeFocusNode,
                         controller: _makingChargeController,
                         label: 'Making Charge',
                         hint: 'Enter value',
                         keyboardType: TextInputType.number,
+                        onFieldSubmitted: (_) => _discountFocusNode.requestFocus(),
                         suffixIcon: Container(
                           padding: const EdgeInsets.only(right: 8),
                           child: DropdownButtonHideUnderline(
@@ -1766,6 +1979,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                       ),
                       const SizedBox(height: 16),
                       GlassInput(
+                        focusNode: _discountFocusNode,
                         controller: _discountController,
                         label: 'Product Discount (₹)',
                         hint: '0',

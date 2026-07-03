@@ -71,7 +71,7 @@ class _PrimaryButtonState extends State<PrimaryButton>
           decoration: BoxDecoration(
             gradient: isDisabled
                 ? null
-                : const LinearGradient(
+                :  LinearGradient(
                     colors: AppColors.primaryGradient,
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,

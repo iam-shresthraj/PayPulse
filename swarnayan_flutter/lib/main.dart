@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
@@ -38,6 +39,15 @@ class PayPulseApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: router,
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final isWide = mediaQuery.size.width >= 850;
+        AppColors.useLightMode(isWide);
+        return Theme(
+          data: isWide ? AppTheme.lightTheme : AppTheme.darkTheme,
+          child: child!,
+        );
+      },
     );
   }
 }

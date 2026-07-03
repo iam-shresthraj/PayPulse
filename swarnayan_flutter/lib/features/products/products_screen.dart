@@ -249,7 +249,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                               ],
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                             Icon(
                               Icons.chevron_right_rounded,
                               color: AppColors.onSurfaceDim,
                               size: 20,
@@ -263,7 +263,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 ),
               );
             },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
               error: (err, _) => Center(child: Text('Error loading products: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
             ),
           ),
@@ -339,7 +339,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: const BorderSide(color: AppColors.glassBorder),
+            side:  BorderSide(color: AppColors.glassBorder),
           ),
           title: Text(
             'Delete Product',
@@ -397,14 +397,14 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.edit_rounded, color: AppColors.primary),
+                      icon:  Icon(Icons.edit_rounded, color: AppColors.primary),
                       onPressed: () {
                         Navigator.pop(context);
                         context.push('/products/edit', extra: p);
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                      icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],

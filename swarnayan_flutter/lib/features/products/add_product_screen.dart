@@ -145,7 +145,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                       Icon(Icons.check_circle_rounded, color: AppColors.primary),
                       const SizedBox(width: 12),
                       Text(
                         _isEditing ? 'Product updated successfully!' : 'Product created successfully!',
@@ -192,7 +192,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppColors.error),
+                   Icon(Icons.error_outline_rounded, color: AppColors.error),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -234,7 +234,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.glassBorder),
                       ),
-                      child: const Icon(
+                      child:  Icon(
                         Icons.arrow_back_rounded,
                         color: AppColors.onSurface,
                         size: 20,

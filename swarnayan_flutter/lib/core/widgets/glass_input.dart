@@ -87,16 +87,16 @@ class GlassInput extends StatelessWidget {
             fillColor: AppColors.surfaceContainer.withValues(alpha: 0.4),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide: const BorderSide(color: AppColors.glassBorder),
+              borderSide:  BorderSide(color: AppColors.glassBorder),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide: const BorderSide(color: AppColors.glassBorder),
+              borderSide:  BorderSide(color: AppColors.glassBorder),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
               borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
+                   BorderSide(color: AppColors.primary, width: 1.5),
             ),
           ),
         ),

@@ -186,7 +186,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                               ],
                             ),
                             const SizedBox(width: 8),
-                            const Icon(
+                             Icon(
                               Icons.chevron_right_rounded,
                               color: AppColors.onSurfaceDim,
                               size: 20,
@@ -199,7 +199,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 ),
               );
             },
-              loading: () => const Center(
+              loading: () =>  Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
               error: (err, _) => Center(

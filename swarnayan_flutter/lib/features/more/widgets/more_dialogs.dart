@@ -68,13 +68,13 @@ class GlassDialogWrapper extends StatelessWidget {
                         style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                        icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                 ),
-                const Divider(color: AppColors.border, height: 1),
+                 Divider(color: AppColors.border, height: 1),
                 // Scrollable Content
                 Flexible(
                   child: SingleChildScrollView(
@@ -84,7 +84,7 @@ class GlassDialogWrapper extends StatelessWidget {
                   ),
                 ),
                 if (actions != null) ...[
-                  const Divider(color: AppColors.border, height: 1),
+                   Divider(color: AppColors.border, height: 1),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     child: Row(
@@ -148,7 +148,7 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+           SnackBar(
             content: Text('Profile updated successfully!'),
             backgroundColor: AppColors.success,
           ),
@@ -318,7 +318,7 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+           SnackBar(
             content: Text('Company settings saved successfully!'),
             backgroundColor: AppColors.success,
           ),
@@ -902,11 +902,11 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                                    icon:  Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
                                     onPressed: () => setState(() => _beginEdit(item)),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.toggle_off_rounded, size: 18, color: AppColors.error),
+                                    icon:  Icon(Icons.toggle_off_rounded, size: 18, color: AppColors.error),
                                     onPressed: item.isActive
                                         ? () async {
                                             await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
@@ -930,7 +930,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
               error: (err, _) => Text('Error: $err', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ),
         ],
@@ -1004,7 +1004,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
               _role,
             );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+           SnackBar(
             content: Text('Staff member updated successfully!'),
             backgroundColor: AppColors.success,
           ),
@@ -1017,7 +1017,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
               _role,
             );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+           SnackBar(
             content: Text('Staff member registered successfully!'),
             backgroundColor: AppColors.success,
           ),
@@ -1164,7 +1164,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                            icon:  Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
                             onPressed: () => _beginEdit(item),
                           ),
                           Switch(
@@ -1180,7 +1180,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
               error: (err, _) => Text('Error: $err', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ),
         ],
@@ -1218,7 +1218,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_newPasswordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match!'), backgroundColor: AppColors.error),
+         SnackBar(content: Text('Passwords do not match!'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -1231,7 +1231,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+           SnackBar(
             content: Text('Password changed successfully!'),
             backgroundColor: AppColors.success,
           ),
@@ -1325,7 +1325,7 @@ class AboutDetailsDialog extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primary, width: 2),
                   ),
-                  child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 40),
+                  child:  Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 40),
                 ),
                 const SizedBox(height: 16),
                 Text('PayPulse', style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold)),
@@ -1336,7 +1336,7 @@ class AboutDetailsDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Divider(color: AppColors.border),
+           Divider(color: AppColors.border),
           const SizedBox(height: 16),
           Text('DEVELOPED BY', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.0)),
           const SizedBox(height: 6),
@@ -1374,7 +1374,7 @@ class HelpSupportDialog extends StatelessWidget {
           const SizedBox(height: 16),
           _supportRow(Icons.access_time_rounded, 'Operational Hours', '10:00 AM - 08:00 PM (Mon - Sat)'),
           const SizedBox(height: 24),
-          const Divider(color: AppColors.border),
+           Divider(color: AppColors.border),
           const SizedBox(height: 16),
           Text(
             'In case of server connectivity issues, please check your network connection or verify settings with the administrator.',

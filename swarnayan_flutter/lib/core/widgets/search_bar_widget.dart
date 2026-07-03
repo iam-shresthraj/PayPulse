@@ -39,7 +39,7 @@ class SearchBarWidget extends StatelessWidget {
           hintStyle: AppTextStyles.bodyMd.copyWith(
             color: AppColors.onSurfaceDim,
           ),
-          prefixIcon: const Padding(
+          prefixIcon:  Padding(
             padding: EdgeInsets.only(left: 16, right: 8),
             child: Icon(
               Icons.search_rounded,

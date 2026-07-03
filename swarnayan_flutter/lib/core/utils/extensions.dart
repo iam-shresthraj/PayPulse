@@ -41,7 +41,7 @@ extension BuildContextExtensions on BuildContext {
         backgroundColor: AppColors.surfaceContainer,
         actions: [
           IconButton(
-            icon: const Icon(Icons.close, color: AppColors.onSurfaceMuted, size: 18),
+            icon:  Icon(Icons.close, color: AppColors.onSurfaceMuted, size: 18),
             onPressed: () {
               ScaffoldMessenger.of(this).clearMaterialBanners();
             },

@@ -24,12 +24,29 @@ import '../more/company_provider.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  List<double> _calculateWeeklySales(List<Invoice> invoices) {
+    final weeklySales = List.filled(7, 0.0);
+    final now = DateTime.now();
+    // Start of current week (Sunday)
+    final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
+
+    for (final inv in invoices) {
+      final diff = inv.invoiceDate.difference(startOfWeek).inDays;
+      if (diff >= 0 && diff < 7) {
+        final weekdayIndex = inv.invoiceDate.weekday % 7; // Sunday = 0, Monday = 1, etc.
+        weeklySales[weekdayIndex] += inv.finalPayable;
+      }
+    }
+    return weeklySales;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final invoicesState = ref.watch(invoicesProvider);
     final customersState = ref.watch(customersProvider);
     final ratesState = ref.watch(dailyRatesProvider);
     final topPadding = MediaQuery.of(context).padding.top;
+    final isWide = MediaQuery.of(context).size.width >= 850;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -60,16 +77,42 @@ class HomeScreen extends ConsumerWidget {
           final totalDue = activeInvoices.fold(0.0, (sum, i) => sum + i.balanceDue);
           final dueClientsCount = activeInvoices.where((i) => i.balanceDue > 0.05).map((i) => i.customerId).toSet().length;
 
-          // Total Invoices this month
+          // Invoices this month
           final monthInvoices = activeInvoices
               .where((i) => i.invoiceDate.year == now.year && i.invoiceDate.month == now.month)
               .toList();
+
+          // Monthly Revenue (FinalPayable sum this month)
+          final monthRevenue = monthInvoices.fold(0.0, (sum, i) => sum + i.finalPayable);
 
           // Live Gold Rate
           final latestRate = ratesState.value != null && ratesState.value!.isNotEmpty
               ? ratesState.value!.first
               : null;
-          final double goldRate = latestRate?.rateGold22K ?? 6850.0;
+
+          // Weekly sales trend
+          final weeklySales = _calculateWeeklySales(activeInvoices);
+
+          if (isWide) {
+            return customersState.when(
+              data: (clients) => _buildWebDashboard(
+                context: context,
+                ref: ref,
+                sales: todaySales,
+                collection: todayCollection,
+                dues: totalDue,
+                dueCount: dueClientsCount,
+                invoicesCount: monthInvoices.length,
+                monthRevenue: monthRevenue,
+                weeklySales: weeklySales,
+                latestRate: latestRate,
+                activeInvoices: activeInvoices,
+                customers: clients,
+              ),
+              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              error: (err, _) => Center(child: Text('Error: $err', style: TextStyle(color: AppColors.error))),
+            );
+          }
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -83,55 +126,55 @@ class HomeScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
               padding: const EdgeInsets.only(bottom: 100),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: topPadding + 8),
-                // ── Top Bar ──
-                const AppHeader(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: topPadding + 8),
+                  // ── Top Bar ──
+                  const AppHeader(),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // ── Stat Cards 2×2 ──
-                _buildStatCards(
-                  sales: todaySales,
-                  collection: todayCollection,
-                  dues: totalDue,
-                  dueCount: dueClientsCount,
-                  invoicesCount: monthInvoices.length,
-                ),
+                  // ── Stat Cards 2×2 ──
+                  _buildStatCards(
+                    sales: todaySales,
+                    collection: todayCollection,
+                    dues: totalDue,
+                    dueCount: dueClientsCount,
+                    invoicesCount: monthInvoices.length,
+                  ),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                // ── Quick Actions ──
-                const SectionHeader(title: 'Quick Actions'),
-                const SizedBox(height: 16),
-                _buildQuickActions(context),
+                  // ── Quick Actions ──
+                  const SectionHeader(title: 'Quick Actions'),
+                  const SizedBox(height: 16),
+                  _buildQuickActions(context),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                // ── Live Gold Rate ──
-                _buildGoldRateBanner(latestRate),
+                  // ── Live Gold Rate ──
+                  _buildGoldRateBanner(latestRate),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                // ── Recent Invoices ──
-                SectionHeader(
-                  title: 'Recent Invoices',
-                  actionText: 'View All',
-                  onAction: () => context.go('/more/records'),
-                ),
-                const SizedBox(height: 16),
-                customersState.when(
-                  data: (clients) => _buildRecentInvoices(activeInvoices, clients, context, ref),
-                  loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                  error: (_, __) => const SizedBox(),
-                ),
-              ],
+                  // ── Recent Invoices ──
+                  SectionHeader(
+                    title: 'Recent Invoices',
+                    actionText: 'View All',
+                    onAction: () => context.go('/more/records'),
+                  ),
+                  const SizedBox(height: 16),
+                  customersState.when(
+                    data: (clients) => _buildRecentInvoices(activeInvoices, clients, context, ref),
+                    loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    error: (_, __) => const SizedBox(),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-        loading: () => const Center(
+          );
+        },
+        loading: () =>  Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (err, _) => Center(
@@ -144,7 +187,591 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildWebDashboard({
+    required BuildContext context,
+    required WidgetRef ref,
+    required double sales,
+    required double collection,
+    required double dues,
+    required int dueCount,
+    required int invoicesCount,
+    required double monthRevenue,
+    required List<double> weeklySales,
+    required DailyRate? latestRate,
+    required List<Invoice> activeInvoices,
+    required List<dynamic> customers,
+  }) {
+    final progressRatio = sales > 0 ? (collection / sales).clamp(0.0, 1.0) : 0.0;
 
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Header Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Dashboard',
+                    style: AppTextStyles.headlineLg.copyWith(
+                      color: AppColors.onBackground,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Plan, prioritize, and accomplish your tasks with ease.',
+                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => context.go('/billing'),
+                    icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                    label: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/customers/add'),
+                    icon: Icon(Icons.person_add_rounded, color: AppColors.primary, size: 18),
+                    label: Text('Add Customer', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // ── Metrics Row (4 Cards) ──
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  title: "Today's Sales",
+                  value: _formatCompact(sales),
+                  subtext: "Today's gross invoice value",
+                  icon: Icons.trending_up_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildMetricCard(
+                  title: "Today's Collection",
+                  value: _formatCompact(collection),
+                  subtext: "Total payments received today",
+                  icon: Icons.account_balance_wallet_rounded,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildMetricCard(
+                  title: "Monthly Revenue",
+                  value: _formatCompact(monthRevenue),
+                  subtext: "$invoicesCount Invoices this month",
+                  icon: Icons.receipt_long_rounded,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildMetricCard(
+                  title: "Due Amount",
+                  value: _formatCompact(dues),
+                  subtext: "From $dueCount pending clients",
+                  icon: Icons.warning_amber_rounded,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // ── Middle Section (Sales Analytics & Rates/Actions) ──
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Sales Analytics Chart (60% width)
+              Expanded(
+                flex: 3,
+                child: Container(
+                  height: 320,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sales Analytics',
+                        style: AppTextStyles.titleSm.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Expanded(
+                        child: SalesBarChart(weeklySales: weeklySales),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Today's Metal Rates & Quick Actions (40% width)
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _buildWebGoldRateCard(latestRate),
+                    const SizedBox(height: 20),
+                    _buildWebQuickActions(context),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // ── Bottom Section (Sales Progress Gauge & Recent Invoices) ──
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Progress Gauge (40% width)
+              Expanded(
+                flex: 2,
+                child: Container(
+                  height: 350,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Collection Progress',
+                        style: AppTextStyles.titleSm.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ratio of received cash against today\'s sales.',
+                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                      ),
+                      const Spacer(),
+                      Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CustomPaint(
+                              size: const Size(200, 100),
+                              painter: GaugePainter(
+                                progress: progressRatio,
+                                color: AppColors.primary,
+                                trackColor: AppColors.border,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '${(progressRatio * 100).toStringAsFixed(0)}%',
+                                    style: AppTextStyles.displayLg.copyWith(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.onBackground,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Collected Today',
+                                    style: AppTextStyles.labelSm.copyWith(
+                                      color: AppColors.onSurfaceMuted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Recent Invoices List (60% width)
+              Expanded(
+                flex: 3,
+                child: Container(
+                  height: 350,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Recent Invoices',
+                            style: AppTextStyles.titleSm.copyWith(
+                              color: AppColors.onBackground,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.go('/more/records'),
+                            child: Text(
+                              'View All',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: _buildRecentInvoicesList(activeInvoices, customers, context, ref),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required String subtext,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: AppColors.onSurfaceMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  value,
+                  style: AppTextStyles.headlineLg.copyWith(
+                    color: AppColors.onBackground,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 28,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtext,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.onSurfaceDim,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebGoldRateCard(DailyRate? latestRate) {
+    final gold22 = latestRate?.rateGold22K ?? 6850.0;
+    final gold18 = latestRate?.rateGold18K ?? 5610.0;
+    final silver = latestRate?.rateSilver ?? 82.4;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TODAY\'S METAL RATES',
+            style: AppTextStyles.labelMd.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _rateColumn('Gold 22K', gold22, '/gm'),
+              ),
+              Container(width: 1, height: 40, color: AppColors.border),
+              Expanded(
+                child: _rateColumn('Gold 18K', gold18, '/gm'),
+              ),
+              Container(width: 1, height: 40, color: AppColors.border),
+              Expanded(
+                child: _rateColumn('Silver', silver * 1000, '/kg'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebQuickActions(BuildContext context) {
+    final actions = [
+      _QuickAction(Icons.add_circle_outline_rounded, 'New Sale', 0, () => context.go('/billing')),
+      _QuickAction(Icons.person_add_alt_rounded, 'Add Customer', 1, () => context.push('/customers/add')),
+      _QuickAction(Icons.inventory_2_outlined, 'Inventory', 2, () => context.go('/products')),
+      _QuickAction(Icons.payments_outlined, 'Record Book', 3, () => context.go('/more/records')),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'QUICK ACTIONS',
+            style: AppTextStyles.labelMd.copyWith(
+              color: AppColors.onSurfaceMuted,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: actions.map((action) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: action.index < 3 ? 10 : 0),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: action.onTap,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceDim,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(action.icon, color: AppColors.primary, size: 20),
+                            const SizedBox(height: 6),
+                            Text(
+                              action.label,
+                              style: AppTextStyles.bodySm.copyWith(
+                                color: AppColors.onSurface,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentInvoicesList(List<Invoice> invoices, List<dynamic> customers, BuildContext context, WidgetRef ref) {
+    final recent = invoices.take(4).toList();
+
+    if (recent.isEmpty) {
+      return Center(
+        child: Text(
+          'No recent invoices.',
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: recent.length,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, idx) {
+        final inv = recent[idx];
+        final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
+        final customer = customerIndex != -1 
+            ? customers[customerIndex] as Customer 
+            : Customer(id: inv.customerId ?? '', name: 'Client', mobile: '', address: '');
+        
+        final customerName = customer.name;
+        final String badgeStatus = inv.balanceDue <= 0 ? 'PAID' : 'PARTIAL';
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _showInvoiceDetails(context, ref, inv, customer),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            inv.invoiceNumber ?? 'INV',
+                            style: AppTextStyles.cardTitle.copyWith(fontSize: 13),
+                          ),
+                          Text(
+                            '$customerName • ${inv.items.length} Items',
+                            style: AppTextStyles.cardSubtitle.copyWith(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${_formatAmount(inv.finalPayable)}',
+                          style: AppTextStyles.amountMd.copyWith(fontSize: 13, color: AppColors.onBackground),
+                        ),
+                        const SizedBox(height: 4),
+                        StatusBadge(status: badgeStatus),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                     Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.onSurfaceDim,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildStatCards({
     required double sales,
@@ -370,8 +997,8 @@ class HomeScreen extends ConsumerWidget {
           final inv = entry.value;
 
           final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
-          final customer = customerIndex != -1 
-              ? customers[customerIndex] as Customer 
+          final customer = customerIndex != -1
+              ? customers[customerIndex] as Customer
               : Customer(id: inv.customerId ?? '', name: 'Client', mobile: '', address: '');
           final customerName = customer.name;
 
@@ -413,7 +1040,7 @@ class HomeScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(width: 8),
-                  const Icon(
+                   Icon(
                     Icons.chevron_right_rounded,
                     color: AppColors.onSurfaceDim,
                     size: 20,
@@ -492,12 +1119,12 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                      icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                const Divider(color: AppColors.border, height: 24),
+                 Divider(color: AppColors.border, height: 24),
                 Text(
                   'CUSTOMER DETAILS',
                   style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, letterSpacing: 1.0),
@@ -543,7 +1170,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Divider(color: AppColors.border, height: 24),
+                 Divider(color: AppColors.border, height: 24),
                 _summaryRow('Subtotal', '₹${inv.grossAmount.toStringAsFixed(0)}'),
                 if (inv.couponDiscount > 0)
                   _summaryRow('Discount', '-₹${inv.couponDiscount.toStringAsFixed(0)}', isDiscount: true),
@@ -570,7 +1197,7 @@ class HomeScreen extends ConsumerWidget {
                         label: const Text('EDIT BILL'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
+                          side: BorderSide(color: AppColors.primary),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -588,7 +1215,7 @@ class HomeScreen extends ConsumerWidget {
                         label: const Text('PRINT'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
+                          side: BorderSide(color: AppColors.primary),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -639,4 +1266,120 @@ class _QuickAction {
   final int index;
   final VoidCallback onTap;
   const _QuickAction(this.icon, this.label, this.index, this.onTap);
+}
+
+// ── Custom Paint Semi-Circular Gauge Chart ──
+class GaugePainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color trackColor;
+
+  GaugePainter({
+    required this.progress,
+    required this.color,
+    required this.trackColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height);
+    final radius = size.width / 2;
+    const strokeWidth = 14.0;
+
+    final paintTrack = Paint()
+      ..color = trackColor.withValues(alpha: 0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final paintProgress = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Draw track arc (180 degrees)
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+      3.14159265, // Pi (180 degrees)
+      3.14159265, // Pi (180 degrees)
+      false,
+      paintTrack,
+    );
+
+    if (progress > 0) {
+      // Draw progress arc
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+        3.14159265,
+        3.14159265 * progress,
+        false,
+        paintProgress,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// ── Custom Weekly Sales Bar Chart ──
+class SalesBarChart extends StatelessWidget {
+  final List<double> weeklySales;
+  const SalesBarChart({super.key, required this.weeklySales});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    final maxVal = weeklySales.fold(1.0, (m, v) => v > m ? v : m);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: List.generate(7, (index) {
+        final sales = weeklySales[index];
+        final ratio = maxVal > 0 ? (sales / maxVal) : 0.0;
+
+        return Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                sales > 0 ? '₹${(sales / 1000).toStringAsFixed(0)}K' : '',
+                style: AppTextStyles.labelSm.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 9,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: 24,
+                    decoration: BoxDecoration(
+                      color: sales > 0 
+                          ? AppColors.primary 
+                          : AppColors.border.withValues(alpha: 0.3),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    ),
+                    // Set height fractionally
+                    height: ratio > 0 ? (ratio * 160) + 8 : 8,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                days[index],
+                style: AppTextStyles.labelSm.copyWith(
+                  color: AppColors.onSurfaceMuted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
 }

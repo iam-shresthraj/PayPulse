@@ -59,7 +59,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
           backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: const BorderSide(color: AppColors.glassBorder),
+            side:  BorderSide(color: AppColors.glassBorder),
           ),
           title: Text(
             'Cancel Invoice',
@@ -98,7 +98,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
           backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: const BorderSide(color: AppColors.glassBorder),
+            side:  BorderSide(color: AppColors.glassBorder),
           ),
           title: Text(
             'Delete Invoice',
@@ -120,7 +120,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                   try {
                     await ref.read(invoicesProvider.notifier).deleteInvoicePermanently(invoice.id!);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                       SnackBar(
                         content: Text('Invoice deleted permanently.'),
                         backgroundColor: AppColors.error,
                       ),
@@ -146,7 +146,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                   try {
                     await ref.read(invoicesProvider.notifier).deleteInvoice(invoice.id!);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                       SnackBar(
                         content: Text('Invoice moved to bin. You can restore it from the DELETED tab within 24 hours.'),
                         backgroundColor: AppColors.success,
                       ),
@@ -175,7 +175,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
           backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: const BorderSide(color: AppColors.glassBorder),
+            side:  BorderSide(color: AppColors.glassBorder),
           ),
           title: Text(
             'Restore Invoice',
@@ -197,7 +197,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                   try {
                     await ref.read(invoicesProvider.notifier).restoreInvoice(invoice.id!);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                       SnackBar(
                         content: Text('Invoice restored successfully!'),
                         backgroundColor: AppColors.success,
                       ),
@@ -245,7 +245,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.glassBorder),
                     ),
-                    child: const Icon(
+                    child:  Icon(
                       Icons.arrow_back_rounded,
                       color: AppColors.onSurface,
                       size: 20,
@@ -308,7 +308,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                 ? ref.watch(deletedInvoicesProvider).when(
                     data: (deletedList) {
                       if (customersState is! AsyncData) {
-                        return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                        return  Center(child: CircularProgressIndicator(color: AppColors.primary));
                       }
                       final customers = customersState.value!;
 
@@ -413,7 +413,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                           style: AppTextStyles.amountSm.copyWith(color: AppColors.primary),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.restore_rounded, color: AppColors.success, size: 22),
+                                          icon:  Icon(Icons.restore_rounded, color: AppColors.success, size: 22),
                                           onPressed: () => _confirmRestoreInvoice(inv),
                                           tooltip: 'Restore',
                                         ),
@@ -427,13 +427,13 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                         ),
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
                     error: (err, _) => Center(child: Text('Error loading deleted: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
                   )
                 : invoicesState.when(
                     data: (invoicesList) {
                       if (customersState is! AsyncData) {
-                        return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                        return  Center(child: CircularProgressIndicator(color: AppColors.primary));
                       }
                       final customers = customersState.value!;
 
@@ -550,12 +550,12 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                         Row(
                                             children: [
                                               IconButton(
-                                                icon: const Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
+                                                icon:  Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
                                                 onPressed: () => _printInvoice(inv),
                                                 tooltip: 'Print PDF',
                                               ),
                                               IconButton(
-                                                icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
+                                                icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                                                 onPressed: () async {
                                                   final phone = customerIndex != -1 ? customers[customerIndex].mobile : (inv.tempCustomerMobile ?? '');
                                                   final name = customerIndex != -1 ? customers[customerIndex].name : (inv.tempCustomerName ?? 'Customer');
@@ -573,13 +573,13 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                               if (inv.status != 'CANCELLED') ...[
                                               const SizedBox(width: 8),
                                               IconButton(
-                                                icon: const Icon(Icons.cancel_outlined, color: AppColors.error, size: 20),
+                                                icon:  Icon(Icons.cancel_outlined, color: AppColors.error, size: 20),
                                                 onPressed: () => _cancelInvoice(inv),
                                               ),
                                             ],
                                             const SizedBox(width: 8),
                                             IconButton(
-                                              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                                              icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
                                               onPressed: () => _confirmDeleteInvoice(inv),
                                             ),
                                           ],
@@ -594,7 +594,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                         ),
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
                     error: (err, _) => Center(child: Text('Error loading register: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
                   ),
           ),

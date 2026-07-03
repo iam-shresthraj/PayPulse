@@ -82,7 +82,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme:  ColorScheme.dark(
               primary: AppColors.primary,
               onPrimary: Colors.black,
               surface: AppColors.surfaceContainer,
@@ -173,7 +173,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                       Icon(Icons.check_circle_rounded, color: AppColors.primary),
                       const SizedBox(width: 12),
                       Text(
                         widget.customerToEdit != null ? 'Customer updated successfully!' : 'Customer created successfully!',
@@ -230,7 +230,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.glassBorder),
                       ),
-                      child: const Icon(
+                      child:  Icon(
                         Icons.close_rounded,
                         color: AppColors.onSurface,
                         size: 20,
@@ -255,7 +255,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _nameController,
                       label: 'Full Name',
                       hint: 'Enter customer name',
-                      prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.person_outline_rounded, color: AppColors.primary),
                       validator: (v) => Validators.validateRequired(v, 'Name'),
                     ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
 
@@ -265,7 +265,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _mobileController,
                       label: 'Mobile Number',
                       hint: 'Enter 10-digit number',
-                      prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.phone_rounded, color: AppColors.primary),
                       keyboardType: TextInputType.phone,
                       validator: Validators.validateMobile,
                     ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
@@ -276,7 +276,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _emailController,
                       label: 'Email (Optional)',
                       hint: 'Enter email address',
-                      prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.email_outlined, color: AppColors.primary),
                       keyboardType: TextInputType.emailAddress,
                       validator: Validators.validateEmail,
                     ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
@@ -287,7 +287,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _addressController,
                       label: 'Address',
                       hint: 'Enter full address',
-                      prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.location_on_outlined, color: AppColors.primary),
                       maxLines: 3,
                       validator: (v) => Validators.validateRequired(v, 'Address'),
                     ).animate().fadeIn(duration: 300.ms, delay: 250.ms),
@@ -298,7 +298,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _pincodeController,
                       label: 'Pincode',
                       hint: 'Enter 6-digit pincode',
-                      prefixIcon: const Icon(Icons.pin_drop_outlined, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.pin_drop_outlined, color: AppColors.primary),
                       keyboardType: TextInputType.number,
                       onChanged: _lookupPincode,
                       validator: (v) {
@@ -319,7 +319,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                             controller: _cityController,
                             label: 'City / District',
                             hint: 'Auto-filled City',
-                            prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+                            prefixIcon:  Icon(Icons.location_city_outlined, color: AppColors.primary),
                             validator: (v) => Validators.validateRequired(v, 'City'),
                           ),
                         ),
@@ -329,7 +329,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                             controller: _stateController,
                             label: 'State',
                             hint: 'Auto-filled State',
-                            prefixIcon: const Icon(Icons.map_outlined, color: AppColors.primary),
+                            prefixIcon:  Icon(Icons.map_outlined, color: AppColors.primary),
                             validator: (v) => Validators.validateRequired(v, 'State'),
                           ),
                         ),
@@ -342,7 +342,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _panController,
                       label: 'PAN Card (Optional)',
                       hint: 'ABCDE1234F',
-                      prefixIcon: const Icon(Icons.credit_card_rounded, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.credit_card_rounded, color: AppColors.primary),
                       validator: Validators.validatePAN,
                     ).animate().fadeIn(duration: 300.ms, delay: 300.ms),
 
@@ -352,7 +352,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _gstController,
                       label: 'GST Number (Optional)',
                       hint: '22AAAAA1111A1Z1',
-                      prefixIcon: const Icon(Icons.receipt_long_rounded, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.receipt_long_rounded, color: AppColors.primary),
                     ).animate().fadeIn(duration: 300.ms, delay: 320.ms),
 
                     const SizedBox(height: 20),
@@ -361,7 +361,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       controller: _noteController,
                       label: 'Additional Note (Optional)',
                       hint: 'Add custom notes',
-                      prefixIcon: const Icon(Icons.notes_rounded, color: AppColors.primary),
+                      prefixIcon:  Icon(Icons.notes_rounded, color: AppColors.primary),
                       maxLines: 2,
                     ).animate().fadeIn(duration: 300.ms, delay: 340.ms),
 
@@ -388,7 +388,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
+                                 Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
                                 const SizedBox(width: 12),
                                 Text(
                                   Formatters.formatDate(_selectedDate),

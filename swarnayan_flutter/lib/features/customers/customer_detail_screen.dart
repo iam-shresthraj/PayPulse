@@ -81,7 +81,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: AppColors.glassBorder),
                               ),
-                              child: const Icon(
+                              child:  Icon(
                                 Icons.arrow_back_rounded,
                                 color: AppColors.onSurface,
                                 size: 20,
@@ -92,13 +92,13 @@ class CustomerDetailScreen extends ConsumerWidget {
                           Text('Customer Profile', style: AppTextStyles.titleMd),
                           const Spacer(),
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                            icon:  Icon(Icons.edit_outlined, color: AppColors.primary),
                             onPressed: () {
                               context.push('/customers/edit', extra: customer);
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                            icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error),
                             onPressed: () => _confirmDelete(context, ref, customer.name),
                           ),
                         ],
@@ -308,7 +308,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
+                                      icon:  Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
                                       onPressed: () {
                                         final company = ref.read(companyProvider).value;
                                         PdfHelper.generateAndPrintInvoice(
@@ -320,7 +320,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                       tooltip: 'Print PDF',
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
+                                      icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                                       onPressed: () async {
                                         await WhatsAppHelper.shareInvoice(
                                           customerName: customer.name,
@@ -346,11 +346,11 @@ class CustomerDetailScreen extends ConsumerWidget {
                 ),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
             error: (err, _) => Center(child: Text('Error loading invoices: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
         error: (err, _) => Center(child: Text('Error loading customers: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
       ),
     );
@@ -365,7 +365,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: const BorderSide(color: AppColors.glassBorder),
+            side:  BorderSide(color: AppColors.glassBorder),
           ),
           title: Text(
             'Delete Customer',

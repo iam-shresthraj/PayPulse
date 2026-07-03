@@ -38,7 +38,7 @@ class RateManagementScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.glassBorder),
                     ),
-                    child: const Icon(
+                    child:  Icon(
                       Icons.arrow_back_rounded,
                       color: AppColors.onSurface,
                       size: 20,
@@ -49,7 +49,7 @@ class RateManagementScreen extends ConsumerWidget {
                 Text('Rate Management', style: AppTextStyles.titleMd),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.add_rounded, color: AppColors.primary),
+                  icon:  Icon(Icons.add_rounded, color: AppColors.primary),
                   onPressed: () => _showAddRateDialog(context),
                 ),
               ],
@@ -155,7 +155,7 @@ class RateManagementScreen extends ConsumerWidget {
                   },
                 );
               },
-              loading: () => const Center(
+              loading: () =>  Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
               error: (err, _) => Center(

@@ -96,7 +96,7 @@ class GlassDropdown<T> extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Icon(
+                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: AppColors.onSurfaceMuted,
                 ),
@@ -136,7 +136,7 @@ class _GlassDropdownSheet<T> extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer.withValues(alpha: 0.92),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: const Border(
+            border:  Border(
               top: BorderSide(color: AppColors.glassBorder),
               left: BorderSide(color: AppColors.glassBorder),
               right: BorderSide(color: AppColors.glassBorder),
@@ -170,7 +170,7 @@ class _GlassDropdownSheet<T> extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 8),
-              const Divider(color: AppColors.border, height: 1),
+               Divider(color: AppColors.border, height: 1),
               // Items
               Expanded(
                 child: ListView.builder(
@@ -216,7 +216,7 @@ class _GlassDropdownSheet<T> extends StatelessWidget {
                               ),
                             ),
                             if (isSelected)
-                              const Icon(
+                               Icon(
                                 Icons.check_rounded,
                                 color: AppColors.primary,
                                 size: 20,

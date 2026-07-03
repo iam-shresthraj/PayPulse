@@ -8,10 +8,10 @@ import 'package:swarnayan_flutter/main.dart';
 void main() {
   testWidgets('App launches without errors', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(child: SwarnayanApp()),
+      const ProviderScope(child: PayPulseApp()),
     );
 
     // Verify the app renders the home screen
-    expect(find.text('Swarnayan Jewellers'), findsWidgets);
+    expect(find.text('PayPulse'), findsWidgets);
   });
 }

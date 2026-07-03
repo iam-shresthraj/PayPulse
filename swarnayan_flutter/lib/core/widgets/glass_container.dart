@@ -39,7 +39,7 @@ class GlassContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: hasShadow
             ? [
-                const BoxShadow(
+                 BoxShadow(
                   color: AppColors.glassShadow,
                   blurRadius: 40,
                   offset: Offset(0, 20),
@@ -61,7 +61,7 @@ class GlassContainer extends StatelessWidget {
                 color: borderColor ?? AppColors.glassBorder,
                 width: borderWidth,
               ),
-              gradient: const LinearGradient(
+              gradient:  LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: AppColors.glassGradient,

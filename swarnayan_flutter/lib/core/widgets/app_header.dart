@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../../features/auth/auth_provider.dart';
 
 /// Unified header widget used across all tab screens.
-/// Matches the approved home dashboard header:
-/// Avatar circle → time-aware greeting → "Swarnayan Jewellers" → Current Date.
-class AppHeader extends StatelessWidget {
+/// Displays a greeting and the logged-in user's first name.
+class AppHeader extends ConsumerWidget {
   const AppHeader({super.key});
 
   String _greeting() {
@@ -18,24 +19,17 @@ class AppHeader extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    final firstName = user != null && user.name.trim().isNotEmpty
+        ? user.name.trim().split(' ').first
+        : 'User';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 1.5),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2A2A2A), Color(0xFF1A1A1A)],
-              ),
-            ),
-            child: const Icon(Icons.person, color: AppColors.onSurfaceMuted, size: 22),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +42,7 @@ class AppHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'PayPulse',
+                  firstName,
                   style: AppTextStyles.titleMd.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,

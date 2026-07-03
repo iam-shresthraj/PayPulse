@@ -165,7 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 controller: _nameController,
                                 label: 'Full Name',
                                 hint: 'Enter your full name',
-                                prefixIcon: const Icon(Icons.person_outline, color: AppColors.onSurfaceMuted, size: 20),
+                                prefixIcon:  Icon(Icons.person_outline, color: AppColors.onSurfaceMuted, size: 20),
                                 validator: (val) {
                                   if (val == null || val.trim().isEmpty) return 'Name is required';
                                   return null;
@@ -180,7 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: 'Email Address',
                               hint: 'Enter your email address',
                               keyboardType: TextInputType.emailAddress,
-                              prefixIcon: const Icon(Icons.email_outlined, color: AppColors.onSurfaceMuted, size: 20),
+                              prefixIcon:  Icon(Icons.email_outlined, color: AppColors.onSurfaceMuted, size: 20),
                               validator: (val) {
                                 if (val == null || val.isEmpty) return 'Email is required';
                                 if (!val.contains('@')) return 'Please enter a valid email';
@@ -195,7 +195,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: 'Password',
                               hint: 'Enter your password',
                               obscureText: _obscurePassword,
-                              prefixIcon: const Icon(Icons.lock_outlined, color: AppColors.onSurfaceMuted, size: 20),
+                              prefixIcon:  Icon(Icons.lock_outlined, color: AppColors.onSurfaceMuted, size: 20),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,

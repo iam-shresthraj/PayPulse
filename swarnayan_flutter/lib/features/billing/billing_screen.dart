@@ -343,7 +343,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                side: const BorderSide(color: AppColors.glassBorder),
+                side:  BorderSide(color: AppColors.glassBorder),
               ),
               title: Text(
                 'Invoice Ready',
@@ -423,7 +423,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppColors.error),
+                   Icon(Icons.error_outline_rounded, color: AppColors.error),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -577,7 +577,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               controller: _phoneController,
               label: 'Search Customer By Phone/Name',
               hint: 'Type mobile number or customer name...',
-              prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
+              prefixIcon:  Icon(Icons.phone_rounded, color: AppColors.primary),
               keyboardType: TextInputType.phone,
               onChanged: (val) => _onPhoneChanged(val, ref),
               onFieldSubmitted: (val) {
@@ -589,7 +589,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               },
               suffixIcon: (billing.customerName != null || _phoneController.text.isNotEmpty)
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColors.onSurfaceDim, size: 18),
+                      icon:  Icon(Icons.clear, color: AppColors.onSurfaceDim, size: 18),
                       onPressed: () {
                         _phoneController.clear();
                         _nameController.clear();
@@ -650,7 +650,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       child: Container(
                         color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
                         child: ListTile(
-                          leading: const Icon(Icons.person, color: AppColors.primary, size: 20),
+                          leading:  Icon(Icons.person, color: AppColors.primary, size: 20),
                           title: Text(c.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
                           subtitle: Text(c.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
                           onTap: () {
@@ -775,7 +775,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.cancel_rounded, color: AppColors.error, size: 22),
+                    icon:  Icon(Icons.cancel_rounded, color: AppColors.error, size: 22),
                     onPressed: () {
                       _phoneController.clear();
                       _nameController.clear();
@@ -884,7 +884,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                        icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
                         onPressed: () => ref.read(billingProvider.notifier).removeProduct(i),
                       ),
                     ],
@@ -943,7 +943,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
+                   Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     invoiceTag,
@@ -954,7 +954,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ),
                   if (!isEditing) ...[
                     const SizedBox(width: 6),
-                    const Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
+                     Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
                   ],
                 ],
               ),
@@ -973,7 +973,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     builder: (context, child) {
                       return Theme(
                         data: ThemeData.dark().copyWith(
-                          colorScheme: const ColorScheme.dark(
+                          colorScheme:  ColorScheme.dark(
                             primary: AppColors.primary,
                             onPrimary: AppColors.onBackground,
                             surface: AppColors.background,
@@ -999,7 +999,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
+                       Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
                       const SizedBox(width: 8),
                       Text(
                         DateFormat('dd MMM yyyy').format(billing.invoiceDate),
@@ -1014,7 +1014,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
+                icon:  Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
                 tooltip: 'Refresh Billing Session',
                 onPressed: () {
                   ref.read(billingProvider.notifier).reset();
@@ -1062,7 +1062,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: const BorderSide(color: AppColors.glassBorder),
+            side:  BorderSide(color: AppColors.glassBorder),
           ),
           title: Text(
             'Edit Invoice Number',
@@ -1147,7 +1147,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   child: SizedBox(
                     height: 52,
                     child: _isValidatingCoupon
-                        ? const Center(
+                        ?  Center(
                             child: Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: SizedBox(
@@ -1204,7 +1204,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  const Icon(Icons.local_offer_rounded, color: AppColors.primary, size: 20),
+                   Icon(Icons.local_offer_rounded, color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1230,7 +1230,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.cancel_rounded, color: AppColors.onSurfaceDim, size: 20),
+                    icon:  Icon(Icons.cancel_rounded, color: AppColors.onSurfaceDim, size: 20),
                     onPressed: () {
                       ref.read(billingProvider.notifier).removeCoupon();
                     },
@@ -1327,7 +1327,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ),
 
           const SizedBox(height: 20),
-          const Divider(color: AppColors.border, height: 1),
+           Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 16),
 
           Row(
@@ -1490,7 +1490,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               keyboardType: TextInputType.number,
               textAlign: TextAlign.right,
               style: AppTextStyles.amountMd.copyWith(color: AppColors.onBackground),
-              decoration: const InputDecoration(
+              decoration:  InputDecoration(
                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -1517,7 +1517,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer.withValues(alpha: 0.9),
-            border: const Border(
+            border:  Border(
               top: BorderSide(color: AppColors.glassBorder, width: 1),
             ),
           ),
@@ -1534,7 +1534,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 if (billing.discountAmount > 0)
                   _summaryRow('Coupon Discount', -billing.discountAmount, isDiscount: true),
                 _summaryRow('Estimated GST (3%)', billing.totalTax),
-                const Padding(
+                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 4),
                   child: Divider(color: AppColors.border, height: 1),
                 ),
@@ -1563,7 +1563,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                 style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 11),
                               )
                             else
-                              const Icon(
+                               Icon(
                                 Icons.check_circle_outline_rounded,
                                 color: AppColors.success,
                                 size: 12,
@@ -1783,7 +1783,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
   void _submit() {
     if (_selectedProduct == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a product.'), backgroundColor: AppColors.error),
+         SnackBar(content: Text('Please select a product.'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -1798,13 +1798,13 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
 
     if (qty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quantity must be greater than 0.'), backgroundColor: AppColors.error),
+         SnackBar(content: Text('Quantity must be greater than 0.'), backgroundColor: AppColors.error),
       );
       return;
     }
     if (weight <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gross weight must be greater than 0.'), backgroundColor: AppColors.error),
+         SnackBar(content: Text('Gross weight must be greater than 0.'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -1844,7 +1844,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
     final name = _newProductNameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product name is required.'), backgroundColor: AppColors.error),
+         SnackBar(content: Text('Product name is required.'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -1896,7 +1896,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.90,
-      decoration: const BoxDecoration(
+      decoration:  BoxDecoration(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
@@ -1963,7 +1963,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                             controller: _searchController,
                             label: 'Select Product',
                             hint: 'Type product name to search...',
-                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                            prefixIcon:  Icon(Icons.search_rounded, color: AppColors.primary),
                             onFieldSubmitted: (_) => _qtyFocusNode.requestFocus(),
                             onChanged: (val) {
                               final query = val.trim().toLowerCase();
@@ -2034,7 +2034,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                                     child: Container(
                                       color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
                                       child: ListTile(
-                                        leading: const Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
+                                        leading:  Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
                                         title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
                                         subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
                                         onTap: () {
@@ -2356,7 +2356,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                   ),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
               error: (err, _) => Center(child: Text('Error loading inventory: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
             ),
           ),
@@ -2505,7 +2505,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_rounded, color: AppColors.success),
+                       Icon(Icons.check_circle_rounded, color: AppColors.success),
                       const SizedBox(width: 12),
                       Text(
                         'Added "${matched.name}" to bill!',
@@ -2537,7 +2537,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: AppColors.error),
+                       Icon(Icons.error_outline_rounded, color: AppColors.error),
                       const SizedBox(width: 12),
                       Text(
                         'HUID/ID "$trimmed" not found in inventory.',
@@ -2573,7 +2573,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 44),
+               Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 44),
               const SizedBox(height: 16),
               Text('Barcode / HUID Scanner', style: AppTextStyles.titleLg),
               const SizedBox(height: 8),

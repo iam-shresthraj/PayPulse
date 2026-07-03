@@ -96,7 +96,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                       Icon(Icons.check_circle_rounded, color: AppColors.primary),
                       const SizedBox(width: 12),
                       Text(
                         'Daily rates updated successfully!',
@@ -129,7 +129,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: AppColors.error),
+                       Icon(Icons.error_outline_rounded, color: AppColors.error),
                       const SizedBox(width: 12),
                       Text(
                         'Failed to update rates: $e',
@@ -185,7 +185,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                       ),
                       if (widget.isDismissible)
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceDim),
+                          icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceDim),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                     ],
@@ -217,7 +217,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                         controller: _dateController,
                         label: 'Rate Date',
                         hint: 'Select date',
-                        prefixIcon: const Icon(Icons.calendar_today_rounded, color: AppColors.primary),
+                        prefixIcon:  Icon(Icons.calendar_today_rounded, color: AppColors.primary),
                       ),
                     ),
                   ),
@@ -226,7 +226,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                     controller: _gold22Controller,
                     label: 'Gold 22K (per gram)',
                     hint: '6850',
-                    prefixIcon: const Icon(Icons.trending_up_rounded, color: AppColors.primary),
+                    prefixIcon:  Icon(Icons.trending_up_rounded, color: AppColors.primary),
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Rate is required';
@@ -239,7 +239,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                     controller: _gold18Controller,
                     label: 'Gold 18K (per gram)',
                     hint: '5610',
-                    prefixIcon: const Icon(Icons.trending_up_rounded, color: AppColors.primary),
+                    prefixIcon:  Icon(Icons.trending_up_rounded, color: AppColors.primary),
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Rate is required';
@@ -252,7 +252,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                     controller: _silverController,
                     label: 'Silver (per gram)',
                     hint: '82.4',
-                    prefixIcon: const Icon(Icons.trending_up_rounded, color: AppColors.primary),
+                    prefixIcon:  Icon(Icons.trending_up_rounded, color: AppColors.primary),
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Rate is required';

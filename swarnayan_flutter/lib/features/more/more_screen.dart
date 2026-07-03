@@ -80,7 +80,7 @@ class MoreScreen extends ConsumerWidget {
                         color: AppColors.primary.withValues(alpha: 0.15),
                         border: Border.all(color: AppColors.primary, width: 2),
                       ),
-                      child: const Icon(
+                      child:  Icon(
                         Icons.person,
                         color: AppColors.primary,
                         size: 28,
@@ -285,7 +285,7 @@ class MoreScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
+                     Icon(
                       Icons.logout_rounded,
                       color: AppColors.error,
                       size: 20,
@@ -360,7 +360,7 @@ class MoreScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(
+             Icon(
               Icons.chevron_right_rounded,
               color: AppColors.onSurfaceDim,
               size: 20,

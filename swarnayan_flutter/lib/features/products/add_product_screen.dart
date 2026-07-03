@@ -308,8 +308,8 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                             keyboardType: TextInputType.number,
                             validator: (v) {
                               if (v != null && v.trim().isNotEmpty && double.tryParse(v) == null) {
-                                return 'Enter a valid number';
-                              }
+                                  return 'Enter a valid number';
+                                }
                               return null;
                             },
                           ),
@@ -324,7 +324,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) return 'Stock is required';
                               if (int.tryParse(v) == null) return 'Enter a valid integer';
-                              return null;
+                                return null;
                             },
                           ),
                         ),
@@ -380,18 +380,22 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       hint: 'Optional',
                     ).animate().fadeIn(duration: 300.ms, delay: 340.ms),
                     const SizedBox(height: 32),
-                    PrimaryButton(
-                      label: _isEditing ? 'Save Changes' : 'Save Product',
-                      icon: Icons.check_rounded,
-                      isLoading: _isSaving,
-                      onPressed: _save,
-                    ).animate().fadeIn(duration: 300.ms, delay: 380.ms),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: PrimaryButton(
+            label: 'Save Changes',
+            icon: Icons.check_rounded,
+            isLoading: _isSaving,
+            onPressed: _save,
+          ),
         ),
       ),
     );

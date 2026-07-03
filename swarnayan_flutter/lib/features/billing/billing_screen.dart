@@ -21,6 +21,7 @@ import '../more/coupons_provider.dart';
 import 'billing_provider.dart';
 import 'invoices_provider.dart';
 import '../../core/utils/pdf_helper.dart';
+import '../../core/utils/whatsapp_helper.dart';
 import '../../models/invoice.dart';
 import '../../models/product.dart';
 import '../../models/coupon.dart';
@@ -263,13 +264,72 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ),
       );
 
-      // Launch PDF & print dialog
+      // Launch choice dialog
       final company = ref.read(companyProvider).value;
-      await PdfHelper.generateAndPrintInvoice(
-        invoice: savedInvoice,
-        customer: customer,
-        company: company,
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: AlertDialog(
+              backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                side: const BorderSide(color: AppColors.glassBorder),
+              ),
+              title: Text(
+                'Invoice Ready',
+                style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
+              ),
+              content: Text(
+                'Invoice "${savedInvoice.invoiceNumber}" has been created successfully. Choose an action below.',
+                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Close', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.print_rounded),
+                  label: const Text('Print PDF'),
+                  onPressed: () {
+                    PdfHelper.generateAndPrintInvoice(
+                      invoice: savedInvoice,
+                      customer: customer,
+                      company: company,
+                    );
+                  },
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  label: const Text('WhatsApp Share'),
+                  onPressed: () async {
+                    await WhatsAppHelper.shareInvoice(
+                      customerName: customer.name,
+                      customerPhone: customer.mobile,
+                      invoiceNumber: savedInvoice.invoiceNumber ?? '',
+                      totalAmount: savedInvoice.finalPayable,
+                      balanceDue: savedInvoice.balanceDue,
+                      date: savedInvoice.invoiceDate,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     } catch (e) {
       _showError('Failed to generate invoice: $e');
     } finally {
@@ -1330,9 +1390,12 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
   final _stoneWeightController = TextEditingController(text: '0');
   final _stoneValueController = TextEditingController(text: '0');
   final _discountController = TextEditingController(text: '0');
+  final _searchController = TextEditingController();
 
   Product? _selectedProduct;
   String _makingChargeType = 'FIXED';
+  List<Product> _suggestions = [];
+  bool _showSuggestions = false;
 
   @override
   void dispose() {
@@ -1343,6 +1406,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
     _stoneWeightController.dispose();
     _stoneValueController.dispose();
     _discountController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -1473,18 +1537,60 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      GlassDropdown<Product>(
+                      GlassInput(
+                        controller: _searchController,
                         label: 'Select Product',
-                        hint: 'Choose product item',
-                        value: _selectedProduct,
-                        items: activeProducts.map((p) {
-                          return DropdownMenuItem<Product>(
-                            value: p,
-                            child: Text('${p.name} (${p.purity} • ${p.stockUnits} left)'),
-                          );
-                        }).toList(),
-                        onChanged: _onProductSelected,
+                        hint: 'Type product name to search...',
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                        onChanged: (val) {
+                          final query = val.trim().toLowerCase();
+                          if (query.isEmpty) {
+                            setState(() {
+                              _suggestions = [];
+                              _showSuggestions = false;
+                            });
+                            return;
+                          }
+                          final filtered = activeProducts.where((p) =>
+                            p.name.toLowerCase().contains(query) ||
+                            (p.id?.toLowerCase().contains(query) ?? false) ||
+                            (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
+                            (p.purity.toLowerCase().contains(query)) ||
+                            (p.category.toLowerCase().contains(query))
+                          ).toList();
+                          setState(() {
+                            _suggestions = filtered;
+                            _showSuggestions = true;
+                          });
+                        },
                       ),
+                      if (_showSuggestions && _suggestions.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        GlassCard(
+                          animationIndex: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: ListView(
+                              shrinkWrap: true,
+                              padding: EdgeInsets.zero,
+                              children: _suggestions.map((p) => ListTile(
+                                leading: const Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
+                                title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                                subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                onTap: () {
+                                  _onProductSelected(p);
+                                  _searchController.text = p.name;
+                                  setState(() {
+                                    _suggestions = [];
+                                    _showSuggestions = false;
+                                  });
+                                },
+                              )).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Row(
                         children: [

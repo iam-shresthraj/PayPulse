@@ -291,6 +291,27 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }
       }
 
+      // Check if it's the latest active invoice to rollback the counter
+      final latestActiveRes = await _client
+          .from('invoices')
+          .select('invoice_number')
+          .isFilter('deleted_at', null)
+          .order('invoice_date', ascending: false)
+          .limit(1);
+
+      if (latestActiveRes.isNotEmpty && latestActiveRes.first['invoice_number'] == invoice.invoiceNumber) {
+        final settingsData = await _client.from('company_settings').select().maybeSingle();
+        if (settingsData != null) {
+          final int currentCounter = settingsData['invoice_current_counter'] ?? 0;
+          if (currentCounter > 0) {
+            await _client
+                .from('company_settings')
+                .update({'invoice_current_counter': currentCounter - 1})
+                .eq('id', settingsData['id']);
+          }
+        }
+      }
+
       // Soft delete in DB
       await _client
           .from('invoices')
@@ -347,9 +368,17 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }).eq('id', invoice.customerId!);
       }
 
+      // Generate a new latest invoice number
+      final newInvoiceNum = await _generateInvoiceNumber();
+
       final data = await _client
           .from('invoices')
-          .update({'deleted_at': null, 'status': 'PAID'})
+          .update({
+            'deleted_at': null,
+            'status': 'PAID',
+            'invoice_number': newInvoiceNum,
+            'invoice_date': DateTime.now().toIso8601String(),
+          })
           .eq('id', id)
           .select()
           .single();

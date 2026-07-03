@@ -69,7 +69,7 @@ class GlassInput extends StatelessWidget {
           validator: validator,
           onChanged: onChanged,
           onTap: onTap,
-          textInputAction: textInputAction,
+          textInputAction: textInputAction ?? (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
           textAlign: textAlign,
           style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
           decoration: InputDecoration(

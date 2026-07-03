@@ -10,6 +10,7 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/search_bar_widget.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/utils/pdf_helper.dart';
+import '../../core/utils/whatsapp_helper.dart';
 import '../billing/invoices_provider.dart';
 import '../customers/customers_provider.dart';
 import '../../models/invoice.dart';
@@ -333,11 +334,12 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                             final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
                             final customerName = customerIndex != -1 ? customers[customerIndex].name : 'Unknown';
 
-                            // Calculate remaining minutes from deletedAt
+                            // Calculate remaining minutes from deletedAt (24 hours)
                             final deletedAt = inv.deletedAt ?? inv.invoiceDate;
                             final diff = DateTime.now().difference(deletedAt);
-                            final remainingMins = 60 - diff.inMinutes;
-                            final countdownText = remainingMins > 0 ? 'Purges in ${remainingMins}m' : 'Purging soon';
+                            final remainingMins = 24 * 60 - diff.inMinutes;
+                            final remainingHours = (remainingMins / 60).ceil();
+                            final countdownText = remainingMins > 0 ? 'Purges in ${remainingHours}h' : 'Purging soon';
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
@@ -520,12 +522,29 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                           ],
                                         ),
                                         Row(
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
-                                              onPressed: () => _printInvoice(inv),
-                                            ),
-                                            if (inv.status != 'CANCELLED') ...[
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
+                                                onPressed: () => _printInvoice(inv),
+                                                tooltip: 'Print PDF',
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
+                                                onPressed: () async {
+                                                  final phone = customerIndex != -1 ? customers[customerIndex].mobile : (inv.tempCustomerMobile ?? '');
+                                                  final name = customerIndex != -1 ? customers[customerIndex].name : (inv.tempCustomerName ?? 'Customer');
+                                                  await WhatsAppHelper.shareInvoice(
+                                                    customerName: name,
+                                                    customerPhone: phone,
+                                                    invoiceNumber: inv.invoiceNumber ?? '',
+                                                    totalAmount: inv.finalPayable,
+                                                    balanceDue: inv.balanceDue,
+                                                    date: inv.invoiceDate,
+                                                  );
+                                                },
+                                                tooltip: 'Share on WhatsApp',
+                                              ),
+                                              if (inv.status != 'CANCELLED') ...[
                                               const SizedBox(width: 8),
                                               IconButton(
                                                 icon: const Icon(Icons.cancel_outlined, color: AppColors.error, size: 20),

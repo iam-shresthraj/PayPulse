@@ -402,20 +402,22 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                     ),
 
                     const SizedBox(height: 32),
-
-                    PrimaryButton(
-                      label: 'Save Changes',
-                      icon: Icons.check_rounded,
-                      isLoading: _isSaving,
-                      onPressed: _save,
-                    ).animate().fadeIn(duration: 300.ms, delay: 360.ms),
-
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: PrimaryButton(
+            label: 'Save Changes',
+            icon: Icons.check_rounded,
+            isLoading: _isSaving,
+            onPressed: _save,
+          ),
         ),
       ),
     );

@@ -80,24 +80,19 @@ class GlassDialogWrapper extends StatelessWidget {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
                     physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        child,
-                        if (actions != null) ...[
-                          const SizedBox(height: 24),
-                          const Divider(color: AppColors.border, height: 1),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: actions!,
-                          ),
-                        ],
-                      ],
-                    ),
+                    child: child,
                   ),
                 ),
+                if (actions != null) ...[
+                  const Divider(color: AppColors.border, height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: actions!,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

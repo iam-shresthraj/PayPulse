@@ -10,6 +10,9 @@ import '../../core/widgets/status_badge.dart';
 import '../../core/utils/formatters.dart';
 import 'customers_provider.dart';
 import '../billing/invoices_provider.dart';
+import '../more/company_provider.dart';
+import '../../core/utils/pdf_helper.dart';
+import '../../core/utils/whatsapp_helper.dart';
 import 'package:go_router/go_router.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
@@ -298,6 +301,38 @@ class CustomerDetailScreen extends ConsumerWidget {
                                     Text('₹${Formatters.formatCurrency(inv.finalPayable).replaceFirst('₹', '')}', style: AppTextStyles.amountMd),
                                     const SizedBox(height: 4),
                                     StatusBadge(status: inv.balanceDue <= 0 ? 'PAID' : 'PARTIAL'),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
+                                      onPressed: () {
+                                        final company = ref.read(companyProvider).value;
+                                        PdfHelper.generateAndPrintInvoice(
+                                          invoice: inv,
+                                          customer: customer,
+                                          company: company,
+                                        );
+                                      },
+                                      tooltip: 'Print PDF',
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
+                                      onPressed: () async {
+                                        await WhatsAppHelper.shareInvoice(
+                                          customerName: customer.name,
+                                          customerPhone: customer.mobile,
+                                          invoiceNumber: inv.invoiceNumber ?? '',
+                                          totalAmount: inv.finalPayable,
+                                          balanceDue: inv.balanceDue,
+                                          date: inv.invoiceDate,
+                                        );
+                                      },
+                                      tooltip: 'Share on WhatsApp',
+                                    ),
                                   ],
                                 ),
                               ],

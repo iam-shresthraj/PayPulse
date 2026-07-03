@@ -1328,7 +1328,7 @@ class AboutDetailsDialog extends StatelessWidget {
                   child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 40),
                 ),
                 const SizedBox(height: 16),
-                Text('Swarnayan Jewellers', style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold)),
+                Text('PayPulse', style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold)),
                 Text('Billing & Inventory Management System', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
                 const SizedBox(height: 8),
                 Text('Version 1.0.0', style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),

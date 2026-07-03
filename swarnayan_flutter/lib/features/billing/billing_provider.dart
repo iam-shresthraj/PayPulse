@@ -314,6 +314,17 @@ class BillingNotifier extends StateNotifier<BillingState> {
       if (payment.method == 'CARD') card = payment.amount;
     }
 
+    Coupon? coupon;
+    if (invoice.couponCode != null && invoice.couponCode!.isNotEmpty) {
+      coupon = Coupon(
+        id: '',
+        code: invoice.couponCode!,
+        discountType: 'FIXED',
+        discountValue: invoice.couponDiscount,
+        expiryDate: DateTime.now(),
+      );
+    }
+
     state = BillingState(
       customerId: invoice.customerId ?? '',
       customerName: invoice.tempCustomerName ?? customer.name,
@@ -321,6 +332,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
       customerTier: _getCustomerTier(customer.totalPurchaseAmount),
       products: products,
       couponCode: invoice.couponCode,
+      appliedCoupon: coupon,
       invoiceDate: invoice.invoiceDate,
       editingInvoice: invoice,
       cashAmount: cash,

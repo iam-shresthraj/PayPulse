@@ -129,7 +129,7 @@ class CouponsNotifier extends StateNotifier<AsyncValue<List<Coupon>>> {
     }
   }
 
-  Future<Coupon> validateCouponCode(String code, double billAmount) async {
+  Future<Coupon> validateCouponCode(String code, double billAmount, {DateTime? date}) async {
     final data = await _client
         .from('coupons')
         .select()
@@ -145,11 +145,13 @@ class CouponsNotifier extends StateNotifier<AsyncValue<List<Coupon>>> {
       throw Exception('Coupon is inactive.');
     }
 
-    if (coupon.expiryDate.isBefore(DateTime.now())) {
+    final validationDate = date ?? DateTime.now();
+
+    if (coupon.expiryDate.isBefore(validationDate)) {
       throw Exception('Coupon has expired.');
     }
 
-    if (coupon.startsAt != null && coupon.startsAt!.isAfter(DateTime.now())) {
+    if (coupon.startsAt != null && coupon.startsAt!.isAfter(validationDate)) {
       throw Exception('Coupon campaign has not started yet.');
     }
 

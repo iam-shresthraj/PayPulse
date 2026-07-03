@@ -137,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    'SWARNAYAN',
+                                    'PAYPULSE',
                                     style: AppTextStyles.displayLg.copyWith(
                                       color: AppColors.primary,
                                       fontSize: 32,
@@ -147,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'SHOWROOM MANAGEMENT CONSOLE',
+                                    'BILLING & INVENTORY SYSTEM',
                                     style: AppTextStyles.labelMd.copyWith(
                                       color: AppColors.onSurfaceMuted,
                                       fontSize: 9,

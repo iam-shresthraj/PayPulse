@@ -21,7 +21,7 @@ class WhatsAppHelper {
     final message = '''
 Hello $name,
 
-Thank you for shopping at *Swarnayan Jewellers*! 🙏
+Thank you for shopping at *PayPulse*! 🙏
 Here is your invoice summary:
 
 *Invoice No:* $invoiceNumber

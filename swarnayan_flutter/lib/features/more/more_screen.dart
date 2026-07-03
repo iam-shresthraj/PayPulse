@@ -97,7 +97,7 @@ class MoreScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_formatRole(user?.role ?? 'OWNER')} • Swarnayan Jewellers',
+                            '${_formatRole(user?.role ?? 'OWNER')} • PayPulse',
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.onSurfaceMuted,
                             ),

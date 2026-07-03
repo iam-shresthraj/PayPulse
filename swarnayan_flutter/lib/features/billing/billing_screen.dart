@@ -47,10 +47,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _dueAmountController = TextEditingController();
   final _addressController = TextEditingController();
   final _panController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _gstController = TextEditingController();
+
   final _customerPhoneFocusNode = FocusNode();
   final _customerNameFocusNode = FocusNode();
   final _customerAddressFocusNode = FocusNode();
   final _customerPanFocusNode = FocusNode();
+  final _customerEmailFocusNode = FocusNode();
+  final _customerGstFocusNode = FocusNode();
   final _addItemButtonFocusNode = FocusNode();
   final _cashFocusNode = FocusNode();
   final _upiFocusNode = FocusNode();
@@ -100,10 +105,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _dueAmountController.dispose();
     _addressController.dispose();
     _panController.dispose();
+    _emailController.dispose();
+    _gstController.dispose();
     _customerPhoneFocusNode.dispose();
     _customerNameFocusNode.dispose();
     _customerAddressFocusNode.dispose();
     _customerPanFocusNode.dispose();
+    _customerEmailFocusNode.dispose();
+    _customerGstFocusNode.dispose();
     _addItemButtonFocusNode.dispose();
     _cashFocusNode.dispose();
     _upiFocusNode.dispose();
@@ -117,6 +126,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   void _onPhoneChanged(String val, WidgetRef ref) {
+    final billing = ref.read(billingProvider);
+    if (billing.customerId != null && billing.customerId != '' && billing.customerPhone != val.trim()) {
+      ref.read(billingProvider.notifier).clearCustomer();
+    }
+
     final customersState = ref.read(customersProvider);
     if (customersState is AsyncData) {
       final customers = customersState.value!;
@@ -182,6 +196,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           name: billing.customerName ?? _nameController.text.trim(),
           address: _addressController.text.trim(),
           panCard: _panController.text.trim(),
+          email: _emailController.text.trim(),
+          gstNumber: _gstController.text.trim().toUpperCase(),
           totalPurchaseAmount: 0.0,
           totalInvoices: 0,
         );
@@ -296,6 +312,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
       // Reset form
       _phoneController.clear();
+      _nameController.clear();
+      _addressController.clear();
+      _panController.clear();
+      _emailController.clear();
+      _gstController.clear();
       _cashController.clear();
       _upiController.clear();
       _cardController.clear();
@@ -426,8 +447,51 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     // Listen to billing updates to keep text fields in sync
     ref.listen<BillingState>(billingProvider, (prev, next) {
-      if (next.customerPhone == null && _phoneController.text.isNotEmpty) {
-        _phoneController.clear();
+      if (prev?.editingInvoice?.id != next.editingInvoice?.id ||
+          prev?.customerId != next.customerId ||
+          prev?.customerPhone != next.customerPhone) {
+        
+        _phoneController.text = next.customerPhone ?? '';
+        
+        final custId = next.customerId;
+        if (custId != null && custId.isNotEmpty) {
+          final customers = ref.read(customersProvider).value ?? [];
+          final cIdx = customers.indexWhere((c) => c.id == custId);
+          if (cIdx != -1) {
+            final c = customers[cIdx];
+            _nameController.text = c.name;
+            _addressController.text = c.address ?? '';
+            _panController.text = c.panCard ?? '';
+            _emailController.text = c.email ?? '';
+            _gstController.text = c.gstNumber ?? '';
+          } else {
+            _nameController.text = next.customerName ?? '';
+            _addressController.text = next.editingInvoice?.tempCustomerAddress ?? '';
+            _panController.text = '';
+            _emailController.text = '';
+            _gstController.text = '';
+          }
+        } else {
+          _nameController.text = next.customerName ?? '';
+          _addressController.text = next.editingInvoice?.tempCustomerAddress ?? '';
+          _panController.text = '';
+          _emailController.text = '';
+          _gstController.text = '';
+        }
+        
+        _cashController.text = next.cashAmount > 0 ? next.cashAmount.toStringAsFixed(0) : '';
+        _upiController.text = next.upiAmount > 0 ? next.upiAmount.toStringAsFixed(0) : '';
+        _cardController.text = next.cardAmount > 0 ? next.cardAmount.toStringAsFixed(0) : '';
+        
+        if (next.editingInvoice != null) {
+          _receivedFullAmount = next.editingInvoice!.balanceDue <= 0.05;
+          _receivedAmountController.text = next.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
+          _dueAmountController.text = next.editingInvoice!.balanceDue.toStringAsFixed(0);
+        } else {
+          _receivedFullAmount = false;
+          _receivedAmountController.clear();
+          _dueAmountController.clear();
+        }
       }
     });
 
@@ -561,6 +625,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     return Focus(
                       focusNode: node,
                       onFocusChange: (focused) {
+                        if (focused) {
+                          Scrollable.ensureVisible(
+                            context,
+                            duration: const Duration(milliseconds: 100),
+                            alignment: 0.5,
+                          );
+                        }
                         setState(() {});
                       },
                       onKeyEvent: (fNode, event) {
@@ -642,6 +713,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     controller: _panController,
                     label: 'PAN Card (Optional)',
                     hint: 'Enter PAN card number',
+                    onFieldSubmitted: (_) => _customerEmailFocusNode.requestFocus(),
+                  ),
+                  const SizedBox(height: 12),
+                  GlassInput(
+                    focusNode: _customerEmailFocusNode,
+                    controller: _emailController,
+                    label: 'Email (Optional)',
+                    hint: 'customer@email.com',
+                    keyboardType: TextInputType.emailAddress,
+                    onFieldSubmitted: (_) => _customerGstFocusNode.requestFocus(),
+                  ),
+                  const SizedBox(height: 12),
+                  GlassInput(
+                    focusNode: _customerGstFocusNode,
+                    controller: _gstController,
+                    label: 'GST Number (Optional)',
+                    hint: '10AQOPK4039R1ZF',
                     onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
                   ),
                 ],
@@ -686,18 +774,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.star_rounded,
-                      color: AppColors.primary,
-                      size: 18,
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.cancel_rounded, color: AppColors.error, size: 22),
+                    onPressed: () {
+                      _phoneController.clear();
+                      _nameController.clear();
+                      _addressController.clear();
+                      _panController.clear();
+                      _emailController.clear();
+                      _gstController.clear();
+                      ref.read(billingProvider.notifier).clearCustomer();
+                      setState(() {
+                        _showSuggestions = false;
+                        _suggestions = [];
+                      });
+                    },
                   ),
                 ],
               ),
@@ -1080,12 +1171,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           _couponError = null;
                         });
                         try {
-                          final coupon = await ref.read(couponsProvider.notifier).validateCouponCode(code, billing.subtotal);
+                          final coupon = await ref.read(couponsProvider.notifier).validateCouponCode(
+                            code,
+                            billing.subtotal,
+                            date: billing.invoiceDate,
+                          );
                           ref.read(billingProvider.notifier).applyCoupon(coupon);
                           _couponController.clear();
                         } catch (e) {
                           setState(() {
-                            _couponError = 'Invalid coupon or minimum purchase not met.';
+                            _couponError = e.toString().replaceAll('Exception: ', '');
                           });
                         } finally {
                           setState(() => _isValidatingCoupon = false);
@@ -1611,6 +1706,18 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
   final _submitButtonFocusNode = FocusNode();
   List<FocusNode> _productSuggestionFocusNodes = [];
 
+  // Inline New Product Form fields
+  bool _showInlineNewProductForm = false;
+  bool _isCreatingProduct = false;
+  String _newProductCategory = 'GOLD';
+  String _newProductPurity = '22K';
+  final _newProductNameController = TextEditingController();
+  final _newProductStockController = TextEditingController(text: '10');
+  final _newProductHuidController = TextEditingController();
+  final _newProductNameFocusNode = FocusNode();
+  final _newProductStockFocusNode = FocusNode();
+  final _newProductHuidFocusNode = FocusNode();
+
   @override
   void dispose() {
     _qtyController.dispose();
@@ -1631,6 +1738,14 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
     _makingChargeTypeFocusNode.dispose();
     _discountFocusNode.dispose();
     _submitButtonFocusNode.dispose();
+
+    _newProductNameController.dispose();
+    _newProductStockController.dispose();
+    _newProductHuidController.dispose();
+    _newProductNameFocusNode.dispose();
+    _newProductStockFocusNode.dispose();
+    _newProductHuidFocusNode.dispose();
+
     for (final node in _productSuggestionFocusNodes) {
       node.dispose();
     }
@@ -1725,6 +1840,56 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
     Navigator.pop(context);
   }
 
+  Future<void> _createAndSelectNewProduct() async {
+    final name = _newProductNameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product name is required.'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+    
+    final stock = int.tryParse(_newProductStockController.text.trim()) ?? 10;
+    final huid = _newProductHuidController.text.trim();
+    
+    final newProduct = Product(
+      name: name,
+      category: _newProductCategory,
+      purity: _newProductPurity,
+      stockUnits: stock,
+      huidNumber: huid.isEmpty ? null : huid,
+      weight: 0.0,
+      makingChargeValue: 0.0,
+      isActive: true,
+    );
+    
+    setState(() => _isCreatingProduct = true);
+    try {
+      await ref.read(productsProvider.notifier).addProduct(newProduct);
+      
+      final updatedList = ref.read(productsProvider).value ?? [];
+      if (updatedList.isNotEmpty) {
+        final created = updatedList.firstWhere((p) => p.name == name, orElse: () => updatedList.first);
+        _onProductSelected(created);
+        _searchController.text = created.name;
+      }
+      
+      setState(() {
+        _showInlineNewProductForm = false;
+        _newProductNameController.clear();
+        _newProductHuidController.clear();
+      });
+      
+      _qtyFocusNode.requestFocus();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create product: $e'), backgroundColor: AppColors.error),
+      );
+    } finally {
+      setState(() => _isCreatingProduct = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final productsState = ref.watch(productsProvider);
@@ -1752,101 +1917,109 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Product Entry', style: AppTextStyles.titleMd),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(width: 80),
+                Text('Product Entry', style: AppTextStyles.titleMd),
+                if (!_showInlineNewProductForm)
+                  SecondaryButton(
+                    label: '+ Add New',
+                    onPressed: () {
+                      setState(() => _showInlineNewProductForm = true);
+                      _newProductNameFocusNode.requestFocus();
+                    },
+                  )
+                else
+                  const SizedBox(width: 80),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
           Expanded(
             child: productsState.when(
               data: (productsList) {
-                // Only show active products with stock
                 final activeProducts = productsList.where((p) => p.isActive && p.stockUnits > 0).toList();
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      Focus(
-                        onKeyEvent: (node, event) {
-                          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                            if (_productSuggestionFocusNodes.isNotEmpty) {
-                              _productSuggestionFocusNodes.first.requestFocus();
-                              return KeyEventResult.handled;
-                            }
-                          }
-                          return KeyEventResult.ignored;
-                        },
-                        child: GlassInput(
-                          focusNode: _searchFocusNode,
-                          controller: _searchController,
-                          label: 'Select Product',
-                          hint: 'Type product name to search...',
-                          prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
-                          onFieldSubmitted: (_) => _qtyFocusNode.requestFocus(),
-                          onChanged: (val) {
-                            final query = val.trim().toLowerCase();
-                            if (query.isEmpty) {
-                              setState(() {
-                                _suggestions = [];
-                                _showSuggestions = false;
-                              });
-                              return;
-                            }
-                            final filtered = activeProducts.where((p) =>
-                              p.name.toLowerCase().contains(query) ||
-                              (p.id?.toLowerCase().contains(query) ?? false) ||
-                              (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
-                              (p.purity.toLowerCase().contains(query)) ||
-                              (p.category.toLowerCase().contains(query))
-                            ).toList();
-                            setState(() {
-                              _suggestions = filtered;
-                              _showSuggestions = true;
-                              for (final node in _productSuggestionFocusNodes) {
-                                node.dispose();
+                      if (!_showInlineNewProductForm) ...[
+                        Focus(
+                          onKeyEvent: (node, event) {
+                            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                              if (_productSuggestionFocusNodes.isNotEmpty) {
+                                _productSuggestionFocusNodes.first.requestFocus();
+                                return KeyEventResult.handled;
                               }
-                              _productSuggestionFocusNodes = List.generate(filtered.length, (_) => FocusNode());
-                            });
+                            }
+                            return KeyEventResult.ignored;
                           },
+                          child: GlassInput(
+                            focusNode: _searchFocusNode,
+                            controller: _searchController,
+                            label: 'Select Product',
+                            hint: 'Type product name to search...',
+                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                            onFieldSubmitted: (_) => _qtyFocusNode.requestFocus(),
+                            onChanged: (val) {
+                              final query = val.trim().toLowerCase();
+                              if (query.isEmpty) {
+                                setState(() {
+                                  _suggestions = [];
+                                  _showSuggestions = false;
+                                });
+                                return;
+                              }
+                              final filtered = activeProducts.where((p) =>
+                                p.name.toLowerCase().contains(query) ||
+                                (p.id?.toLowerCase().contains(query) ?? false) ||
+                                (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
+                                (p.purity.toLowerCase().contains(query)) ||
+                                (p.category.toLowerCase().contains(query))
+                              ).toList();
+                              setState(() {
+                                _suggestions = filtered;
+                                _showSuggestions = true;
+                                for (final node in _productSuggestionFocusNodes) {
+                                  node.dispose();
+                                }
+                                _productSuggestionFocusNodes = List.generate(filtered.length, (_) => FocusNode());
+                              });
+                            },
+                          ),
                         ),
-                      ),
-                      if (_showSuggestions && _suggestions.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        GlassCard(
-                          animationIndex: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 200),
-                            child: ListView(
-                              shrinkWrap: true,
-                              padding: EdgeInsets.zero,
-                              children: _suggestions.asMap().entries.map((entry) {
-                                final idx = entry.key;
-                                final p = entry.value;
-                                final node = _productSuggestionFocusNodes[idx];
-                                return Focus(
-                                  focusNode: node,
-                                  onFocusChange: (focused) {
-                                    setState(() {});
-                                  },
-                                  onKeyEvent: (fNode, event) {
-                                    if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-                                      _onProductSelected(p);
-                                      _searchController.text = p.name;
-                                      setState(() {
-                                        _suggestions = [];
-                                        _showSuggestions = false;
-                                      });
-                                      _qtyFocusNode.requestFocus();
-                                      return KeyEventResult.handled;
-                                    }
-                                    return KeyEventResult.ignored;
-                                  },
-                                  child: Container(
-                                    color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
-                                    child: ListTile(
-                                      leading: const Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
-                                      title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
-                                      subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                      onTap: () {
+                        if (_showSuggestions && _suggestions.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          GlassCard(
+                            animationIndex: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 200),
+                              child: ListView(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                children: _suggestions.asMap().entries.map((entry) {
+                                  final idx = entry.key;
+                                  final p = entry.value;
+                                  final node = _productSuggestionFocusNodes[idx];
+                                  return Focus(
+                                    focusNode: node,
+                                    onFocusChange: (focused) {
+                                      if (focused) {
+                                        Scrollable.ensureVisible(
+                                          context,
+                                          duration: const Duration(milliseconds: 100),
+                                          alignment: 0.5,
+                                        );
+                                      }
+                                      setState(() {});
+                                    },
+                                    onKeyEvent: (fNode, event) {
+                                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
                                         _onProductSelected(p);
                                         _searchController.text = p.name;
                                         setState(() {
@@ -1854,13 +2027,186 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                                           _showSuggestions = false;
                                         });
                                         _qtyFocusNode.requestFocus();
-                                      },
+                                        return KeyEventResult.handled;
+                                      }
+                                      return KeyEventResult.ignored;
+                                    },
+                                    child: Container(
+                                      color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+                                      child: ListTile(
+                                        leading: const Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
+                                        title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                                        subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                        onTap: () {
+                                          _onProductSelected(p);
+                                          _searchController.text = p.name;
+                                          setState(() {
+                                            _suggestions = [];
+                                            _showSuggestions = false;
+                                          });
+                                          _qtyFocusNode.requestFocus();
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }).toList(),
+                                  );
+                                }).toList(),
+                              ),
                             ),
                           ),
+                        ],
+                      ] else ...[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'NEW PRODUCT DETAILS',
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GlassInput(
+                          focusNode: _newProductNameFocusNode,
+                          controller: _newProductNameController,
+                          label: 'Product Name',
+                          hint: 'Enter product name (e.g. Gold Ring)',
+                          onFieldSubmitted: (_) => _newProductStockFocusNode.requestFocus(),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 4, bottom: 6),
+                                    child: Text('Category', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                  ),
+                                  DropdownButtonFormField<String>(
+                                    value: _newProductCategory,
+                                    dropdownColor: AppColors.surfaceContainer,
+                                    decoration: InputDecoration(
+                                      fillColor: AppColors.surfaceDim,
+                                      filled: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                                    ),
+                                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                                    items: const [
+                                      DropdownMenuItem(value: 'GOLD', child: Text('Gold')),
+                                      DropdownMenuItem(value: 'SILVER', child: Text('Silver')),
+                                      DropdownMenuItem(value: 'DIAMOND', child: Text('Diamond')),
+                                      DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                                    ],
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setState(() {
+                                          _newProductCategory = val;
+                                          if (val == 'SILVER') {
+                                            _newProductPurity = '925';
+                                          } else {
+                                            _newProductPurity = '22K';
+                                          }
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 4, bottom: 6),
+                                    child: Text('Purity', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                  ),
+                                  DropdownButtonFormField<String>(
+                                    value: _newProductPurity,
+                                    dropdownColor: AppColors.surfaceContainer,
+                                    decoration: InputDecoration(
+                                      fillColor: AppColors.surfaceDim,
+                                      filled: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                                    ),
+                                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                                    items: _newProductCategory == 'GOLD'
+                                        ? const [
+                                            DropdownMenuItem(value: '22K', child: Text('22K')),
+                                            DropdownMenuItem(value: '18K', child: Text('18K')),
+                                            DropdownMenuItem(value: '24K', child: Text('24K')),
+                                            DropdownMenuItem(value: '14K', child: Text('14K')),
+                                          ]
+                                        : _newProductCategory == 'SILVER'
+                                            ? const [
+                                                DropdownMenuItem(value: '925', child: Text('925 Sterling')),
+                                                DropdownMenuItem(value: '999', child: Text('999 Pure')),
+                                              ]
+                                            : const [
+                                                DropdownMenuItem(value: '18K', child: Text('18K')),
+                                                DropdownMenuItem(value: '22K', child: Text('22K')),
+                                                DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                                              ],
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setState(() => _newProductPurity = val);
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GlassInput(
+                                focusNode: _newProductStockFocusNode,
+                                controller: _newProductStockController,
+                                label: 'Stock Units',
+                                hint: '10',
+                                keyboardType: TextInputType.number,
+                                onFieldSubmitted: (_) => _newProductHuidFocusNode.requestFocus(),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GlassInput(
+                                focusNode: _newProductHuidFocusNode,
+                                controller: _newProductHuidController,
+                                label: 'HUID Number (Optional)',
+                                hint: 'HUID123456',
+                                onFieldSubmitted: (_) => _createAndSelectNewProduct(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                setState(() => _showInlineNewProductForm = false);
+                              },
+                              child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
+                            ),
+                            const SizedBox(width: 12),
+                            SecondaryButton(
+                              label: 'Create & Select',
+                              onPressed: _createAndSelectNewProduct,
+                            ),
+                          ],
                         ),
                       ],
                       const SizedBox(height: 16),
@@ -1936,46 +2282,57 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      GlassInput(
-                        focusNode: _makingChargeFocusNode,
-                        controller: _makingChargeController,
-                        label: 'Making Charge',
-                        hint: 'Enter value',
-                        keyboardType: TextInputType.number,
-                        onFieldSubmitted: (_) => _discountFocusNode.requestFocus(),
-                        suffixIcon: Container(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _makingChargeType,
-                              dropdownColor: AppColors.surfaceContainer,
-                              icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
-                              style: AppTextStyles.bodyMd.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'PER_GRAM',
-                                  child: Text('/gm'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'FIXED',
-                                  child: Text('pcs'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'PERCENTAGE',
-                                  child: Text('%'),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _makingChargeType = val);
-                                }
-                              },
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: GlassInput(
+                              focusNode: _makingChargeFocusNode,
+                              controller: _makingChargeController,
+                              label: 'Making Charge',
+                              hint: 'Enter value',
+                              keyboardType: TextInputType.number,
+                              onFieldSubmitted: (_) => _makingChargeTypeFocusNode.requestFocus(),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4, bottom: 6),
+                                  child: Text('Charge Type', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                ),
+                                DropdownButtonFormField<String>(
+                                  focusNode: _makingChargeTypeFocusNode,
+                                  value: _makingChargeType,
+                                  dropdownColor: AppColors.surfaceContainer,
+                                  decoration: InputDecoration(
+                                    fillColor: AppColors.surfaceDim,
+                                    filled: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                                  ),
+                                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                  items: const [
+                                    DropdownMenuItem(value: 'PER_GRAM', child: Text('/gm')),
+                                    DropdownMenuItem(value: 'FIXED', child: Text('pcs')),
+                                    DropdownMenuItem(value: 'PERCENTAGE', child: Text('%')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _makingChargeType = val);
+                                    }
+                                    _discountFocusNode.requestFocus();
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       GlassInput(

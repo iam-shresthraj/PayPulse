@@ -299,25 +299,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       }
 
       // Check if it's the latest active invoice to rollback the counter
-      final latestActiveRes = await _client
-          .from('invoices')
-          .select('invoice_number')
-          .isFilter('deleted_at', null)
-          .order('invoice_date', ascending: false)
-          .limit(1);
-
-      if (latestActiveRes.isNotEmpty && latestActiveRes.first['invoice_number'] == invoice.invoiceNumber) {
-        final settingsData = await _client.from('company_settings').select().maybeSingle();
-        if (settingsData != null) {
-          final int currentCounter = settingsData['invoice_current_counter'] ?? 0;
-          if (currentCounter > 0) {
-            await _client
-                .from('company_settings')
-                .update({'invoice_current_counter': currentCounter - 1})
-                .eq('id', settingsData['id']);
-          }
-        }
-      }
+      await _maybeRollbackCounter(invoice);
 
       // Soft delete in DB
       await _client
@@ -381,25 +363,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       }
 
       // Check if it's the latest active invoice to rollback the counter
-      final latestActiveRes = await _client
-          .from('invoices')
-          .select('invoice_number')
-          .isFilter('deleted_at', null)
-          .order('invoice_date', ascending: false)
-          .limit(1);
-
-      if (latestActiveRes.isNotEmpty && latestActiveRes.first['invoice_number'] == invoice.invoiceNumber) {
-        final settingsData = await _client.from('company_settings').select().maybeSingle();
-        if (settingsData != null) {
-          final int currentCounter = settingsData['invoice_current_counter'] ?? 0;
-          if (currentCounter > 0) {
-            await _client
-                .from('company_settings')
-                .update({'invoice_current_counter': currentCounter - 1})
-                .eq('id', settingsData['id']);
-          }
-        }
-      }
+      await _maybeRollbackCounter(invoice);
 
       // Hard delete in DB
       await _client
@@ -584,6 +548,28 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       await loadInvoices();
       rethrow;
     }
+  }
+  Future<void> _maybeRollbackCounter(Invoice invoice) async {
+    try {
+      final settingsData = await _client.from('company_settings').select().maybeSingle();
+      if (settingsData != null) {
+        final prefix = settingsData['invoice_prefix'] ?? 'S';
+        final separator = settingsData['invoice_separator'] ?? '-';
+        final padding = settingsData['invoice_padding_length'] ?? 6;
+        final int currentCounter = settingsData['invoice_current_counter'] ?? 0;
+        
+        final expectedInvoiceNum = '$prefix$separator${currentCounter.toString().padLeft(padding, '0')}';
+        
+        if (invoice.invoiceNumber == expectedInvoiceNum) {
+          if (currentCounter > 0) {
+            await _client
+                .from('company_settings')
+                .update({'invoice_current_counter': currentCounter - 1})
+                .eq('id', settingsData['id']);
+          }
+        }
+      }
+    } catch (_) {}
   }
 }
 

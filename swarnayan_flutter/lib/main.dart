@@ -23,18 +23,18 @@ void main() async {
     ),
   );
 
-  runApp(const ProviderScope(child: SwarnayanApp()));
+  runApp(const ProviderScope(child: PayPulseApp()));
 }
 
-class SwarnayanApp extends ConsumerWidget {
-  const SwarnayanApp({super.key});
+class PayPulseApp extends ConsumerWidget {
+  const PayPulseApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Swarnayan Jewellers',
+      title: 'PayPulse',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: router,

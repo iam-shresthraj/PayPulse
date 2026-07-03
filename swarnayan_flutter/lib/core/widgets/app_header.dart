@@ -48,7 +48,7 @@ class AppHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Swarnayan Jewellers',
+                  'PayPulse',
                   style: AppTextStyles.titleMd.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,

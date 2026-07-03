@@ -106,6 +106,7 @@ class BillingState {
   final double cashAmount;
   final double upiAmount;
   final double cardAmount;
+  final double? manualReceivedAmount;
 
   BillingState({
     this.customerId,
@@ -121,6 +122,7 @@ class BillingState {
     this.cashAmount = 0,
     this.upiAmount = 0,
     this.cardAmount = 0,
+    this.manualReceivedAmount,
   }) : invoiceDate = invoiceDate ?? DateTime.now();
 
   double get subtotal => products.fold(0.0, (sum, p) => sum + p.itemTotal);
@@ -150,7 +152,7 @@ class BillingState {
   double get grandTotal => taxableAmount + totalTax;
   double get finalPayable => grandTotal.roundToDouble();
 
-  double get totalPaid => cashAmount + upiAmount + cardAmount;
+  double get totalPaid => manualReceivedAmount ?? (cashAmount + upiAmount + cardAmount);
   double get balanceDue => finalPayable - totalPaid;
 
   BillingState copyWith({
@@ -170,6 +172,8 @@ class BillingState {
     double? cashAmount,
     double? upiAmount,
     double? cardAmount,
+    double? manualReceivedAmount,
+    bool clearManualReceivedAmount = false,
   }) {
     return BillingState(
       customerId: customerId ?? this.customerId,
@@ -185,6 +189,7 @@ class BillingState {
       cashAmount: cashAmount ?? this.cashAmount,
       upiAmount: upiAmount ?? this.upiAmount,
       cardAmount: cardAmount ?? this.cardAmount,
+      manualReceivedAmount: clearManualReceivedAmount ? null : (manualReceivedAmount ?? this.manualReceivedAmount),
     );
   }
 }
@@ -253,19 +258,36 @@ class BillingNotifier extends StateNotifier<BillingState> {
   }
 
   void setCashAmount(double amount) {
-    state = state.copyWith(cashAmount: amount);
+    state = state.copyWith(
+      cashAmount: amount,
+      clearManualReceivedAmount: true,
+    );
   }
 
   void setUpiAmount(double amount) {
-    state = state.copyWith(upiAmount: amount);
+    state = state.copyWith(
+      upiAmount: amount,
+      clearManualReceivedAmount: true,
+    );
   }
 
   void setCardAmount(double amount) {
-    state = state.copyWith(cardAmount: amount);
+    state = state.copyWith(
+      cardAmount: amount,
+      clearManualReceivedAmount: true,
+    );
+  }
+
+  void setManualReceivedAmount(double? amount) {
+    if (amount == null) {
+      state = state.copyWith(clearManualReceivedAmount: true);
+    } else {
+      state = state.copyWith(manualReceivedAmount: amount);
+    }
   }
 
   void loadInvoiceToEdit(Invoice invoice, Customer customer) {
-    final products = invoice.items.map((item) {
+    final List<BillingProduct> products = invoice.items.map((item) {
       return BillingProduct(
         productId: item.productId,
         name: item.productName,
@@ -304,6 +326,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
       cashAmount: cash,
       upiAmount: upi,
       cardAmount: card,
+      manualReceivedAmount: invoice.payments.isEmpty ? invoice.totalAmountPaid : null,
     );
   }
 

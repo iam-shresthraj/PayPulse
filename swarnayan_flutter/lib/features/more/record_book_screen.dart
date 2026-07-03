@@ -104,16 +104,42 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
             'Delete Invoice',
             style: AppTextStyles.titleLg.copyWith(color: AppColors.error),
           ),
-          content: Text(
-            'Are you sure you want to delete invoice "${invoice.invoiceNumber}"? It will be stored in the deleted section for 1 hour and can be restored.',
+           content: Text(
+            'Are you sure you want to delete invoice "${invoice.invoiceNumber}"? You can recycle it for 24 hours or permanently delete it now.',
             style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Close', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+              child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
             ),
             TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                if (invoice.id != null) {
+                  try {
+                    await ref.read(invoicesProvider.notifier).deleteInvoicePermanently(invoice.id!);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Invoice deleted permanently.'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to permanently delete invoice: $e'), backgroundColor: AppColors.error),
+                    );
+                  }
+                }
+              },
+              child: Text('Delete Permanently', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               onPressed: () async {
                 Navigator.pop(context);
                 if (invoice.id != null) {
@@ -121,7 +147,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                     await ref.read(invoicesProvider.notifier).deleteInvoice(invoice.id!);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Invoice deleted. You can restore it from the DELETED tab within 1 hour.'),
+                        content: Text('Invoice moved to bin. You can restore it from the DELETED tab within 24 hours.'),
                         backgroundColor: AppColors.success,
                       ),
                     );
@@ -132,7 +158,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                   }
                 }
               },
-              child: Text('Delete', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error, fontWeight: FontWeight.bold)),
+              child: const Text('Delete (24h Recycle)'),
             ),
           ],
         ),

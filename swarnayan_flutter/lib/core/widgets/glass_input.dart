@@ -20,6 +20,7 @@ class GlassInput extends StatelessWidget {
   final void Function()? onTap;
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
+  final void Function(String)? onFieldSubmitted;
   final EdgeInsets? contentPadding;
   final TextAlign textAlign;
 
@@ -39,6 +40,7 @@ class GlassInput extends StatelessWidget {
     this.onTap,
     this.focusNode,
     this.textInputAction,
+    this.onFieldSubmitted,
     this.contentPadding,
     this.textAlign = TextAlign.start,
   });
@@ -70,6 +72,9 @@ class GlassInput extends StatelessWidget {
           onChanged: onChanged,
           onTap: onTap,
           textInputAction: textInputAction ?? (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
+          onFieldSubmitted: onFieldSubmitted ?? (value) {
+            FocusScope.of(context).nextFocus();
+          },
           textAlign: textAlign,
           style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
           decoration: InputDecoration(

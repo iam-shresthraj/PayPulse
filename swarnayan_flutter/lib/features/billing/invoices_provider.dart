@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/invoice.dart';
 import '../products/products_provider.dart';
 import '../customers/customers_provider.dart';
+import '../more/company_provider.dart';
 
 class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
   final Ref _ref;
@@ -190,6 +191,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       // Trigger reload for products and customers so they get updated stock/spend values
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
+      _ref.read(companyProvider.notifier).loadCompanySettings();
 
       final list = state.value ?? [];
       state = AsyncValue.data([savedInvoice, ...list]);
@@ -326,6 +328,89 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
+      _ref.read(companyProvider.notifier).loadCompanySettings();
+
+      final list = state.value ?? [];
+      state = AsyncValue.data(list.where((inv) => inv.id != id).toList());
+      
+      // Force refresh the deleted invoices provider
+      _ref.invalidate(deletedInvoicesProvider);
+    } catch (e) {
+      await loadInvoices();
+      rethrow;
+    }
+  }
+
+  Future<void> deleteInvoicePermanently(String id) async {
+    try {
+      // First fetch the invoice to revert stocks/stats if active
+      final invData = await _client.from('invoices').select().eq('id', id).single();
+      final invoice = _mapInvoice(invData);
+
+      if (invoice.status != 'CANCELLED') {
+        // Revert stock levels
+        for (final item in invoice.items) {
+          final prodData = await _client
+              .from('products')
+              .select('stock_units')
+              .eq('id', item.productId)
+              .single();
+          final int currentStock = prodData['stock_units'] ?? 0;
+          await _client
+              .from('products')
+              .update({'stock_units': currentStock + item.quantity})
+              .eq('id', item.productId);
+        }
+
+        // Revert customer stats
+        if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
+          final custData = await _client
+              .from('customers')
+              .select('total_purchase_amount, total_invoices')
+              .eq('id', invoice.customerId!)
+              .single();
+              
+          final double totalPurchase = (custData['total_purchase_amount'] as num?)?.toDouble() ?? 0.0;
+          final int totalInvoices = custData['total_invoices'] ?? 0;
+          
+          await _client.from('customers').update({
+            'total_purchase_amount': (totalPurchase - invoice.finalPayable).clamp(0.0, double.infinity),
+            'total_invoices': (totalInvoices - 1).clamp(0, 99999),
+          }).eq('id', invoice.customerId!);
+        }
+      }
+
+      // Check if it's the latest active invoice to rollback the counter
+      final latestActiveRes = await _client
+          .from('invoices')
+          .select('invoice_number')
+          .isFilter('deleted_at', null)
+          .order('invoice_date', ascending: false)
+          .limit(1);
+
+      if (latestActiveRes.isNotEmpty && latestActiveRes.first['invoice_number'] == invoice.invoiceNumber) {
+        final settingsData = await _client.from('company_settings').select().maybeSingle();
+        if (settingsData != null) {
+          final int currentCounter = settingsData['invoice_current_counter'] ?? 0;
+          if (currentCounter > 0) {
+            await _client
+                .from('company_settings')
+                .update({'invoice_current_counter': currentCounter - 1})
+                .eq('id', settingsData['id']);
+          }
+        }
+      }
+
+      // Hard delete in DB
+      await _client
+          .from('invoices')
+          .delete()
+          .eq('id', id);
+      
+      // Reload products, customers, and company settings
+      _ref.read(productsProvider.notifier).loadProducts();
+      _ref.read(customersProvider.notifier).loadCustomers();
+      _ref.read(companyProvider.notifier).loadCompanySettings();
 
       final list = state.value ?? [];
       state = AsyncValue.data(list.where((inv) => inv.id != id).toList());
@@ -392,6 +477,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
+      _ref.read(companyProvider.notifier).loadCompanySettings();
 
       final list = state.value ?? [];
       state = AsyncValue.data([restoredInvoice, ...list]);

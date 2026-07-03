@@ -44,6 +44,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _nameController = TextEditingController();
   final _receivedAmountController = TextEditingController();
   final _dueAmountController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _panController = TextEditingController();
+  final _receivedAmountFocusNode = FocusNode();
 
   List<Customer> _suggestions = [];
   bool _showSuggestions = false;
@@ -51,6 +54,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   bool _isValidatingCoupon = false;
   String? _couponError;
   bool _receivedFullAmount = false;
+  bool _registerNewCustomer = false;
 
   @override
   void initState() {
@@ -83,6 +87,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _nameController.dispose();
     _receivedAmountController.dispose();
     _dueAmountController.dispose();
+    _addressController.dispose();
+    _panController.dispose();
+    _receivedAmountFocusNode.dispose();
     super.dispose();
   }
 
@@ -139,18 +146,39 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     try {
       final isTemporary = billing.customerId == '';
       Customer customer;
+      String? customerIdForInvoice = billing.customerId;
+      
       if (isTemporary) {
-        customer = Customer(
-          id: '',
-          mobile: billing.customerPhone ?? '',
-          name: billing.customerName ?? 'Temporary Customer',
-          address: '',
-          totalPurchaseAmount: 0.0,
-          totalInvoices: 0,
-        );
+        if (_registerNewCustomer) {
+          final newCust = Customer(
+            id: '',
+            mobile: billing.customerPhone ?? _phoneController.text.trim(),
+            name: billing.customerName ?? _nameController.text.trim(),
+            address: _addressController.text.trim(),
+            panCard: _panController.text.trim(),
+            totalPurchaseAmount: 0.0,
+            totalInvoices: 0,
+          );
+          final savedCust = await ref.read(customersProvider.notifier).addCustomer(newCust);
+          customer = savedCust;
+          customerIdForInvoice = savedCust.id;
+          // Select this customer
+          ref.read(billingProvider.notifier).setCustomer(savedCust);
+        } else {
+          customer = Customer(
+            id: '',
+            mobile: billing.customerPhone ?? _phoneController.text.trim(),
+            name: billing.customerName ?? _nameController.text.trim(),
+            address: _addressController.text.trim(),
+            panCard: _panController.text.trim(),
+            totalPurchaseAmount: 0.0,
+            totalInvoices: 0,
+          );
+        }
       } else {
         final customers = ref.read(customersProvider).value!;
         customer = customers.firstWhere((c) => c.id == billing.customerId);
+        customerIdForInvoice = customer.id;
       }
 
       final todayRate = ref.read(dailyRatesProvider.notifier).getTodayRate();
@@ -217,10 +245,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       final invoice = Invoice(
         id: invoiceId,
         invoiceNumber: invoiceNum,
-        customerId: isTemporary ? null : billing.customerId,
-        tempCustomerName: isTemporary ? billing.customerName : null,
-        tempCustomerMobile: isTemporary ? billing.customerPhone : null,
-        tempCustomerAddress: isTemporary ? '' : null,
+        customerId: isTemporary && !_registerNewCustomer ? null : customerIdForInvoice,
+        tempCustomerName: isTemporary && !_registerNewCustomer ? (billing.customerName ?? _nameController.text.trim()) : null,
+        tempCustomerMobile: isTemporary && !_registerNewCustomer ? (billing.customerPhone ?? _phoneController.text.trim()) : null,
+        tempCustomerAddress: isTemporary && !_registerNewCustomer ? _addressController.text.trim() : null,
         items: invoiceItems,
         grossAmount: billing.subtotal,
         couponDiscount: billing.discountAmount,
@@ -235,7 +263,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         totalAmountPaid: totalPaid,
         balanceDue: balanceDueVal,
         invoiceDate: billing.invoiceDate,
-        status: 'PAID',
+        status: balanceDueVal <= 0.05 ? 'PAID' : 'PARTIALLY_PAID',
         ratesSnapshot: RatesSnapshot(
           rateGold22K: todayRate?.rateGold22K ?? 6850.0,
           rateGold18K: todayRate?.rateGold18K ?? 5610.0,
@@ -455,46 +483,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           const SizedBox(height: 12),
 
           // Phone Input
-          GlassCard(
-            animationIndex: 1,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                const Icon(Icons.phone_rounded, color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _phoneController,
-                    onChanged: (val) => _onPhoneChanged(val, ref),
-                    decoration: const InputDecoration(
-                      hintText: 'Enter 10-digit mobile number',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                    ),
-                    style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
-                    keyboardType: TextInputType.phone,
-                  ),
-                ),
-                if (billing.customerName != null)
-                  IconButton(
+          GlassInput(
+            controller: _phoneController,
+            label: 'Search Customer By Phone/Name',
+            hint: 'Type mobile number or customer name...',
+            prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
+            keyboardType: TextInputType.phone,
+            onChanged: (val) => _onPhoneChanged(val, ref),
+            suffixIcon: (billing.customerName != null || _phoneController.text.isNotEmpty)
+                ? IconButton(
                     icon: const Icon(Icons.clear, color: AppColors.onSurfaceDim, size: 18),
                     onPressed: () {
                       _phoneController.clear();
                       _nameController.clear();
+                      _addressController.clear();
+                      _panController.clear();
                       ref.read(billingProvider.notifier).clearCustomer();
                       setState(() {
                         _showSuggestions = false;
                         _suggestions = [];
+                        _registerNewCustomer = false;
                       });
                     },
-                  ),
-              ],
-            ),
+                  )
+                : null,
           ),
 
           // Suggestions list
-          if (_showSuggestions) ...[
+          if (_showSuggestions && _suggestions.isNotEmpty) ...[
             const SizedBox(height: 8),
             GlassCard(
               animationIndex: 2,
@@ -504,82 +520,84 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 child: ListView(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
-                  children: [
-                    ..._suggestions.map((c) => ListTile(
-                          leading: const Icon(Icons.person, color: AppColors.primary, size: 20),
-                          title: Text(c.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
-                          subtitle: Text(c.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                          onTap: () {
-                            ref.read(billingProvider.notifier).setCustomer(c);
-                            _phoneController.text = c.mobile;
-                            setState(() {
-                              _showSuggestions = false;
-                              _suggestions = [];
-                            });
-                          },
-                        )),
-                    ListTile(
-                      leading: const Icon(Icons.person_add_rounded, color: AppColors.primary, size: 20),
-                      title: Text('+ Register New Customer', style: AppTextStyles.bodyMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      onTap: () {
-                        setState(() {
-                          _showSuggestions = false;
-                        });
-                        showDialog(
-                          context: context,
-                          builder: (context) => const Dialog(
-                            backgroundColor: Colors.transparent,
-                            child: AddCustomerDialog(),
-                          ),
-                        ).then((_) {
-                          final billingVal = ref.read(billingProvider);
-                          if (billingVal.customerPhone != null) {
-                            _phoneController.text = billingVal.customerPhone!;
-                          }
-                        });
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.assignment_ind_outlined, color: AppColors.primary, size: 20),
-                      title: Text('+ Temporary Bill Only', style: AppTextStyles.bodyMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      onTap: () {
-                        ref.read(billingProvider.notifier).setTemporaryCustomer('', _phoneController.text);
-                        _nameController.clear();
-                        setState(() {
-                          _showSuggestions = false;
-                        });
-                      },
-                    ),
-                  ],
+                  children: _suggestions.map((c) => ListTile(
+                    leading: const Icon(Icons.person, color: AppColors.primary, size: 20),
+                    title: Text(c.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                    subtitle: Text(c.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                    onTap: () {
+                      ref.read(billingProvider.notifier).setCustomer(c);
+                      _phoneController.text = c.mobile;
+                      setState(() {
+                        _showSuggestions = false;
+                        _suggestions = [];
+                      });
+                    },
+                  )).toList(),
                 ),
               ),
             ),
           ],
 
-          if (billing.customerName != null && billing.customerId == '') ...[
+          // Auto-shown New Customer Registration fields
+          if (billing.customerId == null && _phoneController.text.isNotEmpty) ...[
             const SizedBox(height: 12),
-            // Name input for temporary customer
             GlassCard(
               animationIndex: 2,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.assignment_ind_rounded, color: AppColors.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _nameController,
-                      onChanged: (val) {
-                        ref.read(billingProvider.notifier).setTemporaryCustomer(val, _phoneController.text);
-                      },
-                      decoration: const InputDecoration(
-                        hintText: 'Enter Customer Name (Temporary)',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                      ),
-                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                  Text(
+                    'NEW CUSTOMER DETAILS',
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  GlassInput(
+                    controller: _nameController,
+                    label: 'Customer Name',
+                    hint: 'Enter customer name',
+                    onChanged: (val) {
+                      ref.read(billingProvider.notifier).setTemporaryCustomer(val, _phoneController.text);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  GlassInput(
+                    controller: _addressController,
+                    label: 'Address',
+                    hint: 'Enter address (e.g. Thakurbari Road, Patna)',
+                  ),
+                  const SizedBox(height: 12),
+                  GlassInput(
+                    controller: _panController,
+                    label: 'PAN Card (Optional)',
+                    hint: 'Enter PAN card number',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _registerNewCustomer,
+                        activeColor: AppColors.primary,
+                        checkColor: AppColors.onBackground,
+                        onChanged: (val) {
+                          setState(() {
+                            _registerNewCustomer = val ?? false;
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Register permanently to database?',
+                        style: AppTextStyles.bodyMd.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1073,6 +1091,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Widget _buildPaymentSplit(BillingState billing) {
+    final totalPaid = billing.manualReceivedAmount ?? (billing.cashAmount + billing.upiAmount + billing.cardAmount);
+
     if (_receivedFullAmount) {
       final val = billing.finalPayable.toStringAsFixed(0);
       if (_receivedAmountController.text != val) {
@@ -1080,10 +1100,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _dueAmountController.text = '0';
       }
     } else {
-      final sum = billing.cashAmount + billing.upiAmount + billing.cardAmount;
-      if (sum > 0) {
-        _receivedAmountController.text = sum.toStringAsFixed(0);
-        _dueAmountController.text = (billing.finalPayable - sum).toStringAsFixed(0);
+      final expectedRec = totalPaid > 0.05 ? totalPaid.toStringAsFixed(0) : '';
+      if (_receivedAmountController.text != expectedRec && !_receivedAmountFocusNode.hasFocus) {
+        _receivedAmountController.text = expectedRec;
+      }
+      final expectedDue = (billing.finalPayable - totalPaid).toStringAsFixed(0);
+      if (_dueAmountController.text != expectedDue) {
+        _dueAmountController.text = expectedDue;
       }
     }
 
@@ -1157,9 +1180,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   setState(() {
                     _receivedFullAmount = val ?? false;
                     if (_receivedFullAmount) {
+                      ref.read(billingProvider.notifier).setManualReceivedAmount(billing.finalPayable);
                       _receivedAmountController.text = billing.finalPayable.toStringAsFixed(0);
                       _dueAmountController.text = '0';
                     } else {
+                      ref.read(billingProvider.notifier).setManualReceivedAmount(null);
                       _receivedAmountController.clear();
                       _dueAmountController.clear();
                     }
@@ -1198,15 +1223,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                       child: TextField(
                         controller: _receivedAmountController,
+                        focusNode: _receivedAmountFocusNode,
                         keyboardType: TextInputType.number,
                         style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
                         onChanged: (val) {
                           final rec = double.tryParse(val) ?? 0.0;
+                          ref.read(billingProvider.notifier).setManualReceivedAmount(rec);
                           setState(() {
                             if (rec < billing.finalPayable) {
                               _receivedFullAmount = false;
                             }
-                            _dueAmountController.text = (billing.finalPayable - rec).toStringAsFixed(0);
                           });
                         },
                         decoration: const InputDecoration(
@@ -1740,28 +1766,36 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                         hint: 'Enter value',
                         keyboardType: TextInputType.number,
                         suffixIcon: Container(
-                          margin: const EdgeInsets.only(right: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _ChargeToggle(
-                                label: 'Fixed',
-                                isActive: _makingChargeType == 'FIXED',
-                                onTap: () => setState(() => _makingChargeType = 'FIXED'),
+                          padding: const EdgeInsets.only(right: 8),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _makingChargeType,
+                              dropdownColor: AppColors.surfaceContainer,
+                              icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                              style: AppTextStyles.bodyMd.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(width: 4),
-                              _ChargeToggle(
-                                label: '/g',
-                                isActive: _makingChargeType == 'PER_GRAM',
-                                onTap: () => setState(() => _makingChargeType = 'PER_GRAM'),
-                              ),
-                              const SizedBox(width: 4),
-                              _ChargeToggle(
-                                label: '%',
-                                isActive: _makingChargeType == 'PERCENTAGE',
-                                onTap: () => setState(() => _makingChargeType = 'PERCENTAGE'),
-                              ),
-                            ],
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'PER_GRAM',
+                                  child: Text('/gm'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'FIXED',
+                                  child: Text('pcs'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'PERCENTAGE',
+                                  child: Text('%'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _makingChargeType = val);
+                                }
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -1772,6 +1806,8 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
                         hint: '0',
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
                       ),
                       const SizedBox(height: 32),
                       PrimaryButton(

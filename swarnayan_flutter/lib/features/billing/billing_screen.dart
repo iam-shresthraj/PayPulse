@@ -41,12 +41,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _upiController = TextEditingController();
   final _cardController = TextEditingController();
   final _nameController = TextEditingController();
+  final _receivedAmountController = TextEditingController();
+  final _dueAmountController = TextEditingController();
 
   List<Customer> _suggestions = [];
   bool _showSuggestions = false;
   bool _isGenerating = false;
   bool _isValidatingCoupon = false;
   String? _couponError;
+  bool _receivedFullAmount = false;
 
   @override
   void initState() {
@@ -61,6 +64,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _cashController.text = billing.cashAmount > 0 ? billing.cashAmount.toStringAsFixed(0) : '';
     _upiController.text = billing.upiAmount > 0 ? billing.upiAmount.toStringAsFixed(0) : '';
     _cardController.text = billing.cardAmount > 0 ? billing.cardAmount.toStringAsFixed(0) : '';
+
+    if (billing.editingInvoice != null) {
+      _receivedFullAmount = billing.editingInvoice!.balanceDue <= 0.05;
+      _receivedAmountController.text = billing.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
+      _dueAmountController.text = billing.editingInvoice!.balanceDue.toStringAsFixed(0);
+    }
   }
 
   @override
@@ -71,6 +80,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _upiController.dispose();
     _cardController.dispose();
     _nameController.dispose();
+    _receivedAmountController.dispose();
+    _dueAmountController.dispose();
     super.dispose();
   }
 
@@ -122,10 +133,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _showError('Cart is empty. Please add products.');
       return;
     }
-    if (billing.balanceDue > 0.05) {
-      _showError('Invoice cannot be generated with balance due. Complete payment splits.');
-      return;
-    }
 
     setState(() => _isGenerating = true);
     try {
@@ -174,6 +181,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         );
       }).toList();
 
+      double totalPaid;
+      double balanceDueVal;
+      final List<Payment> paymentsList = [];
+
+      if (_receivedFullAmount) {
+        totalPaid = billing.finalPayable;
+        balanceDueVal = 0.0;
+        
+        if (billing.cashAmount > 0) paymentsList.add(Payment(method: 'CASH', amount: billing.cashAmount));
+        if (billing.upiAmount > 0) paymentsList.add(Payment(method: 'UPI', amount: billing.upiAmount));
+        if (billing.cardAmount > 0) paymentsList.add(Payment(method: 'CARD', amount: billing.cardAmount));
+      } else {
+        final manualRec = double.tryParse(_receivedAmountController.text) ?? 0.0;
+        final splitRec = billing.cashAmount + billing.upiAmount + billing.cardAmount;
+        
+        if (manualRec > 0 && splitRec == 0) {
+          totalPaid = manualRec;
+          balanceDueVal = (billing.finalPayable - manualRec).clamp(0.0, double.infinity);
+        } else {
+          totalPaid = splitRec;
+          balanceDueVal = (billing.finalPayable - splitRec).clamp(0.0, double.infinity);
+          
+          if (billing.cashAmount > 0) paymentsList.add(Payment(method: 'CASH', amount: billing.cashAmount));
+          if (billing.upiAmount > 0) paymentsList.add(Payment(method: 'UPI', amount: billing.upiAmount));
+          if (billing.cardAmount > 0) paymentsList.add(Payment(method: 'CARD', amount: billing.cardAmount));
+        }
+      }
+
       final invoice = Invoice(
         id: invoiceId,
         invoiceNumber: invoiceNum,
@@ -191,13 +226,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         totalTax: billing.totalTax,
         netAmount: billing.grandTotal,
         finalPayable: billing.finalPayable,
-        payments: [
-          Payment(method: 'CASH', amount: billing.cashAmount),
-          Payment(method: 'UPI', amount: billing.upiAmount),
-          Payment(method: 'CARD', amount: billing.cardAmount),
-        ],
-        totalAmountPaid: billing.totalPaid,
-        balanceDue: billing.balanceDue,
+        payments: paymentsList,
+        totalAmountPaid: totalPaid,
+        balanceDue: balanceDueVal,
         invoiceDate: billing.invoiceDate,
         status: 'PAID',
         ratesSnapshot: RatesSnapshot(
@@ -220,6 +251,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _cashController.clear();
       _upiController.clear();
       _cardController.clear();
+      _receivedAmountController.clear();
+      _dueAmountController.clear();
+      _receivedFullAmount = false;
       ref.read(billingProvider.notifier).reset();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -685,54 +719,89 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: billing.invoiceDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-                builder: (context, child) {
-                  return Theme(
-                    data: ThemeData.dark().copyWith(
-                      colorScheme: const ColorScheme.dark(
-                        primary: AppColors.primary,
-                        onPrimary: AppColors.onBackground,
-                        surface: AppColors.background,
-                        onSurface: AppColors.onBackground,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: billing.invoiceDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    builder: (context, child) {
+                      return Theme(
+                        data: ThemeData.dark().copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: AppColors.primary,
+                            onPrimary: AppColors.onBackground,
+                            surface: AppColors.background,
+                            onSurface: AppColors.onBackground,
+                          ),
+                          dialogBackgroundColor: AppColors.surfaceContainer,
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    ref.read(billingProvider.notifier).setInvoiceDate(picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.glassBorder, width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('dd MMM yyyy').format(billing.invoiceDate),
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      dialogBackgroundColor: AppColors.surfaceContainer,
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
+                tooltip: 'Refresh Billing Session',
+                onPressed: () {
+                  ref.read(billingProvider.notifier).reset();
+                  _phoneController.clear();
+                  _nameController.clear();
+                  _cashController.clear();
+                  _upiController.clear();
+                  _cardController.clear();
+                  _receivedAmountController.clear();
+                  _dueAmountController.clear();
+                  ref.invalidate(dailyRatesProvider);
+                  ref.invalidate(companyProvider);
+                  ref.invalidate(customersProvider);
+                  ref.invalidate(invoicesProvider);
+                  setState(() {
+                    _receivedFullAmount = false;
+                    _showSuggestions = false;
+                    _suggestions = [];
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Billing session refreshed.'),
+                      duration: Duration(seconds: 1),
                     ),
-                    child: child!,
                   );
                 },
-              );
-              if (picked != null) {
-                ref.read(billingProvider.notifier).setInvoiceDate(picked);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainer.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.glassBorder, width: 0.5),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    DateFormat('dd MMM yyyy').format(billing.invoiceDate),
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.onBackground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
         ],
       ),
@@ -864,6 +933,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Widget _buildPaymentSplit(BillingState billing) {
+    if (_receivedFullAmount) {
+      final val = billing.finalPayable.toStringAsFixed(0);
+      if (_receivedAmountController.text != val) {
+        _receivedAmountController.text = val;
+        _dueAmountController.text = '0';
+      }
+    } else {
+      final sum = billing.cashAmount + billing.upiAmount + billing.cardAmount;
+      if (sum > 0) {
+        _receivedAmountController.text = sum.toStringAsFixed(0);
+        _dueAmountController.text = (billing.finalPayable - sum).toStringAsFixed(0);
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -881,6 +964,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
               ref.read(billingProvider.notifier).setCashAmount(amt);
+              setState(() {
+                _receivedFullAmount = false;
+              });
             },
             index: 6,
           ),
@@ -894,6 +980,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
               ref.read(billingProvider.notifier).setUpiAmount(amt);
+              setState(() {
+                _receivedFullAmount = false;
+              });
             },
             index: 7,
           ),
@@ -907,8 +996,123 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
               ref.read(billingProvider.notifier).setCardAmount(amt);
+              setState(() {
+                _receivedFullAmount = false;
+              });
             },
             index: 8,
+          ),
+
+          const SizedBox(height: 20),
+          const Divider(color: AppColors.border, height: 1),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Checkbox(
+                value: _receivedFullAmount,
+                activeColor: AppColors.primary,
+                checkColor: AppColors.onBackground,
+                onChanged: (val) {
+                  setState(() {
+                    _receivedFullAmount = val ?? false;
+                    if (_receivedFullAmount) {
+                      _receivedAmountController.text = billing.finalPayable.toStringAsFixed(0);
+                      _dueAmountController.text = '0';
+                    } else {
+                      _receivedAmountController.clear();
+                      _dueAmountController.clear();
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Received full amount?',
+                style: AppTextStyles.bodyMd.copyWith(
+                  color: AppColors.onBackground,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Amount Received (₹)',
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.glassBorder),
+                      ),
+                      child: TextField(
+                        controller: _receivedAmountController,
+                        keyboardType: TextInputType.number,
+                        style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                        onChanged: (val) {
+                          final rec = double.tryParse(val) ?? 0.0;
+                          setState(() {
+                            if (rec < billing.finalPayable) {
+                              _receivedFullAmount = false;
+                            }
+                            _dueAmountController.text = (billing.finalPayable - rec).toStringAsFixed(0);
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          border: InputBorder.none,
+                          hintText: '0',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Amount Due (₹)',
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.glassBorder),
+                      ),
+                      child: TextField(
+                        controller: _dueAmountController,
+                        enabled: false,
+                        style: AppTextStyles.bodyLg.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          border: InputBorder.none,
+                          hintText: '0',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

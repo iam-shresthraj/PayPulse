@@ -157,7 +157,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
       final isEditing = billing.editingInvoice != null;
       final invoiceId = isEditing ? billing.editingInvoice!.id! : 'INV-${DateTime.now().millisecondsSinceEpoch}';
-      final invoiceNum = isEditing ? billing.editingInvoice!.invoiceNumber! : 'INV/${DateTime.now().year}/${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+      final invoiceNum = isEditing
+          ? billing.editingInvoice!.invoiceNumber!
+          : (billing.customInvoiceNumber != null && billing.customInvoiceNumber!.isNotEmpty)
+              ? billing.customInvoiceNumber!
+              : 'INV/${DateTime.now().year}/${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
 
       final List<InvoiceItem> invoiceItems = billing.products.map((bp) {
         return InvoiceItem(
@@ -747,6 +751,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     String invoiceTag;
     if (isEditing) {
       invoiceTag = 'Editing Invoice: ${billing.editingInvoice!.invoiceNumber}';
+    } else if (billing.customInvoiceNumber != null) {
+      invoiceTag = 'Custom Invoice: ${billing.customInvoiceNumber}';
     } else {
       final settings = companyState.value;
       invoiceTag = 'Next Invoice: ${getNextInvoiceNumber(settings)}';
@@ -757,26 +763,33 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.glassBorder, width: 0.5),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  invoiceTag,
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.onBackground,
-                    fontWeight: FontWeight.w600,
+          GestureDetector(
+            onTap: isEditing ? null : () => _showEditInvoiceNumberDialog(context, billing),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.glassBorder, width: 0.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    invoiceTag,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.onBackground,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                  if (!isEditing) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
+                  ],
+                ],
+              ),
             ),
           ),
           Row(
@@ -864,6 +877,73 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditInvoiceNumberDialog(BuildContext context, BillingState billing) {
+    final companyState = ref.read(companyProvider);
+    final defaultNum = billing.customInvoiceNumber ?? getNextInvoiceNumber(companyState.value);
+    final controller = TextEditingController(text: defaultNum);
+
+    showDialog(
+      context: context,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: AlertDialog(
+          backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            side: const BorderSide(color: AppColors.glassBorder),
+          ),
+          title: Text(
+            'Edit Invoice Number',
+            style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter the custom invoice number you want to assign to this bill.',
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
+              ),
+              const SizedBox(height: 16),
+              GlassInput(
+                controller: controller,
+                label: 'Invoice Number',
+                hint: 'e.g. S-000003',
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                ref.read(billingProvider.notifier).setCustomInvoiceNumber(null);
+                Navigator.pop(context);
+              },
+              child: Text('Reset to Default', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                final newNum = controller.text.trim();
+                if (newNum.isNotEmpty) {
+                  ref.read(billingProvider.notifier).setCustomInvoiceNumber(newNum);
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
       ),
     );
   }

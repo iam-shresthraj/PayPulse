@@ -100,6 +100,7 @@ class BillingState {
   // Invoice Details
   final DateTime invoiceDate;
   final Invoice? editingInvoice;
+  final String? customInvoiceNumber;
 
   // Payments
   final double cashAmount;
@@ -116,6 +117,7 @@ class BillingState {
     this.appliedCoupon,
     DateTime? invoiceDate,
     this.editingInvoice,
+    this.customInvoiceNumber,
     this.cashAmount = 0,
     this.upiAmount = 0,
     this.cardAmount = 0,
@@ -163,6 +165,8 @@ class BillingState {
     DateTime? invoiceDate,
     Invoice? editingInvoice,
     bool clearEditingInvoice = false,
+    String? customInvoiceNumber,
+    bool clearCustomInvoiceNumber = false,
     double? cashAmount,
     double? upiAmount,
     double? cardAmount,
@@ -177,6 +181,7 @@ class BillingState {
       appliedCoupon: clearCoupon ? null : (appliedCoupon ?? this.appliedCoupon),
       invoiceDate: invoiceDate ?? this.invoiceDate,
       editingInvoice: clearEditingInvoice ? null : (editingInvoice ?? this.editingInvoice),
+      customInvoiceNumber: clearCustomInvoiceNumber ? null : (customInvoiceNumber ?? this.customInvoiceNumber),
       cashAmount: cashAmount ?? this.cashAmount,
       upiAmount: upiAmount ?? this.upiAmount,
       cardAmount: cardAmount ?? this.cardAmount,
@@ -226,6 +231,14 @@ class BillingNotifier extends StateNotifier<BillingState> {
 
   void setInvoiceDate(DateTime date) {
     state = state.copyWith(invoiceDate: date);
+  }
+
+  void setCustomInvoiceNumber(String? number) {
+    if (number == null || number.trim().isEmpty) {
+      state = state.copyWith(clearCustomInvoiceNumber: true);
+    } else {
+      state = state.copyWith(customInvoiceNumber: number.trim());
+    }
   }
 
   void applyCoupon(Coupon coupon) {

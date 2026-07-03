@@ -139,10 +139,15 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
 
   Future<void> addInvoice(Invoice invoice) async {
     try {
-      // 1. Generate unique invoice number
-      final invoiceNum = await _generateInvoiceNumber();
+      final String invoiceNum;
+      if (invoice.invoiceNumber != null &&
+          invoice.invoiceNumber!.isNotEmpty &&
+          !invoice.invoiceNumber!.startsWith('INV/')) {
+        invoiceNum = invoice.invoiceNumber!;
+      } else {
+        invoiceNum = await _generateInvoiceNumber();
+      }
       
-      // 2. Map payload
       var payload = _unmapInvoice(invoice);
       payload['invoice_number'] = invoiceNum;
       

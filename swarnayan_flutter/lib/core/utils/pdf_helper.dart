@@ -70,7 +70,7 @@ class PdfHelper {
 
   static final _currencyFormat = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: 'Rs ',
+    symbol: '₹ ',
     decimalDigits: 2,
   );
 
@@ -276,14 +276,18 @@ class PdfHelper {
                   ),
                   // Table Rows
                   ...invoice.items.map((item) {
-                    final String makingTypeStr = item.makingChargeType == 'FIXED'
-                        ? '/pcs'
-                        : item.makingChargeType == 'PER_GRAM'
-                            ? '/gm'
-                            : '%';
-                    final makingChargeDetail = item.makingChargeType == 'PERCENTAGE'
-                        ? '${item.makingChargeValue.toStringAsFixed(0)}%'
-                        : 'Rs ${item.makingChargeValue.toStringAsFixed(0)}$makingTypeStr';
+                    String makingChargeDetail = '';
+                    if (item.makingChargeType == 'PERCENTAGE') {
+                      final calcValue = item.rate * (item.makingChargeValue / 100);
+                      makingChargeDetail = '${item.makingChargeValue.toStringAsFixed(1)}% (₹${calcValue.toStringAsFixed(2)}/gm)';
+                    } else {
+                      final String makingTypeStr = item.makingChargeType == 'FIXED'
+                          ? '/pcs'
+                          : item.makingChargeType == 'PER_GRAM'
+                              ? '/gm'
+                              : '%';
+                      makingChargeDetail = '₹${item.makingChargeValue.toStringAsFixed(2)}$makingTypeStr';
+                    }
 
                     return pw.TableRow(
                       children: [
@@ -295,7 +299,7 @@ class PdfHelper {
                         _tableDataCell(item.purity, fontData, align: pw.TextAlign.center),
                         _tableDataCell('${item.grossWeight.toStringAsFixed(3)} g', fontData, align: pw.TextAlign.right),
                         _tableDataCell(_currencyFormat.format(item.rate), fontData, align: pw.TextAlign.right),
-                        _tableDataCell('$makingChargeDetail\n(Rs ${item.makingChargeTotal.toStringAsFixed(2)})', fontData, align: pw.TextAlign.right),
+                        _tableDataCell('$makingChargeDetail\n(₹${item.makingChargeTotal.toStringAsFixed(2)})', fontData, align: pw.TextAlign.right),
                         _tableDataCell(_currencyFormat.format(item.itemTotal), fontBold, align: pw.TextAlign.right),
                       ],
                     );
@@ -441,12 +445,18 @@ class PdfHelper {
               pw.SizedBox(height: 30),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
+                      pw.Text(
+                        '', // Empty text to match vertical spacing of "For Swarnayan Jewellers"
+                        style: pw.TextStyle(font: fontBold, fontSize: 8),
+                      ),
+                      pw.SizedBox(height: 50), // Larger signing area
                       pw.Container(
-                        width: 120,
+                        width: 140, // Slightly wider signature line
                         decoration: const pw.BoxDecoration(
                           border: pw.Border(
                             bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
@@ -467,9 +477,9 @@ class PdfHelper {
                         'For Swarnayan Jewellers',
                         style: pw.TextStyle(font: fontBold, fontSize: 8),
                       ),
-                      pw.SizedBox(height: 35),
+                      pw.SizedBox(height: 50), // Match signing area height
                       pw.Container(
-                        width: 120,
+                        width: 140, // Match width of customer signature line
                         decoration: const pw.BoxDecoration(
                           border: pw.Border(
                             bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),

@@ -149,32 +149,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       String? customerIdForInvoice = billing.customerId;
       
       if (isTemporary) {
-        if (_registerNewCustomer) {
-          final newCust = Customer(
-            id: '',
-            mobile: billing.customerPhone ?? _phoneController.text.trim(),
-            name: billing.customerName ?? _nameController.text.trim(),
-            address: _addressController.text.trim(),
-            panCard: _panController.text.trim(),
-            totalPurchaseAmount: 0.0,
-            totalInvoices: 0,
-          );
-          final savedCust = await ref.read(customersProvider.notifier).addCustomer(newCust);
-          customer = savedCust;
-          customerIdForInvoice = savedCust.id;
-          // Select this customer
-          ref.read(billingProvider.notifier).setCustomer(savedCust);
-        } else {
-          customer = Customer(
-            id: '',
-            mobile: billing.customerPhone ?? _phoneController.text.trim(),
-            name: billing.customerName ?? _nameController.text.trim(),
-            address: _addressController.text.trim(),
-            panCard: _panController.text.trim(),
-            totalPurchaseAmount: 0.0,
-            totalInvoices: 0,
-          );
-        }
+        final newCust = Customer(
+          id: '',
+          mobile: billing.customerPhone ?? _phoneController.text.trim(),
+          name: billing.customerName ?? _nameController.text.trim(),
+          address: _addressController.text.trim(),
+          panCard: _panController.text.trim(),
+          totalPurchaseAmount: 0.0,
+          totalInvoices: 0,
+        );
+        final savedCust = await ref.read(customersProvider.notifier).addCustomer(newCust);
+        customer = savedCust;
+        customerIdForInvoice = savedCust.id;
+        // Select this customer
+        ref.read(billingProvider.notifier).setCustomer(savedCust);
       } else {
         final customers = ref.read(customersProvider).value!;
         customer = customers.firstWhere((c) => c.id == billing.customerId);
@@ -575,29 +563,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     controller: _panController,
                     label: 'PAN Card (Optional)',
                     hint: 'Enter PAN card number',
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _registerNewCustomer,
-                        activeColor: AppColors.primary,
-                        checkColor: AppColors.onBackground,
-                        onChanged: (val) {
-                          setState(() {
-                            _registerNewCustomer = val ?? false;
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Register permanently to database?',
-                        style: AppTextStyles.bodyMd.copyWith(
-                          color: AppColors.onBackground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),

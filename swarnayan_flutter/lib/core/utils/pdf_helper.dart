@@ -442,54 +442,78 @@ class PdfHelper {
               pw.Spacer(),
 
               // Signature Box
-              pw.SizedBox(height: 30),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
+              pw.SizedBox(height: 35),
+              pw.Table(
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(1),
+                  1: const pw.FlexColumnWidth(1),
+                },
                 children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  pw.TableRow(
                     children: [
-                      pw.Text(
-                        '', // Empty text to match vertical spacing of "For Swarnayan Jewellers"
-                        style: pw.TextStyle(font: fontBold, fontSize: 8),
-                      ),
-                      pw.SizedBox(height: 50), // Larger signing area
+                      pw.Container(), // Empty space for customer side header
                       pw.Container(
-                        width: 140, // Slightly wider signature line
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(
-                            bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
-                          ),
+                        alignment: pw.Alignment.center,
+                        child: pw.Text(
+                          'For Swarnayan Jewellers',
+                          style: pw.TextStyle(font: fontBold, fontSize: 8),
                         ),
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        'Customer Signature',
-                        style: pw.TextStyle(font: fontBold, fontSize: 8),
                       ),
                     ],
                   ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  pw.TableRow(
                     children: [
-                      pw.Text(
-                        'For Swarnayan Jewellers',
-                        style: pw.TextStyle(font: fontBold, fontSize: 8),
-                      ),
-                      pw.SizedBox(height: 50), // Match signing area height
+                      pw.SizedBox(height: 50), // Signing area
+                      pw.SizedBox(height: 50),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
                       pw.Container(
-                        width: 140, // Match width of customer signature line
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(
-                            bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                        alignment: pw.Alignment.center,
+                        child: pw.Container(
+                          width: 140,
+                          decoration: const pw.BoxDecoration(
+                            border: pw.Border(
+                              bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                            ),
                           ),
                         ),
                       ),
+                      pw.Container(
+                        alignment: pw.Alignment.center,
+                        child: pw.Container(
+                          width: 140,
+                          decoration: const pw.BoxDecoration(
+                            border: pw.Border(
+                              bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
                       pw.SizedBox(height: 4),
-                      pw.Text(
-                        'Authorised Signatory',
-                        style: pw.TextStyle(font: fontBold, fontSize: 8),
+                      pw.SizedBox(height: 4),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Container(
+                        alignment: pw.Alignment.center,
+                        child: pw.Text(
+                          'Customer Signature',
+                          style: pw.TextStyle(font: fontBold, fontSize: 8),
+                        ),
+                      ),
+                      pw.Container(
+                        alignment: pw.Alignment.center,
+                        child: pw.Text(
+                          'Authorised Signatory',
+                          style: pw.TextStyle(font: fontBold, fontSize: 8),
+                        ),
                       ),
                     ],
                   ),

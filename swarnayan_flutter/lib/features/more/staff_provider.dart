@@ -67,6 +67,21 @@ class StaffNotifier extends StateNotifier<AsyncValue<List<User>>> {
       rethrow;
     }
   }
+
+  Future<void> updateStaff(String id, String name, String role) async {
+    try {
+      await _client
+          .from('profiles')
+          .update({
+            'name': name,
+            'role': role,
+          })
+          .eq('id', id);
+      await loadStaff();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 final staffProvider =

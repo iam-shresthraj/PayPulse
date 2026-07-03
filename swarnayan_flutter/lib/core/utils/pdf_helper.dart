@@ -163,7 +163,11 @@ class PdfHelper {
                       ),
                       pw.SizedBox(height: 4),
                       pw.Text(
-                        'GSTIN: $cGstin | Phone: +91 $cPhone',
+                        'GSTIN: $cGstin',
+                        style: pw.TextStyle(font: fontData, fontSize: 8.5),
+                      ),
+                      pw.Text(
+                        'Phone: +91 $cPhone',
                         style: pw.TextStyle(font: fontData, fontSize: 8.5),
                       ),
                       pw.Text(

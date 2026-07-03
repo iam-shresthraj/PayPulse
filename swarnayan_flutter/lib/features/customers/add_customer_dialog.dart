@@ -404,7 +404,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                     const SizedBox(height: 32),
 
                     PrimaryButton(
-                      label: widget.customerToEdit != null ? 'Update Customer' : 'Save Changes',
+                      label: 'Save Changes',
                       icon: Icons.check_rounded,
                       isLoading: _isSaving,
                       onPressed: _save,

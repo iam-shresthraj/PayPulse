@@ -805,7 +805,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                   ),
                   const SizedBox(height: 24),
                   PrimaryButton(
-                    label: _editingCoupon == null ? 'Save Changes' : 'Update Coupon',
+                    label: 'Save Changes',
                     isLoading: _isLoading,
                     onPressed: _submitCoupon,
                   ),
@@ -977,6 +977,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
 
   String _role = 'STAFF';
   bool _isLoading = false;
+  model_user.User? _editingUser;
 
   @override
   void dispose() {
@@ -986,16 +987,47 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
     super.dispose();
   }
 
+  void _beginEdit(model_user.User user) {
+    setState(() {
+      _editingUser = user;
+      _showAddForm = true;
+      _nameController.text = user.name;
+      _emailController.text = user.email;
+      _role = user.role;
+      _passwordController.clear();
+    });
+  }
+
   Future<void> _submitStaff() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
-      await ref.read(staffProvider.notifier).addStaff(
-            _nameController.text.trim(),
-            _emailController.text.trim(),
-            _passwordController.text,
-            _role,
-          );
+      if (_editingUser != null) {
+        await ref.read(staffProvider.notifier).updateStaff(
+              _editingUser!.id,
+              _nameController.text.trim(),
+              _role,
+            );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Staff member updated successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        await ref.read(staffProvider.notifier).addStaff(
+              _nameController.text.trim(),
+              _emailController.text.trim(),
+              _passwordController.text,
+              _role,
+            );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Staff member registered successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
 
       _nameController.clear();
       _emailController.clear();
@@ -1003,18 +1035,12 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
       setState(() {
         _role = 'STAFF';
         _showAddForm = false;
+        _editingUser = null;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Staff member registered successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to add staff: $e'),
+          content: Text('Failed to save staff changes: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1036,13 +1062,22 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _showAddForm ? 'Add Staff Member' : 'All Staff Members',
+                _showAddForm ? (_editingUser != null ? 'Edit Staff Member' : 'Add Staff Member') : 'All Staff Members',
                 style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
               ),
               SecondaryButton(
                 label: _showAddForm ? 'View List' : '+ Add Staff',
                 onPressed: () {
-                  setState(() => _showAddForm = !_showAddForm);
+                  setState(() {
+                    _showAddForm = !_showAddForm;
+                    if (!_showAddForm) {
+                      _editingUser = null;
+                      _nameController.clear();
+                      _emailController.clear();
+                      _passwordController.clear();
+                      _role = 'STAFF';
+                    }
+                  });
                 },
               ),
             ],
@@ -1066,15 +1101,18 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     hint: 'staff@swarnayan.com',
                     keyboardType: TextInputType.emailAddress,
                     validator: Validators.validateEmail,
+                    readOnly: _editingUser != null,
                   ),
-                  const SizedBox(height: 16),
-                  GlassInput(
-                    controller: _passwordController,
-                    label: 'Password',
-                    hint: '••••••••',
-                    obscureText: true,
-                    validator: (v) => Validators.validateRequired(v, 'Password'),
-                  ),
+                  if (_editingUser == null) ...[
+                    const SizedBox(height: 16),
+                    GlassInput(
+                      controller: _passwordController,
+                      label: 'Password',
+                      hint: '••••••••',
+                      obscureText: true,
+                      validator: (v) => Validators.validateRequired(v, 'Password'),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   GlassDropdown<String>(
                     label: 'Role',
@@ -1129,6 +1167,10 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                                 Text('${item.email} • ${item.role}', style: AppTextStyles.cardSubtitle),
                               ],
                             ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                            onPressed: () => _beginEdit(item),
                           ),
                           Switch(
                             value: item.isActive,

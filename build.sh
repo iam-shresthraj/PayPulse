@@ -18,12 +18,13 @@ export PATH="$PATH:$(pwd)/flutter-sdk/bin"
 
 # 3. Enable Web support and verify
 flutter config --enable-web
-flutter doctor
+flutter doctor || true
 
 # 4. Build Flutter Web App
 echo "Building Flutter Web Release version..."
 cd swarnayan_flutter
 flutter pub get
-flutter build web --release --web-renderer canvaskit
+flutter build web --release
+
 
 echo "=== Build Succeeded! ==="

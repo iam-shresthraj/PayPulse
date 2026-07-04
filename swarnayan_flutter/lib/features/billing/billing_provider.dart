@@ -97,6 +97,9 @@ class BillingState {
   final String? couponCode;
   final Coupon? appliedCoupon;
 
+  // Custom Discount
+  final double customDiscount;
+
   // Invoice Details
   final DateTime invoiceDate;
   final Invoice? editingInvoice;
@@ -116,6 +119,7 @@ class BillingState {
     this.products = const [],
     this.couponCode,
     this.appliedCoupon,
+    this.customDiscount = 0.0,
     DateTime? invoiceDate,
     this.editingInvoice,
     this.customInvoiceNumber,
@@ -128,19 +132,19 @@ class BillingState {
   double get subtotal => products.fold(0.0, (sum, p) => sum + p.itemTotal);
 
   double get discountAmount {
+    double couponDisc = 0.0;
     final coupon = appliedCoupon;
-    if (coupon == null || subtotal < coupon.minBillAmount) return 0.0;
-
-    double disc = 0.0;
-    if (coupon.discountType == 'FIXED') {
-      disc = coupon.discountValue;
-    } else if (coupon.discountType == 'PERCENTAGE') {
-      disc = subtotal * (coupon.discountValue / 100);
-      if (coupon.maxDiscount > 0.0) {
-        disc = disc.clamp(0.0, coupon.maxDiscount);
+    if (coupon != null && subtotal >= coupon.minBillAmount) {
+      if (coupon.discountType == 'FIXED') {
+        couponDisc = coupon.discountValue;
+      } else if (coupon.discountType == 'PERCENTAGE') {
+        couponDisc = subtotal * (coupon.discountValue / 100);
+        if (coupon.maxDiscount > 0.0) {
+          couponDisc = couponDisc.clamp(0.0, coupon.maxDiscount);
+        }
       }
     }
-    return disc.clamp(0.0, subtotal);
+    return (couponDisc + customDiscount).clamp(0.0, subtotal);
   }
 
   double get taxableAmount => (subtotal - discountAmount).clamp(0.0, double.infinity);
@@ -164,6 +168,7 @@ class BillingState {
     String? couponCode,
     Coupon? appliedCoupon,
     bool clearCoupon = false,
+    double? customDiscount,
     DateTime? invoiceDate,
     Invoice? editingInvoice,
     bool clearEditingInvoice = false,
@@ -183,6 +188,7 @@ class BillingState {
       products: products ?? this.products,
       couponCode: clearCoupon ? null : (couponCode ?? this.couponCode),
       appliedCoupon: clearCoupon ? null : (appliedCoupon ?? this.appliedCoupon),
+      customDiscount: customDiscount ?? this.customDiscount,
       invoiceDate: invoiceDate ?? this.invoiceDate,
       editingInvoice: clearEditingInvoice ? null : (editingInvoice ?? this.editingInvoice),
       customInvoiceNumber: clearCustomInvoiceNumber ? null : (customInvoiceNumber ?? this.customInvoiceNumber),
@@ -255,6 +261,10 @@ class BillingNotifier extends StateNotifier<BillingState> {
 
   void removeCoupon() {
     state = state.copyWith(clearCoupon: true);
+  }
+
+  void setCustomDiscount(double discount) {
+    state = state.copyWith(customDiscount: discount);
   }
 
   void setCashAmount(double amount) {
@@ -333,6 +343,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
       products: products,
       couponCode: invoice.couponCode,
       appliedCoupon: coupon,
+      customDiscount: coupon == null ? invoice.couponDiscount : 0.0,
       invoiceDate: invoice.invoiceDate,
       editingInvoice: invoice,
       cashAmount: cash,

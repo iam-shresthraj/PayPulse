@@ -39,6 +39,7 @@ class BillingScreen extends ConsumerStatefulWidget {
 class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _phoneController = TextEditingController();
   final _couponController = TextEditingController();
+  final _customDiscountController = TextEditingController();
   final _cashController = TextEditingController();
   final _upiController = TextEditingController();
   final _cardController = TextEditingController();
@@ -127,6 +128,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _receivedFullAmount = billing.editingInvoice!.balanceDue <= 0.05;
       _receivedAmountController.text = billing.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
       _dueAmountController.text = billing.editingInvoice!.balanceDue.toStringAsFixed(0);
+      if (billing.customDiscount > 0) {
+        _customDiscountController.text = billing.customDiscount.toStringAsFixed(0);
+      }
     }
   }
 
@@ -134,6 +138,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   void dispose() {
     _phoneController.dispose();
     _couponController.dispose();
+    _customDiscountController.dispose();
     _cashController.dispose();
     _upiController.dispose();
     _cardController.dispose();
@@ -1686,50 +1691,57 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Coupons & Offers', style: AppTextStyles.sectionTitle)
-              .animate().fadeIn(duration: 300.ms, delay: 300.ms),
-          const SizedBox(height: 12),
-
-          if (billing.appliedCoupon == null) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: GlassInput(
-                    controller: _couponController,
-                    label: 'Coupon Code',
-                    hint: 'ENTER CODE',
-                    onChanged: (val) {
-                      if (_couponError != null) {
-                        setState(() => _couponError = null);
-                      }
-                    },
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: GlassInput(
+                  controller: _couponController,
+                  label: 'Coupon Code',
+                  hint: 'ENTER CODE',
+                  onChanged: (val) {
+                    if (_couponError != null) {
+                      setState(() => _couponError = null);
+                    }
+                  },
                 ),
-                const SizedBox(width: 12),
-                Padding(
-                  padding: const EdgeInsets.only(top: 24),
-                  child: SizedBox(
-                    height: 52,
-                    child: _isValidatingCoupon
-                        ?  Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.primary,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          )
-                        : SecondaryButton(
-                            label: 'Apply',
-                            isOutlined: true,
-                            onPressed: () async {
-                        final code = _couponController.text.trim().toUpperCase();
-                        if (code.isEmpty) return;
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GlassInput(
+                  controller: _customDiscountController,
+                  label: 'Discount (₹)',
+                  hint: 'e.g. 500',
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: _isValidatingCoupon
+                ? Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
+                : SecondaryButton(
+                    label: 'Apply',
+                    isOutlined: true,
+                    onPressed: () async {
+                      final code = _couponController.text.trim().toUpperCase();
+                      final customDiscText = _customDiscountController.text.trim();
+                      final customDisc = double.tryParse(customDiscText) ?? 0.0;
+
+                      ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+
+                      if (code.isNotEmpty) {
                         setState(() {
                           _isValidatingCoupon = true;
                           _couponError = null;
@@ -1749,26 +1761,24 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         } finally {
                           setState(() => _isValidatingCoupon = false);
                         }
-                      },
-                    ),
+                      }
+                    },
                   ),
-                ),
-              ],
+          ),
+          if (_couponError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _couponError!,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
             ),
-            if (_couponError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _couponError!,
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
-              ),
-            ],
-          ] else ...[
+          ],
+          if (billing.appliedCoupon != null) ...[
+            const SizedBox(height: 12),
             GlassCard(
-              animationIndex: 3,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                   Icon(Icons.local_offer_rounded, color: AppColors.primary, size: 20),
+                  Icon(Icons.local_offer_rounded, color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1789,12 +1799,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                   ),
                   Text(
-                    '-₹${billing.discountAmount.toStringAsFixed(0)}',
+                    '-₹${(billing.discountAmount - billing.customDiscount).toStringAsFixed(0)}',
                     style: AppTextStyles.amountMd.copyWith(color: AppColors.success),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon:  Icon(Icons.cancel_rounded, color: AppColors.onSurfaceDim, size: 20),
+                    icon: Icon(Icons.cancel_rounded, color: AppColors.onSurfaceDim, size: 20),
                     onPressed: () {
                       ref.read(billingProvider.notifier).removeCoupon();
                     },

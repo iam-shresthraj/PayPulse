@@ -1831,6 +1831,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           Expanded(
             child: Container(
               height: 40,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: AppColors.surfaceContainer.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(8),
@@ -1983,6 +1984,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                     const SizedBox(height: 6),
                     Container(
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: AppColors.surfaceContainer.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(12),
@@ -2024,6 +2026,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                     const SizedBox(height: 6),
                     Container(
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: AppColors.surfaceContainer.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),

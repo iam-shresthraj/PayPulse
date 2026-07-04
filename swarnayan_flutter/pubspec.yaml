@@ -51,6 +51,7 @@ dependencies:
   json_annotation: ^4.9.0
   barcode_widget: ^2.0.4
   url_launcher: ^6.3.2
+  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +72,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/paypulse1.png
+    - assets/images/paypulse2.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

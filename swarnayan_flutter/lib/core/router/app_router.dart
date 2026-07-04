@@ -12,6 +12,7 @@ import '../../features/products/add_product_screen.dart';
 import '../../features/more/more_screen.dart';
 import '../../features/more/rate_management_screen.dart';
 import '../../features/more/record_book_screen.dart';
+import '../../features/reports/reports_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../models/product.dart';
@@ -129,6 +130,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: '/reports',
+            pageBuilder: (context, state) => _buildPage(
+              const ReportsScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
             path: '/more',
             pageBuilder: (context, state) => _buildPage(
               const MoreScreen(),
@@ -145,8 +153,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'records',
-                parentNavigatorKey: _rootNavigatorKey,
-                pageBuilder: (context, state) => _buildSlidePage(
+                pageBuilder: (context, state) => _buildPage(
                   const RecordBookScreen(),
                   state,
                 ),

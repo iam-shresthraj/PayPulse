@@ -561,7 +561,7 @@ class PdfHelper {
     // Launch print preview overlay
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'Invoice_${invoice.invoiceNumber ?? invoice.id}.pdf',
+      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
     );
   }
 

@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../core/theme/app_colors.dart';
@@ -245,7 +244,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   Text(_isEditing ? 'Edit Product' : 'Add Product', style: AppTextStyles.titleMd),
                 ],
               ),
-            ).animate().fadeIn(duration: 300.ms),
+            ),
             const SizedBox(height: 24),
             Expanded(
               child: SingleChildScrollView(
@@ -258,7 +257,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       label: 'Product Name',
                       hint: 'Enter product name',
                       validator: (v) => Validators.validateRequired(v, 'Product Name'),
-                    ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -282,21 +281,21 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
+                    ),
                     const SizedBox(height: 20),
                     GlassInput(
                       controller: _huidController,
                       label: 'HUID Number',
                       hint: _isEditing ? 'Preserved existing HUID' : 'Auto-generated when blank',
                       readOnly: _isEditing,
-                    ).animate().fadeIn(duration: 300.ms, delay: 180.ms),
+                    ),
                     const SizedBox(height: 20),
                     GlassInput(
                       controller: _hsnController,
                       label: 'HSN Code',
                       hint: 'e.g. 7113',
                       validator: (v) => Validators.validateRequired(v, 'HSN Code'),
-                    ).animate().fadeIn(duration: 300.ms, delay: 220.ms),
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -329,7 +328,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 300.ms, delay: 260.ms),
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -350,7 +349,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 300.ms, delay: 300.ms),
+                    ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -372,13 +371,13 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 300.ms, delay: 320.ms),
+                    ),
                     const SizedBox(height: 20),
                     GlassInput(
                       controller: _imageUrlController,
                       label: 'Image URL',
                       hint: 'Optional',
-                    ).animate().fadeIn(duration: 300.ms, delay: 340.ms),
+                    ),
                     const SizedBox(height: 32),
                   ],
                 ),

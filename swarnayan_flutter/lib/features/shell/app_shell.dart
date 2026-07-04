@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../more/daily_rates_provider.dart';
@@ -30,11 +31,48 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/customers')) return 2;
     if (location.startsWith('/products')) return 3;
-    if (location.startsWith('/more')) return 4;
+    if (location.startsWith('/reports')) return 4;
+    if (location.contains('/records')) return 5;
+    if (location.startsWith('/more')) return 6;
     return 0;
   }
 
   void _onTap(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        context.go('/');
+        break;
+      case 1:
+        context.go('/billing');
+        break;
+      case 2:
+        context.go('/customers');
+        break;
+      case 3:
+        context.go('/products');
+        break;
+      case 4:
+        context.go('/reports');
+        break;
+      case 5:
+        context.go('/more/records');
+        break;
+      case 6:
+        context.go('/more');
+        break;
+    }
+  }
+
+  int _bottomBarIndex(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/billing')) return 1;
+    if (location.startsWith('/customers')) return 2;
+    if (location.startsWith('/products')) return 3;
+    if (location.startsWith('/reports') || location.contains('/records') || location.startsWith('/more')) return 4;
+    return 0;
+  }
+
+  void _onBottomBarTap(BuildContext context, int index) {
     switch (index) {
       case 0:
         context.go('/');
@@ -133,7 +171,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       }
     });
 
-    final currentIndex = _currentIndex(context);
+    final bottomIndex = _bottomBarIndex(context);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isWide = MediaQuery.of(context).size.width >= 850;
 
@@ -158,77 +196,149 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: widget.child,
       ),
       extendBody: true,
-      bottomNavigationBar: Container(
-        margin: EdgeInsets.only(
-          left: 12,
-          right: 12,
-          bottom: bottomPadding + 8,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              height: 68,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainer.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                border: Border.all(
-                  color: AppColors.glassBorder,
-                  width: 1,
+      bottomNavigationBar: Builder(
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          int selectedTab = -1;
+          if (bottomIndex == 0) selectedTab = 0;
+          if (bottomIndex == 4) selectedTab = 1;
+
+          Widget buildTabItem(int index, IconData inactiveIcon, IconData activeIcon, String label, int targetIndex) {
+            final isActive = selectedTab == index;
+            if (isActive) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? Colors.white.withValues(alpha: 0.12) 
+                      : Colors.black.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      activeIcon,
+                      color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black.withValues(alpha: 0.8),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return GestureDetector(
+              onTap: () => _onBottomBarTap(context, targetIndex),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Icon(
+                  inactiveIcon,
+                  color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4),
+                  size: 20,
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavItem(
-                    icon: Icons.home_rounded,
-                    label: 'Home',
-                    isActive: currentIndex == 0,
-                    onTap: () => _onTap(context, 0),
-                  ),
-                  _NavItem(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Billing',
-                    isActive: currentIndex == 1,
-                    onTap: () => _onTap(context, 1),
-                  ),
-                  _NavItem(
-                    icon: Icons.people_alt_rounded,
-                    label: 'Customers',
-                    isActive: currentIndex == 2,
-                    onTap: () => _onTap(context, 2),
-                  ),
-                  _NavItem(
-                    icon: Icons.diamond_rounded,
-                    label: 'Products',
-                    isActive: currentIndex == 3,
-                    onTap: () => _onTap(context, 3),
-                  ),
-                  _NavItem(
-                    icon: Icons.menu_rounded,
-                    label: 'More',
-                    isActive: currentIndex == 4,
-                    onTap: () => _onTap(context, 4),
-                  ),
-                ],
-              ),
+            );
+          }
+
+          return Container(
+            margin: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: bottomPadding + 12,
             ),
-          ),
-        ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 75,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    clipBehavior: Clip.antiAlias,
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        height: 58,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.white.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: isDark 
+                                ? Colors.white.withValues(alpha: 0.12) 
+                                : Colors.white.withValues(alpha: 0.45),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            buildTabItem(0, Icons.home_outlined, Icons.home_rounded, 'Dashboard', 0),
+                            buildTabItem(1, Icons.menu_rounded, Icons.menu_rounded, 'More', 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 25,
+                  child: GestureDetector(
+                    onTap: () => _onBottomBarTap(context, 1),
+                    child: Container(
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF5252).withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(29),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF5252).withValues(alpha: 0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildLeftSidebar(BuildContext context) {
     final currentIndex = _currentIndex(context);
+    final themeOverride = ref.watch(themeModeProvider);
+    final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
 
     return Container(
       width: 260,
@@ -246,31 +356,13 @@ class _AppShellState extends ConsumerState<AppShell> {
         children: [
           // Logo & Branding
           Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.bolt_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'PayPulse',
-                  style: AppTextStyles.titleLg.copyWith(
-                    color: AppColors.onBackground,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20,
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+            child: Image.asset(
+              isLight
+                  ? 'assets/images/paypulse2.png'
+                  : 'assets/images/paypulse1.png',
+              height: 36,
+              fit: BoxFit.contain,
             ),
           ),
 
@@ -306,14 +398,33 @@ class _AppShellState extends ConsumerState<AppShell> {
                   onTap: () => _onTap(context, 3),
                 ),
                 _buildSidebarItem(
-                  icon: Icons.folder_shared_rounded,
-                  label: 'Management',
+                  icon: Icons.analytics_rounded,
+                  label: 'Reports',
                   isActive: currentIndex == 4,
                   onTap: () => _onTap(context, 4),
                 ),
-
-                const SizedBox(height: 24),
+                _buildSidebarItem(
+                  icon: Icons.book_rounded,
+                  label: 'Record Book',
+                  isActive: currentIndex == 5,
+                  onTap: () => _onTap(context, 5),
+                ),
+                _buildSidebarItem(
+                  icon: Icons.folder_shared_rounded,
+                  label: 'Managements',
+                  isActive: currentIndex == 6,
+                  onTap: () => _onTap(context, 6),
+                ),
+                const SizedBox(height: 16),
                 _buildSidebarHeader('GENERAL'),
+                _buildSidebarItem(
+                  icon: isLight ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                  label: isLight ? 'Dark Mode' : 'Light Mode',
+                  isActive: false,
+                  onTap: () {
+                    ref.read(themeModeProvider.notifier).toggleTheme(isLight);
+                  },
+                ),
                 _buildSidebarItem(
                   icon: Icons.settings_rounded,
                   label: 'Settings',
@@ -345,18 +456,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                   onTap: () => _handleLogout(context),
                 ),
               ],
-            ),
-          ),
-
-          // Bottom Date Display
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Text(
-              DateFormat('dd MMMM yyyy').format(DateTime.now()),
-              style: AppTextStyles.bodySm.copyWith(
-                color: AppColors.onSurfaceMuted,
-                fontWeight: FontWeight.w500,
-              ),
             ),
           ),
         ],
@@ -436,64 +535,6 @@ class _AppShellState extends ConsumerState<AppShell> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              child: Icon(
-                icon,
-                color: isActive ? AppColors.primary : AppColors.onSurfaceDim,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: isActive
-                  ? AppTextStyles.navLabelActive
-                  : AppTextStyles.navLabel,
-            ),
-            if (isActive) ...[
-              const SizedBox(height: 2),
-              Container(
-                width: 4,
-                height: 4,
-                decoration:  BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );

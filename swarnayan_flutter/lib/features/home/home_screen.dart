@@ -132,38 +132,35 @@ class HomeScreen extends ConsumerWidget {
                   // ── Top Bar ──
                   const AppHeader(),
 
+                  const SizedBox(height: 16),
+
+                  // 1. Live Gold Rate
+                  _buildGoldRateBanner(latestRate),
+
                   const SizedBox(height: 24),
 
-                  // ── Stat Cards 2×2 ──
+                  // 2. Quick Actions
+                  const SectionHeader(title: 'Quick Actions'),
+                  const SizedBox(height: 12),
+                  _buildQuickActions(context, true),
+
+                  const SizedBox(height: 24),
+
+                  // 3. Stat Cards (Today's Sales & Total Invoices)
                   _buildStatCards(
                     sales: todaySales,
-                    collection: todayCollection,
-                    dues: totalDue,
-                    dueCount: dueClientsCount,
                     invoicesCount: monthInvoices.length,
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
-                  // ── Quick Actions ──
-                  const SectionHeader(title: 'Quick Actions'),
-                  const SizedBox(height: 16),
-                  _buildQuickActions(context),
-
-                  const SizedBox(height: 32),
-
-                  // ── Live Gold Rate ──
-                  _buildGoldRateBanner(latestRate),
-
-                  const SizedBox(height: 32),
-
-                  // ── Recent Invoices ──
+                  // 4. Recent Invoices
                   SectionHeader(
                     title: 'Recent Invoices',
                     actionText: 'View All',
                     onAction: () => context.go('/more/records'),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   customersState.when(
                     data: (clients) => _buildRecentInvoices(activeInvoices, clients, context, ref),
                     loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
@@ -261,7 +258,7 @@ class HomeScreen extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
-          // ── Metrics Row (4 Cards) ──
+          // ── Metrics Row (2 Cards) ──
           Row(
             children: [
               Expanded(
@@ -276,31 +273,11 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(width: 20),
               Expanded(
                 child: _buildMetricCard(
-                  title: "Today's Collection",
-                  value: _formatCompact(collection),
-                  subtext: "Total payments received today",
-                  icon: Icons.account_balance_wallet_rounded,
-                  color: Colors.green,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildMetricCard(
                   title: "Monthly Revenue",
                   value: _formatCompact(monthRevenue),
                   subtext: "$invoicesCount Invoices this month",
                   icon: Icons.receipt_long_rounded,
                   color: Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildMetricCard(
-                  title: "Due Amount",
-                  value: _formatCompact(dues),
-                  subtext: "From $dueCount pending clients",
-                  icon: Icons.warning_amber_rounded,
-                  color: Colors.orange,
                 ),
               ),
             ],
@@ -775,68 +752,92 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildStatCards({
     required double sales,
-    required double collection,
-    required double dues,
-    required int dueCount,
     required int invoicesCount,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
-                  title: "Today's Sales",
-                  value: _formatCompact(sales),
-                  subtitle: 'Today',
-                  icon: Icons.trending_up_rounded,
-                  animationIndex: 0,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: StatCard(
-                  title: "Today's Collection",
-                  value: _formatCompact(collection),
-                  subtitle: 'Received today',
-                  icon: Icons.account_balance_wallet_rounded,
-                  animationIndex: 1,
-                ),
-              ),
-            ],
+          Expanded(
+            child: StatCard(
+              title: "Today's Sales",
+              value: _formatCompact(sales),
+              subtitle: 'Today',
+              icon: Icons.trending_up_rounded,
+              animationIndex: 0,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
-                  title: 'Due Amount',
-                  value: _formatCompact(dues),
-                  subtitle: '$dueCount customers',
-                  icon: Icons.warning_amber_rounded,
-                  animationIndex: 2,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: StatCard(
-                  title: 'Total Invoices',
-                  value: '$invoicesCount',
-                  subtitle: 'This Month',
-                  icon: Icons.receipt_outlined,
-                  animationIndex: 3,
-                ),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: StatCard(
+              title: 'Total Invoices',
+              value: '$invoicesCount',
+              subtitle: 'This Month',
+              icon: Icons.receipt_outlined,
+              animationIndex: 1,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, [bool isMobile = false]) {
+    if (isMobile) {
+      final actions = [
+        _QuickAction(Icons.add_circle_outline_rounded, 'New Sale', 0, () => context.go('/billing')),
+        _QuickAction(Icons.payments_outlined, 'Record Book', 1, () => context.go('/more/records')),
+      ];
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: actions
+              .map(
+                (action) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: action.index == 0 ? 12 : 0,
+                    ),
+                    child: GlassCard(
+                      animationIndex: action.index + 4,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      onTap: action.onTap,
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              action.icon,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            action.label,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.onSurface,
+                              fontSize: 11,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      );
+    }
+
     final actions = [
       _QuickAction(Icons.add_circle_outline_rounded, 'New Sale', 0, () => context.go('/billing')),
       _QuickAction(Icons.person_add_alt_rounded, 'Add Customer', 1, () => context.push('/customers/add')),

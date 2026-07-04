@@ -1,59 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
-import '../../features/auth/auth_provider.dart';
+import '../theme/theme_provider.dart';
 
 /// Unified header widget used across all tab screens.
-/// Displays a greeting and the logged-in user's first name.
+/// Displays logo at top left and date at top right on mobile, and hides on desktop.
 class AppHeader extends ConsumerWidget {
   const AppHeader({super.key});
 
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning,';
-    if (hour < 17) return 'Good Afternoon,';
-    return 'Good Evening,';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final user = authState.user;
-    final firstName = user != null && user.name.trim().isNotEmpty
-        ? user.name.trim().split(' ').first
-        : 'User';
+    final isWide = MediaQuery.of(context).size.width >= 850;
+    if (isWide) {
+      return const SizedBox.shrink();
+    }
+
+    final themeOverride = ref.watch(themeModeProvider);
+    final isLight = themeOverride ?? false;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _greeting(),
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.onSurfaceMuted,
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  firstName,
-                  style: AppTextStyles.titleMd.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
+          Image.asset(
+            isLight
+                ? 'assets/images/paypulse2.png'
+                : 'assets/images/paypulse1.png',
+            height: 24,
+            fit: BoxFit.contain,
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               color: AppColors.surfaceContainer.withValues(alpha: 0.5),
@@ -64,14 +44,12 @@ class AppHeader extends ConsumerWidget {
               style: AppTextStyles.labelMd.copyWith(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w600,
+                fontSize: 12,
               ),
             ),
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: -0.1, end: 0, duration: 400.ms);
+    );
   }
 }

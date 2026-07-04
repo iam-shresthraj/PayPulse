@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
@@ -33,6 +34,7 @@ class PayPulseApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeOverride = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'PayPulse',
@@ -42,9 +44,11 @@ class PayPulseApp extends ConsumerWidget {
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
         final isWide = mediaQuery.size.width >= 850;
-        AppColors.useLightMode(isWide);
+        final isLight = themeOverride ?? isWide;
+        AppColors.useLightMode(isLight);
         return Theme(
-          data: isWide ? AppTheme.lightTheme : AppTheme.darkTheme,
+          key: ValueKey(isLight),
+          data: isLight ? AppTheme.lightTheme : AppTheme.darkTheme,
           child: child!,
         );
       },

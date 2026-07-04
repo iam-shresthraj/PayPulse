@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -231,7 +230,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                         border: Border.all(color: AppColors.glassBorder),
                       ),
                       child:  Icon(
-                        Icons.close_rounded,
+                        Icons.arrow_back_rounded,
                         color: AppColors.onSurface,
                         size: 20,
                       ),
@@ -241,7 +240,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   Text(widget.customerToEdit != null ? 'Edit Customer' : 'Add Customer', style: AppTextStyles.titleMd),
                 ],
               ),
-            ).animate().fadeIn(duration: 300.ms),
+            ),
 
             const SizedBox(height: 24),
 
@@ -257,7 +256,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       hint: 'Enter customer name',
                       prefixIcon:  Icon(Icons.person_outline_rounded, color: AppColors.primary),
                       validator: (v) => Validators.validateRequired(v, 'Name'),
-                    ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -268,7 +267,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       prefixIcon:  Icon(Icons.phone_rounded, color: AppColors.primary),
                       keyboardType: TextInputType.phone,
                       validator: Validators.validateMobile,
-                    ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -279,7 +278,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       prefixIcon:  Icon(Icons.email_outlined, color: AppColors.primary),
                       keyboardType: TextInputType.emailAddress,
                       validator: Validators.validateEmail,
-                    ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -290,7 +289,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       prefixIcon:  Icon(Icons.location_on_outlined, color: AppColors.primary),
                       maxLines: 3,
                       validator: (v) => Validators.validateRequired(v, 'Address'),
-                    ).animate().fadeIn(duration: 300.ms, delay: 250.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -308,7 +307,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                         }
                         return null;
                       },
-                    ).animate().fadeIn(duration: 300.ms, delay: 270.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -334,7 +333,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 300.ms, delay: 290.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -344,7 +343,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       hint: 'ABCDE1234F',
                       prefixIcon:  Icon(Icons.credit_card_rounded, color: AppColors.primary),
                       validator: Validators.validatePAN,
-                    ).animate().fadeIn(duration: 300.ms, delay: 300.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -353,7 +352,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       label: 'GST Number (Optional)',
                       hint: '22AAAAA1111A1Z1',
                       prefixIcon:  Icon(Icons.receipt_long_rounded, color: AppColors.primary),
-                    ).animate().fadeIn(duration: 300.ms, delay: 320.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -363,7 +362,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       hint: 'Add custom notes',
                       prefixIcon:  Icon(Icons.notes_rounded, color: AppColors.primary),
                       maxLines: 2,
-                    ).animate().fadeIn(duration: 300.ms, delay: 340.ms),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -397,7 +396,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                               ],
                             ),
                           ),
-                        ).animate().fadeIn(duration: 300.ms, delay: 350.ms),
+                        ),
                       ],
                     ),
 

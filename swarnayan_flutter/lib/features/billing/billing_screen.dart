@@ -72,6 +72,43 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   bool _receivedFullAmount = false;
   bool _registerNewCustomer = false;
 
+  // Inline Product Search / Details
+  final _qtyController = TextEditingController(text: '1');
+  final _rateController = TextEditingController();
+  final _weightController = TextEditingController();
+  final _makingChargeController = TextEditingController();
+  final _stoneWeightController = TextEditingController(text: '0');
+  final _stoneValueController = TextEditingController(text: '0');
+  final _discountController = TextEditingController(text: '0');
+  final _searchController = TextEditingController();
+
+  Product? _selectedProduct;
+  String _makingChargeType = 'PER_GRAM';
+  List<Product> _productSuggestions = [];
+  bool _showProductSuggestions = false;
+
+  final _searchFocusNode = FocusNode();
+  final _qtyFocusNode = FocusNode();
+  final _rateFocusNode = FocusNode();
+  final _weightFocusNode = FocusNode();
+  final _stoneWeightFocusNode = FocusNode();
+  final _stoneValueFocusNode = FocusNode();
+  final _makingChargeFocusNode = FocusNode();
+  final _discountFocusNode = FocusNode();
+  List<FocusNode> _productSuggestionFocusNodes = [];
+
+  // New Product Inline Fields
+  bool _showInlineNewProductForm = false;
+  bool _isSavingProduct = false;
+  String _newProductCategory = 'GOLD';
+  String _newProductPurity = '22K';
+  final _newProductNameController = TextEditingController();
+  final _newProductStockController = TextEditingController(text: '10');
+  final _newProductHuidController = TextEditingController();
+  final _newProductNameFocusNode = FocusNode();
+  final _newProductStockFocusNode = FocusNode();
+  final _newProductHuidFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -122,6 +159,34 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     for (final node in _customerSuggestionFocusNodes) {
       node.dispose();
     }
+
+    _qtyController.dispose();
+    _rateController.dispose();
+    _weightController.dispose();
+    _makingChargeController.dispose();
+    _stoneWeightController.dispose();
+    _stoneValueController.dispose();
+    _discountController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _qtyFocusNode.dispose();
+    _rateFocusNode.dispose();
+    _weightFocusNode.dispose();
+    _stoneWeightFocusNode.dispose();
+    _stoneValueFocusNode.dispose();
+    _makingChargeFocusNode.dispose();
+    _discountFocusNode.dispose();
+    for (final node in _productSuggestionFocusNodes) {
+      node.dispose();
+    }
+
+    _newProductNameController.dispose();
+    _newProductStockController.dispose();
+    _newProductHuidController.dispose();
+    _newProductNameFocusNode.dispose();
+    _newProductStockFocusNode.dispose();
+    _newProductHuidFocusNode.dispose();
+
     super.dispose();
   }
 
@@ -497,53 +562,49 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: topPadding + 8),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: topPadding + 8),
 
-                  // ── Top Bar ──
-                  const AppHeader(),
+            // ── Top Bar ──
+            const AppHeader(),
 
-                  const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-                  // ── Invoice Meta (Date & Next Invoice Number) ──
-                  _buildInvoiceMetaSection(billing),
+            // ── Invoice Meta (Date & Next Invoice Number) ──
+            _buildInvoiceMetaSection(billing),
 
-                  const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-                  // ── Customer Details ──
-                  _buildCustomerSection(billing),
+            // ── Customer Details ──
+            _buildCustomerSection(billing),
 
-                  const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-                  // ── Products Section ──
-                  _buildProductsSection(billing, context),
+            // ── Products Section ──
+            _buildProductsSection(billing, context),
 
-                  const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-                  // ── Coupons & Offers Section ──
-                  _buildCouponSection(billing),
+            // ── Coupons & Offers Section ──
+            _buildCouponSection(billing),
 
-                  const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-                  // ── Payment Split ──
-                  _buildPaymentSplit(billing),
+            // ── Payment Split ──
+            _buildPaymentSplit(billing),
 
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
+            const SizedBox(height: 24),
 
-          // ── Grand Total & Generate Invoice (Fixed Bottom) ──
-          _buildBottomBar(billing),
-        ],
+            // ── Grand Total & Generate Invoice (Inline Bottom) ──
+            _buildBottomBar(billing),
+
+            const SizedBox(height: 48),
+          ],
+        ),
       ),
     );
   }
@@ -800,6 +861,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Widget _buildProductsSection(BillingState billing, BuildContext context) {
+    final productsState = ref.watch(productsProvider);
+    final productsList = productsState.value ?? [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -809,54 +873,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Products', style: AppTextStyles.sectionTitle),
-              Row(
-                children: [
-                  SecondaryButton(
-                    label: 'Scan Barcode',
-                    icon: Icons.qr_code_scanner_rounded,
-                    onPressed: () => _showBarcodeDialog(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Focus(
-                    focusNode: _addItemButtonFocusNode,
-                    onKeyEvent: (node, event) {
-                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-                        _showAddProductSheet(context);
-                        return KeyEventResult.handled;
-                      }
-                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.keyS || event.logicalKey == LogicalKeyboardKey.keyS)) {
-                        _cashFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
-                      return KeyEventResult.ignored;
-                    },
-                    child: SecondaryButton(
-                      label: '+ Add Item',
-                      onPressed: () => _showAddProductSheet(context),
-                    ),
-                  ),
-                ],
+              SecondaryButton(
+                label: 'Scan Barcode',
+                icon: Icons.qr_code_scanner_rounded,
+                onPressed: () => _showBarcodeDialog(context),
               ),
             ],
           ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
 
           const SizedBox(height: 12),
 
-          // Product List
-          if (billing.products.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'No products added yet.',
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
-              ),
-            )
-          else
+          // Collapsed list of already added products
+          if (billing.products.isNotEmpty) ...[
             ...billing.products.asMap().entries.map((entry) {
               final i = entry.key;
               final product = entry.value;
               return Padding(
-                padding: EdgeInsets.only(bottom: i < billing.products.length - 1 ? 10 : 0),
+                padding: const EdgeInsets.only(bottom: 10),
                 child: GlassCard(
                   animationIndex: 3 + i,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -884,7 +917,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                        icon: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
                         onPressed: () => ref.read(billingProvider.notifier).removeProduct(i),
                       ),
                     ],
@@ -892,8 +925,539 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
               );
             }),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+          ],
+
+          // Inline Active Form for Product Selection / Creation
+          Text(
+            _showInlineNewProductForm ? 'CREATE & ADD NEW PRODUCT' : 'ADD PRODUCT ITEM',
+            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+
+          _buildActiveProductForm(productsList),
+
+          const SizedBox(height: 16),
+
+          Center(
+            child: _isSavingProduct
+                ? const CircularProgressIndicator()
+                : SecondaryButton(
+                    label: _showInlineNewProductForm ? '+ Save & Add Item' : '+ Add Item',
+                    onPressed: _onAddProductItemPressed,
+                  ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActiveProductForm(List<Product> productsList) {
+    if (_showInlineNewProductForm) {
+      return GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'New Product Details',
+                  style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _showInlineNewProductForm = false);
+                  },
+                  child: const Text('Search Existing'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            GlassInput(
+              focusNode: _newProductNameFocusNode,
+              controller: _newProductNameController,
+              label: 'Product Name',
+              hint: 'e.g. Gold Bangle Plain',
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _newProductCategory,
+                    dropdownColor: AppColors.surfaceContainer,
+                    decoration: InputDecoration(
+                      fillColor: AppColors.surfaceDim,
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                    ),
+                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                    items: const [
+                      DropdownMenuItem(value: 'GOLD', child: Text('Gold')),
+                      DropdownMenuItem(value: 'SILVER', child: Text('Silver')),
+                      DropdownMenuItem(value: 'DIAMOND', child: Text('Diamond')),
+                      DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _newProductCategory = val;
+                          if (val == 'SILVER') {
+                            _newProductPurity = '925';
+                          } else {
+                            _newProductPurity = '22K';
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _newProductPurity,
+                    dropdownColor: AppColors.surfaceContainer,
+                    decoration: InputDecoration(
+                      fillColor: AppColors.surfaceDim,
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
+                    ),
+                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                    items: _newProductCategory == 'GOLD'
+                        ? const [
+                            DropdownMenuItem(value: '22K', child: Text('22K')),
+                            DropdownMenuItem(value: '18K', child: Text('18K')),
+                            DropdownMenuItem(value: '24K', child: Text('24K')),
+                            DropdownMenuItem(value: '14K', child: Text('14K')),
+                          ]
+                        : _newProductCategory == 'SILVER'
+                            ? const [
+                                DropdownMenuItem(value: '925', child: Text('925 Sterling')),
+                                DropdownMenuItem(value: '999', child: Text('999 Pure')),
+                              ]
+                            : const [
+                                DropdownMenuItem(value: '18K', child: Text('18K')),
+                                DropdownMenuItem(value: '22K', child: Text('22K')),
+                                DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                              ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _newProductPurity = val);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GlassInput(
+                    focusNode: _newProductStockFocusNode,
+                    controller: _newProductStockController,
+                    label: 'Stock Units',
+                    hint: '10',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GlassInput(
+                    focusNode: _newProductHuidFocusNode,
+                    controller: _newProductHuidController,
+                    label: 'HUID Number (Optional)',
+                    hint: 'HUID123456',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildSharedDetailInputs(),
+          ],
+        ),
+      );
+    }
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Search Product', style: TextStyle(fontWeight: FontWeight.bold)),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _showInlineNewProductForm = true;
+                    _selectedProduct = null;
+                    _searchController.clear();
+                    _rateController.clear();
+                    _weightController.clear();
+                    _makingChargeController.clear();
+                  });
+                },
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Add New Product'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                if (_productSuggestionFocusNodes.isNotEmpty) {
+                  _productSuggestionFocusNodes.first.requestFocus();
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: GlassInput(
+              focusNode: _searchFocusNode,
+              controller: _searchController,
+              label: 'Product Search',
+              hint: 'Search by name, ID, HUID, purity...',
+              prefixIcon: Icon(Icons.search_rounded, color: AppColors.primary),
+              onChanged: (val) => _onProductSearchChanged(val, productsList),
+              suffixIcon: (_selectedProduct != null || _searchController.text.isNotEmpty)
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _selectedProduct = null;
+                          _productSuggestions = [];
+                          _showProductSuggestions = false;
+                          _weightController.clear();
+                          _rateController.clear();
+                          _makingChargeController.clear();
+                        });
+                      },
+                    )
+                  : null,
+            ),
+          ),
+          if (_showProductSuggestions && _productSuggestions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            GlassCard(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _productSuggestions.length,
+                  itemBuilder: (context, idx) {
+                    final p = _productSuggestions[idx];
+                    return ListTile(
+                      leading: const Icon(Icons.inventory_2_outlined),
+                      title: Text(p.name),
+                      subtitle: Text('${p.purity} • ${p.category} • stock: ${p.stockUnits}'),
+                      onTap: () {
+                        _onProductSelected(p);
+                        _searchController.text = p.name;
+                        setState(() {
+                          _showProductSuggestions = false;
+                        });
+                        _qtyFocusNode.requestFocus();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+          if (_selectedProduct != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Selected: ${_selectedProduct!.name} (${_selectedProduct!.purity}, ${_selectedProduct!.category})',
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ],
+          const SizedBox(height: 16),
+          _buildSharedDetailInputs(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSharedDetailInputs() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: GlassInput(
+                focusNode: _qtyFocusNode,
+                controller: _qtyController,
+                label: 'Quantity',
+                hint: '1',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GlassInput(
+                focusNode: _rateFocusNode,
+                controller: _rateController,
+                label: 'Rate (₹/g)',
+                hint: '6,850',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GlassInput(
+                focusNode: _weightFocusNode,
+                controller: _weightController,
+                label: 'Gross Weight (g)',
+                hint: '0.000',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GlassInput(
+                focusNode: _makingChargeFocusNode,
+                controller: _makingChargeController,
+                label: 'Making Charge (₹/g)',
+                hint: '0',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GlassInput(
+                focusNode: _stoneWeightFocusNode,
+                controller: _stoneWeightController,
+                label: 'Stone Weight (g)',
+                hint: '0.0',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GlassInput(
+                focusNode: _stoneValueFocusNode,
+                controller: _stoneValueController,
+                label: 'Stone Value (₹)',
+                hint: '0',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GlassInput(
+          focusNode: _discountFocusNode,
+          controller: _discountController,
+          label: 'Product Discount (₹)',
+          hint: '0',
+          keyboardType: TextInputType.number,
+        ),
+      ],
+    );
+  }
+
+  void _onProductSearchChanged(String val, List<Product> products) {
+    final query = val.trim().toLowerCase();
+    if (query.isEmpty) {
+      setState(() {
+        _productSuggestions = [];
+        _showProductSuggestions = false;
+      });
+      return;
+    }
+    final activeProducts = products.where((p) => p.isActive && p.stockUnits > 0).toList();
+    final filtered = activeProducts.where((p) =>
+      p.name.toLowerCase().contains(query) ||
+      (p.id?.toLowerCase().contains(query) ?? false) ||
+      (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
+      (p.purity.toLowerCase().contains(query)) ||
+      (p.category.toLowerCase().contains(query))
+    ).toList();
+    setState(() {
+      _productSuggestions = filtered;
+      _showProductSuggestions = true;
+      for (final node in _productSuggestionFocusNodes) {
+        node.dispose();
+      }
+      _productSuggestionFocusNodes = List.generate(filtered.length, (_) => FocusNode());
+    });
+  }
+
+  void _onProductSelected(Product? p) {
+    if (p == null) return;
+    setState(() {
+      _selectedProduct = p;
+      _weightController.text = p.weight.toStringAsFixed(3);
+      _makingChargeController.text = p.makingChargeValue.toStringAsFixed(0);
+
+      // Auto-compute rate based on today's daily rate snapshot
+      final rates = ref.read(dailyRatesProvider).value ?? [];
+      final latestRate = rates.isNotEmpty ? rates.first : null;
+
+      double calculatedRate = 0.0;
+      if (p.category.toUpperCase() == 'GOLD') {
+        if (p.purity.toUpperCase() == '22K') {
+          calculatedRate = latestRate?.rateGold22K ?? 6850.0;
+        } else if (p.purity.toUpperCase() == '18K') {
+          calculatedRate = latestRate?.rateGold18K ?? 5610.0;
+        } else {
+          calculatedRate = latestRate?.rateGold22K ?? 6850.0;
+        }
+      } else if (p.category.toUpperCase() == 'SILVER') {
+        calculatedRate = latestRate?.rateSilver ?? 82.4;
+      }
+
+      _rateController.text = calculatedRate > 0 ? calculatedRate.toStringAsFixed(0) : '0';
+    });
+  }
+
+  Future<void> _onAddProductItemPressed() async {
+    Product? selected = _selectedProduct;
+    if (_showInlineNewProductForm) {
+      final name = _newProductNameController.text.trim();
+      if (name.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Please enter a product name'), backgroundColor: AppColors.error),
+        );
+        return;
+      }
+      final stock = int.tryParse(_newProductStockController.text) ?? 10;
+      final huid = _newProductHuidController.text.trim();
+      
+      setState(() => _isSavingProduct = true);
+      try {
+        final product = Product(
+          name: name,
+          category: _newProductCategory,
+          purity: _newProductPurity,
+          huidNumber: huid.isEmpty ? null : huid,
+          hsnCode: '7113', // default HSN for jewellery
+          weight: double.tryParse(_weightController.text) ?? 0.0,
+          stockUnits: stock,
+          makingChargeValue: double.tryParse(_makingChargeController.text) ?? 0.0,
+          isActive: true,
+        );
+        await ref.read(productsProvider.notifier).addProduct(product);
+        final updatedList = ref.read(productsProvider).value ?? [];
+        if (updatedList.isNotEmpty) {
+          selected = updatedList.firstWhere((p) => p.name == name, orElse: () => updatedList.first);
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create new product: $e'), backgroundColor: AppColors.error),
+        );
+        return;
+      } finally {
+        setState(() => _isSavingProduct = false);
+      }
+    }
+
+    if (selected == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Please select or create a product first'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    final qty = int.tryParse(_qtyController.text) ?? 1;
+    final rate = double.tryParse(_rateController.text) ?? 0.0;
+    final weight = double.tryParse(_weightController.text) ?? 0.0;
+    final mcVal = double.tryParse(_makingChargeController.text) ?? 0.0;
+    final stoneW = double.tryParse(_stoneWeightController.text) ?? 0.0;
+    final stoneV = double.tryParse(_stoneValueController.text) ?? 0.0;
+    final discount = double.tryParse(_discountController.text) ?? 0.0;
+
+    if (qty <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Quantity must be greater than 0.'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+    if (weight <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Gross weight must be greater than 0.'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    // Verify stock
+    if (selected.stockUnits < qty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Insufficient stock. Only ${selected.stockUnits} available.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final billingProduct = BillingProduct(
+      productId: selected.id ?? '',
+      name: selected.name,
+      hsnCode: selected.hsnCode,
+      category: selected.category,
+      purity: selected.purity,
+      rate: rate,
+      quantity: qty,
+      grossWeight: weight,
+      stoneWeight: stoneW,
+      stoneValue: stoneV,
+      makingChargeType: _makingChargeType,
+      makingChargeValue: mcVal,
+      discountValue: discount,
+    );
+
+    ref.read(billingProvider.notifier).addProduct(billingProduct);
+
+    // Reset controllers for next product entry
+    _searchController.clear();
+    _qtyController.text = '1';
+    _rateController.clear();
+    _weightController.clear();
+    _makingChargeController.clear();
+    _stoneWeightController.text = '0';
+    _stoneValueController.text = '0';
+    _discountController.text = '0';
+    _newProductNameController.clear();
+    _newProductHuidController.clear();
+    _newProductStockController.text = '10';
+
+    setState(() {
+      _selectedProduct = null;
+      _showInlineNewProductForm = false;
+      _productSuggestions = [];
+      _showProductSuggestions = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Product added to invoice'), duration: Duration(seconds: 1)),
     );
   }
 
@@ -1241,7 +1805,56 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ],
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms, delay: 350.ms);
+    );
+  }  Widget _buildPaymentRow({
+    required TextEditingController controller,
+    required String label,
+    required void Function(String) onChanged,
+    FocusNode? focusNode,
+    void Function(String)? onFieldSubmitted,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: AppTextStyles.bodyMd.copyWith(
+                color: AppColors.onBackground,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.glassBorder),
+              ),
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                focusNode: focusNode,
+                onSubmitted: onFieldSubmitted,
+                keyboardType: TextInputType.number,
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground, fontWeight: FontWeight.bold),
+                decoration: const InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: InputBorder.none,
+                  prefixText: '₹',
+                  prefixStyle: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPaymentSplit(BillingState billing) {
@@ -1274,9 +1887,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           const SizedBox(height: 16),
 
           // Cash
-          _buildPaymentCard(
+          _buildPaymentRow(
             controller: _cashController,
-            icon: Icons.account_balance_wallet_rounded,
             label: 'CASH',
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
@@ -1285,16 +1897,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 _receivedFullAmount = false;
               });
             },
-            index: 6,
             focusNode: _cashFocusNode,
             onFieldSubmitted: (_) => _upiFocusNode.requestFocus(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
 
           // UPI
-          _buildPaymentCard(
+          _buildPaymentRow(
             controller: _upiController,
-            icon: Icons.qr_code_rounded,
             label: 'UPI',
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
@@ -1303,16 +1913,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 _receivedFullAmount = false;
               });
             },
-            index: 7,
             focusNode: _upiFocusNode,
             onFieldSubmitted: (_) => _cardFocusNode.requestFocus(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
 
           // Card
-          _buildPaymentCard(
+          _buildPaymentRow(
             controller: _cardController,
-            icon: Icons.credit_card_rounded,
             label: 'CARD',
             onChanged: (val) {
               final amt = double.tryParse(val) ?? 0.0;
@@ -1321,13 +1929,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 _receivedFullAmount = false;
               });
             },
-            index: 8,
             focusNode: _cardFocusNode,
             onFieldSubmitted: (_) => _receivedAmountFocusNode.requestFocus(),
           ),
 
           const SizedBox(height: 20),
-           Divider(color: AppColors.border, height: 1),
+          Divider(color: AppColors.border, height: 1),
           const SizedBox(height: 16),
 
           Row(
@@ -1446,179 +2053,83 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
-  Widget _buildPaymentCard({
-    required TextEditingController controller,
-    required IconData icon,
-    required String label,
-    required void Function(String) onChanged,
-    required int index,
-    FocusNode? focusNode,
-    void Function(String)? onFieldSubmitted,
-  }) {
-    return GlassCard(
-      animationIndex: index,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: AppTextStyles.labelMd.copyWith(
-                  color: AppColors.onSurfaceMuted,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              focusNode: focusNode,
-              onSubmitted: onFieldSubmitted,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.right,
-              style: AppTextStyles.amountMd.copyWith(color: AppColors.onBackground),
-              decoration:  InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                prefixText: '₹',
-                prefixStyle: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomBar(BillingState billing) {
     final hasProductDiscounts = billing.products.any((p) => p.discountValue > 0);
     final productDiscountTotal = billing.products.fold(0.0, (sum, p) => sum + p.discountValue);
     final rawSubtotal = billing.products.fold(0.0, (sum, p) => sum + p.metalValue + p.makingChargeTotal + p.stoneValue);
 
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainer.withValues(alpha: 0.9),
-            border:  Border(
-              top: BorderSide(color: AppColors.glassBorder, width: 1),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: GlassCard(
+        animationIndex: 10,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _summaryRow('Subtotal', rawSubtotal),
+            if (hasProductDiscounts)
+              _summaryRow('Product Discounts', -productDiscountTotal, isDiscount: true),
+            if (billing.discountAmount > 0)
+              _summaryRow('Coupon Discount', -billing.discountAmount, isDiscount: true),
+            _summaryRow('Estimated GST (3%)', billing.totalTax),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1),
             ),
-          ),
-          child: SafeArea(
-            top: false,
-            bottom: true,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Breakdown Section
-                _summaryRow('Subtotal', rawSubtotal),
-                if (hasProductDiscounts)
-                  _summaryRow('Product Discounts', -productDiscountTotal, isDiscount: true),
-                if (billing.discountAmount > 0)
-                  _summaryRow('Coupon Discount', -billing.discountAmount, isDiscount: true),
-                _summaryRow('Estimated GST (3%)', billing.totalTax),
-                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4),
-                  child: Divider(color: AppColors.border, height: 1),
+                Text(
+                  'Grand Total:',
+                  style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Left side: Grand Total & Due Amount
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'GRAND TOTAL',
-                              style: AppTextStyles.labelMd.copyWith(
-                                color: AppColors.onSurfaceMuted,
-                                fontSize: 11,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            if (billing.balanceDue > 0.05)
-                              Text(
-                                '(DUE: ₹${_formatAmount(billing.balanceDue)})',
-                                style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 11),
-                              )
-                            else
-                               Icon(
-                                Icons.check_circle_outline_rounded,
-                                color: AppColors.success,
-                                size: 12,
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '₹${_formatAmount(billing.finalPayable)}',
-                                style: AppTextStyles.amountLg.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              TextSpan(
-                                text: '.00',
-                                style: AppTextStyles.bodySm.copyWith(
-                                  color: AppColors.onSurfaceMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    // Right side: Compact "Generate" Button
-                    SizedBox(
-                      width: 130,
-                      height: 40,
-                      child: Focus(
-                        focusNode: _generateButtonFocusNode,
-                        onKeyEvent: (node, event) {
-                          if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-                            _generateInvoice();
-                            return KeyEventResult.handled;
-                          }
-                          return KeyEventResult.ignored;
-                        },
-                        child: PrimaryButton(
-                          label: 'Generate',
-                          icon: Icons.receipt_long_rounded,
-                          isLoading: _isGenerating,
-                          onPressed: _generateInvoice,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '₹${_formatAmount(billing.finalPayable)}.00',
+                  style: AppTextStyles.amountLg.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-          ),
+            if (billing.balanceDue > 0.05) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Balance Due:',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+                  ),
+                  Text(
+                    '₹${_formatAmount(billing.balanceDue)}.00',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
+            Focus(
+              focusNode: _generateButtonFocusNode,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _isGenerating ? null : _generateInvoice,
+                icon: _isGenerating
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.receipt_long_rounded),
+                label: Text(
+                  _isGenerating ? 'Generating...' : 'Generate Invoice',
+                  style: AppTextStyles.titleSm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1648,15 +2159,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
-  void _showAddProductSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const _AddProductSheet(),
-    );
-  }
-
   void _showBarcodeDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1672,699 +2174,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 }
 
-class _AddProductSheet extends ConsumerStatefulWidget {
-  const _AddProductSheet();
-
-  @override
-  ConsumerState<_AddProductSheet> createState() => _AddProductSheetState();
-}
-
-class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
-  final _qtyController = TextEditingController(text: '1');
-  final _rateController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _makingChargeController = TextEditingController();
-  final _stoneWeightController = TextEditingController(text: '0');
-  final _stoneValueController = TextEditingController(text: '0');
-  final _discountController = TextEditingController(text: '0');
-  final _searchController = TextEditingController();
-
-  Product? _selectedProduct;
-  String _makingChargeType = 'PER_GRAM';
-  List<Product> _suggestions = [];
-  bool _showSuggestions = false;
-
-  final _searchFocusNode = FocusNode();
-  final _qtyFocusNode = FocusNode();
-  final _rateFocusNode = FocusNode();
-  final _weightFocusNode = FocusNode();
-  final _stoneWeightFocusNode = FocusNode();
-  final _stoneValueFocusNode = FocusNode();
-  final _makingChargeFocusNode = FocusNode();
-  final _makingChargeTypeFocusNode = FocusNode();
-  final _discountFocusNode = FocusNode();
-  final _submitButtonFocusNode = FocusNode();
-  List<FocusNode> _productSuggestionFocusNodes = [];
-
-  // Inline New Product Form fields
-  bool _showInlineNewProductForm = false;
-  bool _isCreatingProduct = false;
-  String _newProductCategory = 'GOLD';
-  String _newProductPurity = '22K';
-  final _newProductNameController = TextEditingController();
-  final _newProductStockController = TextEditingController(text: '10');
-  final _newProductHuidController = TextEditingController();
-  final _newProductNameFocusNode = FocusNode();
-  final _newProductStockFocusNode = FocusNode();
-  final _newProductHuidFocusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _qtyController.dispose();
-    _rateController.dispose();
-    _weightController.dispose();
-    _makingChargeController.dispose();
-    _stoneWeightController.dispose();
-    _stoneValueController.dispose();
-    _discountController.dispose();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    _qtyFocusNode.dispose();
-    _rateFocusNode.dispose();
-    _weightFocusNode.dispose();
-    _stoneWeightFocusNode.dispose();
-    _stoneValueFocusNode.dispose();
-    _makingChargeFocusNode.dispose();
-    _makingChargeTypeFocusNode.dispose();
-    _discountFocusNode.dispose();
-    _submitButtonFocusNode.dispose();
-
-    _newProductNameController.dispose();
-    _newProductStockController.dispose();
-    _newProductHuidController.dispose();
-    _newProductNameFocusNode.dispose();
-    _newProductStockFocusNode.dispose();
-    _newProductHuidFocusNode.dispose();
-
-    for (final node in _productSuggestionFocusNodes) {
-      node.dispose();
-    }
-    super.dispose();
-  }
-
-  void _onProductSelected(Product? p) {
-    if (p == null) return;
-    setState(() {
-      _selectedProduct = p;
-      _weightController.text = p.weight.toStringAsFixed(3);
-      _makingChargeController.text = p.makingChargeValue.toStringAsFixed(0);
-
-      // Auto-compute rate based on today's daily rate snapshot
-      final rates = ref.read(dailyRatesProvider).value ?? [];
-      final latestRate = rates.isNotEmpty ? rates.first : null;
-
-      double calculatedRate = 0.0;
-      if (p.category.toUpperCase() == 'GOLD') {
-        if (p.purity.toUpperCase() == '22K') {
-          calculatedRate = latestRate?.rateGold22K ?? 6850.0;
-        } else if (p.purity.toUpperCase() == '18K') {
-          calculatedRate = latestRate?.rateGold18K ?? 5610.0;
-        } else {
-          calculatedRate = latestRate?.rateGold22K ?? 6850.0;
-        }
-      } else if (p.category.toUpperCase() == 'SILVER') {
-        calculatedRate = latestRate?.rateSilver ?? 82.4;
-      }
-
-      _rateController.text = calculatedRate > 0 ? calculatedRate.toStringAsFixed(0) : '0';
-    });
-  }
-
-  void _submit() {
-    if (_selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('Please select a product.'), backgroundColor: AppColors.error),
-      );
-      return;
-    }
-
-    final qty = int.tryParse(_qtyController.text) ?? 0;
-    final rate = double.tryParse(_rateController.text) ?? 0.0;
-    final weight = double.tryParse(_weightController.text) ?? 0.0;
-    final mcVal = double.tryParse(_makingChargeController.text) ?? 0.0;
-    final stoneW = double.tryParse(_stoneWeightController.text) ?? 0.0;
-    final stoneV = double.tryParse(_stoneValueController.text) ?? 0.0;
-    final discount = double.tryParse(_discountController.text) ?? 0.0;
-
-    if (qty <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('Quantity must be greater than 0.'), backgroundColor: AppColors.error),
-      );
-      return;
-    }
-    if (weight <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('Gross weight must be greater than 0.'), backgroundColor: AppColors.error),
-      );
-      return;
-    }
-
-    // Verify stock
-    if (_selectedProduct!.stockUnits < qty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Insufficient stock. Only ${_selectedProduct!.stockUnits} available.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    final bp = BillingProduct(
-      productId: _selectedProduct!.id ?? 'PROD',
-      name: _selectedProduct!.name,
-      hsnCode: _selectedProduct!.hsnCode,
-      category: _selectedProduct!.category,
-      purity: _selectedProduct!.purity,
-      rate: rate,
-      quantity: qty,
-      grossWeight: weight,
-      stoneWeight: stoneW,
-      stoneValue: stoneV,
-      makingChargeType: _makingChargeType,
-      makingChargeValue: mcVal,
-      discountValue: discount,
-    );
-
-    ref.read(billingProvider.notifier).addProduct(bp);
-    Navigator.pop(context);
-  }
-
-  Future<void> _createAndSelectNewProduct() async {
-    final name = _newProductNameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('Product name is required.'), backgroundColor: AppColors.error),
-      );
-      return;
-    }
-    
-    final stock = int.tryParse(_newProductStockController.text.trim()) ?? 10;
-    final huid = _newProductHuidController.text.trim();
-    
-    final newProduct = Product(
-      name: name,
-      category: _newProductCategory,
-      purity: _newProductPurity,
-      stockUnits: stock,
-      huidNumber: huid.isEmpty ? null : huid,
-      weight: 0.0,
-      makingChargeValue: 0.0,
-      isActive: true,
-    );
-    
-    setState(() => _isCreatingProduct = true);
-    try {
-      await ref.read(productsProvider.notifier).addProduct(newProduct);
-      
-      final updatedList = ref.read(productsProvider).value ?? [];
-      if (updatedList.isNotEmpty) {
-        final created = updatedList.firstWhere((p) => p.name == name, orElse: () => updatedList.first);
-        _onProductSelected(created);
-        _searchController.text = created.name;
-      }
-      
-      setState(() {
-        _showInlineNewProductForm = false;
-        _newProductNameController.clear();
-        _newProductHuidController.clear();
-      });
-      
-      _qtyFocusNode.requestFocus();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create product: $e'), backgroundColor: AppColors.error),
-      );
-    } finally {
-      setState(() => _isCreatingProduct = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final productsState = ref.watch(productsProvider);
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.90,
-      decoration:  BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: AppColors.glassBorder),
-          left: BorderSide(color: AppColors.glassBorder),
-          right: BorderSide(color: AppColors.glassBorder),
-        ),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.onSurfaceDim,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox(width: 80),
-                Text('Product Entry', style: AppTextStyles.titleMd),
-                if (!_showInlineNewProductForm)
-                  SecondaryButton(
-                    label: '+ Add New',
-                    onPressed: () {
-                      setState(() => _showInlineNewProductForm = true);
-                      _newProductNameFocusNode.requestFocus();
-                    },
-                  )
-                else
-                  const SizedBox(width: 80),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: productsState.when(
-              data: (productsList) {
-                final activeProducts = productsList.where((p) => p.isActive && p.stockUnits > 0).toList();
-
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: [
-                      if (!_showInlineNewProductForm) ...[
-                        Focus(
-                          onKeyEvent: (node, event) {
-                            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                              if (_productSuggestionFocusNodes.isNotEmpty) {
-                                _productSuggestionFocusNodes.first.requestFocus();
-                                return KeyEventResult.handled;
-                              }
-                            }
-                            return KeyEventResult.ignored;
-                          },
-                          child: GlassInput(
-                            focusNode: _searchFocusNode,
-                            controller: _searchController,
-                            label: 'Select Product',
-                            hint: 'Type product name to search...',
-                            prefixIcon:  Icon(Icons.search_rounded, color: AppColors.primary),
-                            onFieldSubmitted: (_) => _qtyFocusNode.requestFocus(),
-                            onChanged: (val) {
-                              final query = val.trim().toLowerCase();
-                              if (query.isEmpty) {
-                                setState(() {
-                                  _suggestions = [];
-                                  _showSuggestions = false;
-                                });
-                                return;
-                              }
-                              final filtered = activeProducts.where((p) =>
-                                p.name.toLowerCase().contains(query) ||
-                                (p.id?.toLowerCase().contains(query) ?? false) ||
-                                (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
-                                (p.purity.toLowerCase().contains(query)) ||
-                                (p.category.toLowerCase().contains(query))
-                              ).toList();
-                              setState(() {
-                                _suggestions = filtered;
-                                _showSuggestions = true;
-                                for (final node in _productSuggestionFocusNodes) {
-                                  node.dispose();
-                                }
-                                _productSuggestionFocusNodes = List.generate(filtered.length, (_) => FocusNode());
-                              });
-                            },
-                          ),
-                        ),
-                        if (_showSuggestions && _suggestions.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          GlassCard(
-                            animationIndex: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 200),
-                              child: ListView(
-                                shrinkWrap: true,
-                                padding: EdgeInsets.zero,
-                                children: _suggestions.asMap().entries.map((entry) {
-                                  final idx = entry.key;
-                                  final p = entry.value;
-                                  final node = _productSuggestionFocusNodes[idx];
-                                  return Focus(
-                                    focusNode: node,
-                                    onFocusChange: (focused) {
-                                      if (focused) {
-                                        Scrollable.ensureVisible(
-                                          context,
-                                          duration: const Duration(milliseconds: 100),
-                                          alignment: 0.5,
-                                        );
-                                      }
-                                      setState(() {});
-                                    },
-                                    onKeyEvent: (fNode, event) {
-                                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-                                        _onProductSelected(p);
-                                        _searchController.text = p.name;
-                                        setState(() {
-                                          _suggestions = [];
-                                          _showSuggestions = false;
-                                        });
-                                        _qtyFocusNode.requestFocus();
-                                        return KeyEventResult.handled;
-                                      }
-                                      return KeyEventResult.ignored;
-                                    },
-                                    child: Container(
-                                      color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
-                                      child: ListTile(
-                                        leading:  Icon(Icons.grid_on_rounded, color: AppColors.primary, size: 20),
-                                        title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
-                                        subtitle: Text('${p.purity} • ${p.category} • ${p.stockUnits} left', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                        onTap: () {
-                                          _onProductSelected(p);
-                                          _searchController.text = p.name;
-                                          setState(() {
-                                            _suggestions = [];
-                                            _showSuggestions = false;
-                                          });
-                                          _qtyFocusNode.requestFocus();
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ] else ...[
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'NEW PRODUCT DETAILS',
-                            style: AppTextStyles.labelMd.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        GlassInput(
-                          focusNode: _newProductNameFocusNode,
-                          controller: _newProductNameController,
-                          label: 'Product Name',
-                          hint: 'Enter product name (e.g. Gold Ring)',
-                          onFieldSubmitted: (_) => _newProductStockFocusNode.requestFocus(),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4, bottom: 6),
-                                    child: Text('Category', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                  ),
-                                  DropdownButtonFormField<String>(
-                                    value: _newProductCategory,
-                                    dropdownColor: AppColors.surfaceContainer,
-                                    decoration: InputDecoration(
-                                      fillColor: AppColors.surfaceDim,
-                                      filled: true,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
-                                    ),
-                                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
-                                    items: const [
-                                      DropdownMenuItem(value: 'GOLD', child: Text('Gold')),
-                                      DropdownMenuItem(value: 'SILVER', child: Text('Silver')),
-                                      DropdownMenuItem(value: 'DIAMOND', child: Text('Diamond')),
-                                      DropdownMenuItem(value: 'OTHER', child: Text('Other')),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() {
-                                          _newProductCategory = val;
-                                          if (val == 'SILVER') {
-                                            _newProductPurity = '925';
-                                          } else {
-                                            _newProductPurity = '22K';
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4, bottom: 6),
-                                    child: Text('Purity', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                  ),
-                                  DropdownButtonFormField<String>(
-                                    value: _newProductPurity,
-                                    dropdownColor: AppColors.surfaceContainer,
-                                    decoration: InputDecoration(
-                                      fillColor: AppColors.surfaceDim,
-                                      filled: true,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
-                                    ),
-                                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
-                                    items: _newProductCategory == 'GOLD'
-                                        ? const [
-                                            DropdownMenuItem(value: '22K', child: Text('22K')),
-                                            DropdownMenuItem(value: '18K', child: Text('18K')),
-                                            DropdownMenuItem(value: '24K', child: Text('24K')),
-                                            DropdownMenuItem(value: '14K', child: Text('14K')),
-                                          ]
-                                        : _newProductCategory == 'SILVER'
-                                            ? const [
-                                                DropdownMenuItem(value: '925', child: Text('925 Sterling')),
-                                                DropdownMenuItem(value: '999', child: Text('999 Pure')),
-                                              ]
-                                            : const [
-                                                DropdownMenuItem(value: '18K', child: Text('18K')),
-                                                DropdownMenuItem(value: '22K', child: Text('22K')),
-                                                DropdownMenuItem(value: 'OTHER', child: Text('Other')),
-                                              ],
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() => _newProductPurity = val);
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GlassInput(
-                                focusNode: _newProductStockFocusNode,
-                                controller: _newProductStockController,
-                                label: 'Stock Units',
-                                hint: '10',
-                                keyboardType: TextInputType.number,
-                                onFieldSubmitted: (_) => _newProductHuidFocusNode.requestFocus(),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: GlassInput(
-                                focusNode: _newProductHuidFocusNode,
-                                controller: _newProductHuidController,
-                                label: 'HUID Number (Optional)',
-                                hint: 'HUID123456',
-                                onFieldSubmitted: (_) => _createAndSelectNewProduct(),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                setState(() => _showInlineNewProductForm = false);
-                              },
-                              child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
-                            ),
-                            const SizedBox(width: 12),
-                            SecondaryButton(
-                              label: 'Create & Select',
-                              onPressed: _createAndSelectNewProduct,
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GlassInput(
-                              focusNode: _qtyFocusNode,
-                              controller: _qtyController,
-                              label: 'Quantity',
-                              hint: '1',
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              onFieldSubmitted: (_) => _rateFocusNode.requestFocus(),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GlassInput(
-                              focusNode: _rateFocusNode,
-                              controller: _rateController,
-                              label: 'Metal Rate (₹/g)',
-                              hint: '5,400',
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              onFieldSubmitted: (_) => _weightFocusNode.requestFocus(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GlassInput(
-                              focusNode: _weightFocusNode,
-                              controller: _weightController,
-                              label: 'Gross Weight (g)',
-                              hint: '0.000',
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              onFieldSubmitted: (_) => _stoneWeightFocusNode.requestFocus(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GlassInput(
-                              focusNode: _stoneWeightFocusNode,
-                              controller: _stoneWeightController,
-                              label: 'Stone Weight (g)',
-                              hint: '0.000',
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              onFieldSubmitted: (_) => _stoneValueFocusNode.requestFocus(),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GlassInput(
-                              focusNode: _stoneValueFocusNode,
-                              controller: _stoneValueController,
-                              label: 'Stone Value (₹)',
-                              hint: '0',
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              onFieldSubmitted: (_) => _makingChargeFocusNode.requestFocus(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: GlassInput(
-                              focusNode: _makingChargeFocusNode,
-                              controller: _makingChargeController,
-                              label: 'Making Charge',
-                              hint: 'Enter value',
-                              keyboardType: TextInputType.number,
-                              onFieldSubmitted: (_) => _makingChargeTypeFocusNode.requestFocus(),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 4, bottom: 6),
-                                  child: Text('Charge Type', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                ),
-                                DropdownButtonFormField<String>(
-                                  focusNode: _makingChargeTypeFocusNode,
-                                  value: _makingChargeType,
-                                  dropdownColor: AppColors.surfaceContainer,
-                                  decoration: InputDecoration(
-                                    fillColor: AppColors.surfaceDim,
-                                    filled: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.glassBorder)),
-                                  ),
-                                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                                  items: const [
-                                    DropdownMenuItem(value: 'PER_GRAM', child: Text('/gm')),
-                                    DropdownMenuItem(value: 'FIXED', child: Text('pcs')),
-                                    DropdownMenuItem(value: 'PERCENTAGE', child: Text('%')),
-                                  ],
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setState(() => _makingChargeType = val);
-                                    }
-                                    _discountFocusNode.requestFocus();
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      GlassInput(
-                        focusNode: _discountFocusNode,
-                        controller: _discountController,
-                        label: 'Product Discount (₹)',
-                        hint: '0',
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
-                      ),
-                      const SizedBox(height: 32),
-                      PrimaryButton(
-                        label: '+ Add to Bill',
-                        icon: Icons.add_rounded,
-                        onPressed: _submit,
-                      ),
-                      const SizedBox(height: 30),
-                    ],
-                  ),
-                );
-              },
-              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
-              error: (err, _) => Center(child: Text('Error loading inventory: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _ChargeToggle extends StatelessWidget {
   final String label;

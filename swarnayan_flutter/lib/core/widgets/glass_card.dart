@@ -30,7 +30,7 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget card = GlassContainer(
+    return GlassContainer(
       padding: padding ?? AppSpacing.paddingCard,
       margin: margin,
       borderRadius: borderRadius,
@@ -39,23 +39,5 @@ class GlassCard extends StatelessWidget {
       borderColor: borderColor,
       child: child,
     );
-
-    if (animate) {
-      card = card
-          .animate()
-          .fadeIn(
-            duration: 400.ms,
-            delay: (100 * animationIndex).ms,
-          )
-          .slideY(
-            begin: 0.05,
-            end: 0,
-            duration: 400.ms,
-            delay: (100 * animationIndex).ms,
-            curve: Curves.easeOutCubic,
-          );
-    }
-
-    return card;
   }
 }

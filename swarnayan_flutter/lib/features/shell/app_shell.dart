@@ -191,10 +191,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Padding(
-        padding: EdgeInsets.only(bottom: 68.0 + bottomPadding + 16.0),
-        child: widget.child,
-      ),
+      body: widget.child,
       extendBody: true,
       bottomNavigationBar: Builder(
         builder: (context) {
@@ -335,14 +332,14 @@ class _AppShellState extends ConsumerState<AppShell> {
               height: 58,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFFF3B30), Color(0xFFFF9500)],
+                  colors: [Color(0xFF9C7A3C), Color(0xFFC9A15B)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
                 borderRadius: BorderRadius.circular(29),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+                    color: const Color(0xFF9C7A3C).withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -373,12 +370,14 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
             );
 
-            return GestureDetector(
+            final buttonGesture = GestureDetector(
               onTap: () => _onBottomBarTap(context, 1),
-              child: isBillingActive
-                  ? Expanded(child: buttonWidget)
-                  : SizedBox(width: 75, child: buttonWidget),
+              child: buttonWidget,
             );
+
+            return isBillingActive
+                ? Expanded(child: buttonGesture)
+                : SizedBox(width: 75, child: buttonGesture);
           }
 
           return Container(

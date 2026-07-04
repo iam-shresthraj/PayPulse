@@ -936,11 +936,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ],
 
           // Inline Active Form for Product Selection / Creation
-          Text(
-            _showInlineNewProductForm ? 'CREATE & ADD NEW PRODUCT' : 'ADD PRODUCT ITEM',
-            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
 
           _buildActiveProductForm(productsList),
 
@@ -1857,6 +1852,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 decoration: const InputDecoration(
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
                   prefixText: '₹',
                   prefixStyle: TextStyle(color: Colors.grey),
                 ),
@@ -2018,6 +2017,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
                           hintText: '0',
                         ),
                       ),
@@ -2052,6 +2055,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
                           hintText: '0',
                         ),
                       ),

@@ -512,7 +512,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ),
                 _buildSidebarItem(
                   icon: Icons.receipt_long_rounded,
-                  label: 'Billing',
+                  label: 'Invoice',
                   isActive: currentIndex == 1,
                   onTap: () => _onTap(context, 1),
                 ),

@@ -332,14 +332,14 @@ class _AppShellState extends ConsumerState<AppShell> {
               height: 58,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF9C7A3C), Color(0xFFC9A15B)],
+                  colors: [Color(0xFFFF4041), Color(0xFFFF5E5F)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
                 borderRadius: BorderRadius.circular(29),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9C7A3C).withValues(alpha: 0.3),
+                    color: const Color(0xFFFF4041).withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),

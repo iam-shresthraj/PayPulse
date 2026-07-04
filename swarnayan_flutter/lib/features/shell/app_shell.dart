@@ -202,52 +202,182 @@ class _AppShellState extends ConsumerState<AppShell> {
           int selectedTab = -1;
           if (bottomIndex == 0) selectedTab = 0;
           if (bottomIndex == 4) selectedTab = 1;
+          final isBillingActive = bottomIndex == 1;
 
-          Widget buildTabItem(int index, IconData inactiveIcon, IconData activeIcon, String label, int targetIndex) {
-            final isActive = selectedTab == index;
-            if (isActive) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isDark 
-                      ? Colors.white.withValues(alpha: 0.12) 
-                      : Colors.black.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      activeIcon,
-                      color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black.withValues(alpha: 0.8),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+          Widget buildCapsuleContent() {
+            if (isBillingActive) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  GestureDetector(
+                    onTap: () => _onBottomBarTap(context, 0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Icon(
+                        Icons.home_outlined, 
+                        color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.5), 
+                        size: 22,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _onBottomBarTap(context, 4),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Icon(
+                        Icons.menu_rounded, 
+                        color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.5), 
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ],
               );
             }
 
-            return GestureDetector(
-              onTap: () => _onBottomBarTap(context, targetIndex),
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Icon(
-                  inactiveIcon,
-                  color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4),
-                  size: 20,
+            if (selectedTab == 0) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(21),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.home_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Dashboard',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => _onBottomBarTap(context, 4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Icon(
+                        Icons.menu_rounded, 
+                        color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4), 
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                GestureDetector(
+                  onTap: () => _onBottomBarTap(context, 0),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Icon(
+                      Icons.home_outlined, 
+                      color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4), 
+                      size: 22,
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Container(
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(21),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.menu_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'More',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          Widget buildAddButton() {
+            final buttonWidget = Container(
+              height: 58,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF3B30), Color(0xFFFF9500)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(29),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
+              child: Center(
+                child: isBillingActive
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_rounded, color: Colors.white, size: 24),
+                          SizedBox(width: 8),
+                          Text(
+                            'Invoice',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+              ),
+            );
+
+            return GestureDetector(
+              onTap: () => _onBottomBarTap(context, 1),
+              child: isBillingActive
+                  ? Expanded(child: buttonWidget)
+                  : SizedBox(width: 75, child: buttonWidget),
             );
           }
 
@@ -259,74 +389,76 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
             child: Row(
               children: [
-                Expanded(
-                  flex: 75,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    clipBehavior: Clip.antiAlias,
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Container(
-                        height: 58,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.white.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: isDark 
-                                ? Colors.white.withValues(alpha: 0.12) 
-                                : Colors.white.withValues(alpha: 0.45),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                if (isBillingActive)
+                  SizedBox(
+                    width: 110,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      clipBehavior: Clip.antiAlias,
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: isDark 
+                                  ? Colors.white.withValues(alpha: 0.12) 
+                                  : Colors.white.withValues(alpha: 0.45),
+                              width: 1.5,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            buildTabItem(0, Icons.home_outlined, Icons.home_rounded, 'Dashboard', 0),
-                            buildTabItem(1, Icons.menu_rounded, Icons.menu_rounded, 'More', 4),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 25,
-                  child: GestureDetector(
-                    onTap: () => _onBottomBarTap(context, 1),
-                    child: Container(
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF5252).withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(29),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF5252).withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                        ],
+                          child: buildCapsuleContent(),
+                        ),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 36,
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      clipBehavior: Clip.antiAlias,
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          height: 58,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.white.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: isDark 
+                                  ? Colors.white.withValues(alpha: 0.12) 
+                                  : Colors.white.withValues(alpha: 0.45),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: buildCapsuleContent(),
                         ),
                       ),
                     ),
                   ),
-                ),
+                const SizedBox(width: 12),
+                buildAddButton(),
               ],
             ),
           );

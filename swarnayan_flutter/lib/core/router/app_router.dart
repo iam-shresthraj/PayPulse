@@ -16,6 +16,7 @@ import '../../features/reports/reports_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/auth/pending_approval_screen.dart';
+import '../../features/more/role_permissions_provider.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
 
@@ -48,10 +49,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
 
-      // Non-managers/non-owners cannot access reports, and it requires accessReports permission
+      final user = authState.user;
+      final rolePermissions = ref.read(rolePermissionsProvider).value ?? {};
+
+      // Dashboard check
+      if (location == '/') {
+        final accessDashboard = user?.hasAccess('dashboard', rolePermissions) ?? true;
+        if (!accessDashboard) {
+          if (user?.hasAccess('invoices', rolePermissions) ?? true) return '/billing';
+          if (user?.hasAccess('customers', rolePermissions) ?? true) return '/customers';
+          if (user?.hasAccess('inventory', rolePermissions) ?? true) return '/products';
+          return '/more';
+        }
+      }
+
+      // Non-managers/non-owners cannot access reports, and it requires reports access
       if (location.startsWith('/reports')) {
-        final canManage = authState.user?.canManage ?? false;
-        final accessReports = authState.user?.accessReports ?? true;
+        final canManage = user?.canManage ?? false;
+        final accessReports = user?.hasAccess('reports', rolePermissions) ?? true;
         if (!canManage || !accessReports) {
           return '/';
         }
@@ -59,23 +74,28 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Feature-wise checks for other routes
       if (location.startsWith('/billing')) {
-        final accessInvoices = authState.user?.accessInvoices ?? true;
+        final accessInvoices = user?.hasAccess('invoices', rolePermissions) ?? true;
         if (!accessInvoices) return '/';
       }
 
       if (location.startsWith('/customers')) {
-        final accessCustomers = authState.user?.accessCustomers ?? true;
+        final accessCustomers = user?.hasAccess('customers', rolePermissions) ?? true;
         if (!accessCustomers) return '/';
       }
 
       if (location.startsWith('/products')) {
-        final accessInventory = authState.user?.accessInventory ?? true;
+        final accessInventory = user?.hasAccess('inventory', rolePermissions) ?? true;
         if (!accessInventory) return '/';
       }
 
       if (location.startsWith('/more/rates')) {
-        final accessRates = authState.user?.accessRates ?? true;
+        final accessRates = user?.hasAccess('rates', rolePermissions) ?? true;
         if (!accessRates) return '/';
+      }
+
+      if (location.startsWith('/more/records')) {
+        final accessRecords = user?.hasAccess('records', rolePermissions) ?? true;
+        if (!accessRecords) return '/';
       }
 
       return null;

@@ -2,15 +2,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_spacing.dart';
 import '../more/daily_rates_provider.dart';
 import '../more/daily_rate_prompt_dialog.dart';
 import '../more/widgets/more_dialogs.dart';
 import '../auth/auth_provider.dart';
+import '../more/role_permissions_provider.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -472,6 +471,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
 
     final user = ref.watch(authProvider).user;
+    final rolePermissions = ref.watch(rolePermissionsProvider).value ?? {};
     final canManage = user?.canManage ?? false;
     final isOwner = user?.isOwner ?? false;
 
@@ -508,52 +508,55 @@ class _AppShellState extends ConsumerState<AppShell> {
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
               children: [
                 _buildSidebarHeader('MENU'),
-                _buildSidebarItem(
-                  icon: Icons.dashboard_rounded,
-                  label: 'Dashboard',
-                  isActive: currentIndex == 0,
-                  onTap: () => _onTap(context, 0),
-                ),
-                if (user?.accessInvoices ?? true)
+                if (user?.hasAccess('dashboard', rolePermissions) ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.dashboard_rounded,
+                    label: 'Dashboard',
+                    isActive: currentIndex == 0,
+                    onTap: () => _onTap(context, 0),
+                  ),
+                if (user?.hasAccess('invoices', rolePermissions) ?? true)
                   _buildSidebarItem(
                     icon: Icons.receipt_long_rounded,
                     label: 'Invoice',
                     isActive: currentIndex == 1,
                     onTap: () => _onTap(context, 1),
                   ),
-                if (user?.accessCustomers ?? true)
+                if (user?.hasAccess('customers', rolePermissions) ?? true)
                   _buildSidebarItem(
                     icon: Icons.people_alt_rounded,
                     label: 'Customers',
                     isActive: currentIndex == 2,
                     onTap: () => _onTap(context, 2),
                   ),
-                if (user?.accessInventory ?? true)
+                if (user?.hasAccess('inventory', rolePermissions) ?? true)
                   _buildSidebarItem(
                     icon: Icons.diamond_rounded,
                     label: 'Products',
                     isActive: currentIndex == 3,
                     onTap: () => _onTap(context, 3),
                   ),
-                if (canManage && (user?.accessReports ?? true))
+                if (canManage && (user?.hasAccess('reports', rolePermissions) ?? true))
                   _buildSidebarItem(
                     icon: Icons.analytics_rounded,
                     label: 'Reports',
                     isActive: currentIndex == 4,
                     onTap: () => _onTap(context, 4),
                   ),
-                _buildSidebarItem(
-                  icon: Icons.book_rounded,
-                  label: 'Record Book',
-                  isActive: currentIndex == 5,
-                  onTap: () => _onTap(context, 5),
-                ),
-                _buildSidebarItem(
-                  icon: Icons.folder_shared_rounded,
-                  label: 'Managements',
-                  isActive: currentIndex == 6,
-                  onTap: () => _onTap(context, 6),
-                ),
+                if (user?.hasAccess('records', rolePermissions) ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.book_rounded,
+                    label: 'Record Book',
+                    isActive: currentIndex == 5,
+                    onTap: () => _onTap(context, 5),
+                  ),
+                if (user?.hasAccess('staff', rolePermissions) ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.folder_shared_rounded,
+                    label: 'Managements',
+                    isActive: currentIndex == 6,
+                    onTap: () => _onTap(context, 6),
+                  ),
                 const SizedBox(height: 16),
                 _buildSidebarHeader('GENERAL'),
                 _buildSidebarItem(

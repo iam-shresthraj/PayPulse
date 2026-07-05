@@ -14,6 +14,7 @@ import 'widgets/team_dialogs.dart';
 import 'company_provider.dart';
 import 'daily_rates_provider.dart';
 import 'team_provider.dart';
+import 'role_permissions_provider.dart';
 import '../../core/theme/theme_provider.dart';
 
 class MoreScreen extends ConsumerWidget {
@@ -39,6 +40,7 @@ class MoreScreen extends ConsumerWidget {
     final isWide = MediaQuery.of(context).size.width >= 850;
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final rolePermissions = ref.watch(rolePermissionsProvider).value ?? {};
     final canManage = user?.canManage ?? false;
     final isOwner = user?.isOwner ?? false;
     final companyName =
@@ -47,6 +49,24 @@ class MoreScreen extends ConsumerWidget {
         canManage ? (ref.watch(pendingMembersProvider).value?.length ?? 0) : 0;
     final themeOverride = ref.watch(themeModeProvider);
     final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
+
+    // Visibility checks based on role and feature permissions
+    final showCustomers = !isWide && (user?.hasAccess('customers', rolePermissions) ?? true);
+    final showProducts = !isWide && (user?.hasAccess('inventory', rolePermissions) ?? true);
+    final showDirectorySection = showCustomers || showProducts;
+
+    final showReports = !isWide && canManage && (user?.hasAccess('reports', rolePermissions) ?? true);
+    final showSettings = !isWide && isOwner && (user?.hasAccess('settings', rolePermissions) ?? true);
+    final showRates = user?.hasAccess('rates', rolePermissions) ?? true;
+    final showRecords = !isWide && (user?.hasAccess('records', rolePermissions) ?? true);
+    final showCoupons = user?.hasAccess('coupons', rolePermissions) ?? true;
+    final showBusinessSection = showReports || showSettings || showRates || showRecords || showCoupons;
+
+    final showStaffMgmt = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
+    final showPending = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
+    final showCompanyCodes = canManage && ((user?.hasAccess('settings', rolePermissions) ?? true) || (user?.hasAccess('staff', rolePermissions) ?? true));
+    final showChangePassword = true; // Always visible
+    final showTeamSection = showStaffMgmt || showPending || showCompanyCodes || showChangePassword;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -172,32 +192,34 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
 
-            if (!isWide) ...[
+            if (showDirectorySection) ...[
               // ── Directory Section ──
               _buildSectionLabel('Directory'),
               const SizedBox(height: 12),
-              _buildMenuItem(
-                icon: Icons.people_alt_rounded,
-                label: 'Customers',
-                subtitle: 'Manage client directory & balances',
-                index: 20,
-                onTap: () => context.go('/customers'),
-              ),
-              _buildMenuItem(
-                icon: Icons.diamond_rounded,
-                label: 'Products',
-                subtitle: 'Manage inventory & prices',
-                index: 21,
-                onTap: () => context.go('/products'),
-              ),
+              if (showCustomers)
+                _buildMenuItem(
+                  icon: Icons.people_alt_rounded,
+                  label: 'Customers',
+                  subtitle: 'Manage client directory & balances',
+                  index: 20,
+                  onTap: () => context.go('/customers'),
+                ),
+              if (showProducts)
+                _buildMenuItem(
+                  icon: Icons.diamond_rounded,
+                  label: 'Products',
+                  subtitle: 'Manage inventory & prices',
+                  index: 21,
+                  onTap: () => context.go('/products'),
+                ),
               const SizedBox(height: 24),
             ],
 
-            // ── Business Section ──
-            _buildSectionLabel('Business'),
-            const SizedBox(height: 12),
-            if (!isWide) ...[
-              if (canManage)
+            if (showBusinessSection) ...[
+              // ── Business Section ──
+              _buildSectionLabel('Business'),
+              const SizedBox(height: 12),
+              if (showReports)
                 _buildMenuItem(
                   icon: Icons.analytics_rounded,
                   label: 'Reports',
@@ -205,7 +227,7 @@ class MoreScreen extends ConsumerWidget {
                   index: 0,
                   onTap: () => context.go('/reports'),
                 ),
-              if (isOwner)
+              if (showSettings)
                 _buildMenuItem(
                   icon: Icons.business_rounded,
                   label: 'Company Settings',
@@ -218,97 +240,101 @@ class MoreScreen extends ConsumerWidget {
                     );
                   },
                 ),
+              if (showRates)
+                _buildMenuItem(
+                  icon: Icons.trending_up_rounded,
+                  label: 'Rate Management',
+                  subtitle: 'Daily gold & silver rates',
+                  index: 2,
+                  onTap: () => context.go('/more/rates'),
+                ),
+              if (showRecords)
+                _buildMenuItem(
+                  icon: Icons.book_rounded,
+                  label: 'Record Book',
+                  subtitle: 'Income & expense tracking',
+                  index: 3,
+                  onTap: () => context.go('/more/records'),
+                ),
+              if (showCoupons)
+                _buildMenuItem(
+                  icon: Icons.local_offer_rounded,
+                  label: 'Coupons & Offers',
+                  subtitle: 'Manage discount codes',
+                  index: 4,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const CouponsManagementDialog(),
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
             ],
-            _buildMenuItem(
-              icon: Icons.trending_up_rounded,
-              label: 'Rate Management',
-              subtitle: 'Daily gold & silver rates',
-              index: 2,
-              onTap: () => context.go('/more/rates'),
-            ),
-            if (!isWide)
-              _buildMenuItem(
-                icon: Icons.book_rounded,
-                label: 'Record Book',
-                subtitle: 'Income & expense tracking',
-                index: 3,
-                onTap: () => context.go('/more/records'),
-              ),
-            _buildMenuItem(
-              icon: Icons.local_offer_rounded,
-              label: 'Coupons & Offers',
-              subtitle: 'Manage discount codes',
-              index: 4,
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const CouponsManagementDialog(),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
 
             // ── Team Section ──
-            _buildSectionLabel('Team'),
-            const SizedBox(height: 12),
-            if (canManage) ...[
-              _buildMenuItem(
-                icon: Icons.people_outline_rounded,
-                label: 'Staff Management',
-                subtitle: 'Users, roles & permissions',
-                index: 5,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const StaffManagementDialog(),
-                  );
-                },
-              ),
-              _buildMenuItem(
-                icon: Icons.how_to_reg_rounded,
-                label: 'Pending Approvals',
-                subtitle: pendingCount > 0
-                    ? '$pendingCount request${pendingCount == 1 ? '' : 's'} waiting for you'
-                    : 'Review new account requests',
-                index: 10,
-                badgeCount: pendingCount,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const PendingApprovalsDialog(),
-                  ).then((_) => ref.invalidate(pendingMembersProvider));
-                },
-              ),
-              _buildMenuItem(
-                icon: Icons.vpn_key_rounded,
-                label: 'Company Codes',
-                subtitle: isOwner
-                    ? 'Staff, manager & owner access codes'
-                    : 'Staff access code',
-                index: 11,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const CompanyCodesDialog(),
-                  );
-                },
-              ),
+            if (showTeamSection) ...[
+              _buildSectionLabel('Team'),
+              const SizedBox(height: 12),
+              if (showStaffMgmt)
+                _buildMenuItem(
+                  icon: Icons.people_outline_rounded,
+                  label: 'Staff Management',
+                  subtitle: 'Users, roles & permissions',
+                  index: 5,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const StaffManagementDialog(),
+                    );
+                  },
+                ),
+              if (showPending)
+                _buildMenuItem(
+                  icon: Icons.how_to_reg_rounded,
+                  label: 'Pending Approvals',
+                  subtitle: pendingCount > 0
+                      ? '$pendingCount request${pendingCount == 1 ? '' : 's'} waiting for you'
+                      : 'Review new account requests',
+                  index: 10,
+                  badgeCount: pendingCount,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const PendingApprovalsDialog(),
+                    ).then((_) => ref.invalidate(pendingMembersProvider));
+                  },
+                ),
+              if (showCompanyCodes)
+                _buildMenuItem(
+                  icon: Icons.vpn_key_rounded,
+                  label: 'Company Codes',
+                  subtitle: isOwner
+                      ? 'Staff, manager & owner access codes'
+                      : 'Staff access code',
+                  index: 11,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const CompanyCodesDialog(),
+                    );
+                  },
+                ),
+              if (showChangePassword)
+                _buildMenuItem(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Change Password',
+                  subtitle: 'Update your credentials',
+                  index: 6,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const ChangePasswordDialog(),
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
             ],
-            _buildMenuItem(
-              icon: Icons.lock_outline_rounded,
-              label: 'Change Password',
-              subtitle: 'Update your credentials',
-              index: 6,
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const ChangePasswordDialog(),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
 
             // ── App Section ──
             _buildSectionLabel('App'),

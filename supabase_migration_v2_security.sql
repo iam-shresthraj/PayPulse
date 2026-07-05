@@ -507,14 +507,154 @@ BEGIN
 END $$;
 
 -- ----------------------------------------------------------------------------
--- 13. Add custom feature-wise permission toggles
+-- 13. Add custom feature-wise permission toggles (10 sections)
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS access_dashboard BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS access_invoices BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN IF NOT EXISTS access_inventory BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS access_customers BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_inventory BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_reports BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_records BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS access_rates BOOLEAN NOT NULL DEFAULT TRUE,
-  ADD COLUMN IF NOT EXISTS access_reports BOOLEAN NOT NULL DEFAULT TRUE;
+  ADD COLUMN IF NOT EXISTS access_staff BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_settings BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_coupons BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- Add 10 access columns for STAFF role to companies
+ALTER TABLE public.companies
+  ADD COLUMN IF NOT EXISTS staff_access_dashboard BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS staff_access_invoices BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS staff_access_customers BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS staff_access_inventory BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS staff_access_reports BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS staff_access_records BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS staff_access_rates BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS staff_access_staff BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS staff_access_settings BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS staff_access_coupons BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Add 10 access columns for MANAGER role to companies
+ALTER TABLE public.companies
+  ADD COLUMN IF NOT EXISTS manager_access_dashboard BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_invoices BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_customers BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_inventory BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_reports BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_records BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_rates BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_staff BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS manager_access_settings BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS manager_access_coupons BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- ----------------------------------------------------------------------------
+-- 13b. RPCs to read/write company-wide role permissions
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_active_role_permissions()
+RETURNS TABLE (
+  staff_access_dashboard BOOLEAN,
+  staff_access_invoices BOOLEAN,
+  staff_access_customers BOOLEAN,
+  staff_access_inventory BOOLEAN,
+  staff_access_reports BOOLEAN,
+  staff_access_records BOOLEAN,
+  staff_access_rates BOOLEAN,
+  staff_access_staff BOOLEAN,
+  staff_access_settings BOOLEAN,
+  staff_access_coupons BOOLEAN,
+  manager_access_dashboard BOOLEAN,
+  manager_access_invoices BOOLEAN,
+  manager_access_customers BOOLEAN,
+  manager_access_inventory BOOLEAN,
+  manager_access_reports BOOLEAN,
+  manager_access_records BOOLEAN,
+  manager_access_rates BOOLEAN,
+  manager_access_staff BOOLEAN,
+  manager_access_settings BOOLEAN,
+  manager_access_coupons BOOLEAN
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT c.staff_access_dashboard,
+         c.staff_access_invoices,
+         c.staff_access_customers,
+         c.staff_access_inventory,
+         c.staff_access_reports,
+         c.staff_access_records,
+         c.staff_access_rates,
+         c.staff_access_staff,
+         c.staff_access_settings,
+         c.staff_access_coupons,
+         c.manager_access_dashboard,
+         c.manager_access_invoices,
+         c.manager_access_customers,
+         c.manager_access_inventory,
+         c.manager_access_reports,
+         c.manager_access_records,
+         c.manager_access_rates,
+         c.manager_access_staff,
+         c.manager_access_settings,
+         c.manager_access_coupons
+  FROM public.companies c
+  WHERE c.id = public.current_company_id();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+GRANT EXECUTE ON FUNCTION public.get_active_role_permissions() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.update_role_permissions(
+  p_staff_dashboard BOOLEAN,
+  p_staff_invoices BOOLEAN,
+  p_staff_customers BOOLEAN,
+  p_staff_inventory BOOLEAN,
+  p_staff_reports BOOLEAN,
+  p_staff_records BOOLEAN,
+  p_staff_rates BOOLEAN,
+  p_staff_staff BOOLEAN,
+  p_staff_settings BOOLEAN,
+  p_staff_coupons BOOLEAN,
+  p_manager_dashboard BOOLEAN,
+  p_manager_invoices BOOLEAN,
+  p_manager_customers BOOLEAN,
+  p_manager_inventory BOOLEAN,
+  p_manager_reports BOOLEAN,
+  p_manager_records BOOLEAN,
+  p_manager_rates BOOLEAN,
+  p_manager_staff BOOLEAN,
+  p_manager_settings BOOLEAN,
+  p_manager_coupons BOOLEAN
+) RETURNS VOID AS $$
+BEGIN
+  IF public.current_role_pp() <> 'OWNER' THEN
+    RAISE EXCEPTION 'Only owners can modify role permissions';
+  END IF;
+
+  UPDATE public.companies
+  SET staff_access_dashboard = p_staff_dashboard,
+      staff_access_invoices = p_staff_invoices,
+      staff_access_customers = p_staff_customers,
+      staff_access_inventory = p_staff_inventory,
+      staff_access_reports = p_staff_reports,
+      staff_access_records = p_staff_records,
+      staff_access_rates = p_staff_rates,
+      staff_access_staff = p_staff_staff,
+      staff_access_settings = p_staff_settings,
+      staff_access_coupons = p_staff_coupons,
+      manager_access_dashboard = p_manager_dashboard,
+      manager_access_invoices = p_manager_invoices,
+      manager_access_customers = p_manager_customers,
+      manager_access_inventory = p_manager_inventory,
+      manager_access_reports = p_manager_reports,
+      manager_access_records = p_manager_records,
+      manager_access_rates = p_manager_rates,
+      manager_access_staff = p_manager_staff,
+      manager_access_settings = p_manager_settings,
+      manager_access_coupons = p_manager_coupons
+  WHERE id = public.current_company_id();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.update_role_permissions(BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN) TO authenticated;
 
 -- ----------------------------------------------------------------------------
 -- 14. RPC: delete_user_pp (safely deletes from auth.users and profiles)

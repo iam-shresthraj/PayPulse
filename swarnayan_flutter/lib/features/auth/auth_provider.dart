@@ -74,21 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .eq('id', uid)
           .maybeSingle();
       if (data != null) {
-        return User(
-          id: data['id'],
-          name: data['name'] ?? '',
-          email: data['email'] ?? '',
-          role: data['role'] ?? 'STAFF',
-          isActive: data['is_active'] ?? true,
-          approvalStatus: data['approval_status'] ?? 'APPROVED',
-          companyId: data['company_id']?.toString(),
-          avatarUrl: data['avatar_url'],
-          phone: data['phone'],
-          address: data['address'],
-          lastLogin: data['last_login'] != null
-              ? DateTime.tryParse(data['last_login'].toString())
-              : null,
-        );
+        return User.fromJson(data);
       }
     } catch (e) {
       // Profile fetch failed; treated as unauthenticated.

@@ -87,24 +87,27 @@ class StaffNotifier extends StateNotifier<AsyncValue<List<User>>> {
   Future<void> updateStaff({
     required String id,
     required String name,
+    required String phone,
     required String role,
-    required bool accessInvoices,
-    required bool accessInventory,
-    required bool accessCustomers,
-    required bool accessRates,
-    required bool accessReports,
+    required Map<String, bool> permissions,
   }) async {
     try {
       await _client
           .from('profiles')
           .update({
             'name': name,
+            'phone': phone,
             'role': role,
-            'access_invoices': accessInvoices,
-            'access_inventory': accessInventory,
-            'access_customers': accessCustomers,
-            'access_rates': accessRates,
-            'access_reports': accessReports,
+            'access_dashboard': permissions['access_dashboard'] ?? true,
+            'access_invoices': permissions['access_invoices'] ?? true,
+            'access_customers': permissions['access_customers'] ?? true,
+            'access_inventory': permissions['access_inventory'] ?? true,
+            'access_reports': permissions['access_reports'] ?? true,
+            'access_records': permissions['access_records'] ?? true,
+            'access_rates': permissions['access_rates'] ?? true,
+            'access_staff': permissions['access_staff'] ?? true,
+            'access_settings': permissions['access_settings'] ?? true,
+            'access_coupons': permissions['access_coupons'] ?? true,
           })
           .eq('id', id);
       await loadStaff();
@@ -124,21 +127,22 @@ class StaffNotifier extends StateNotifier<AsyncValue<List<User>>> {
 
   Future<void> bulkUpdateAccess({
     required List<String> userIds,
-    required bool accessInvoices,
-    required bool accessInventory,
-    required bool accessCustomers,
-    required bool accessRates,
-    required bool accessReports,
+    required Map<String, bool> permissions,
   }) async {
     try {
       await _client
           .from('profiles')
           .update({
-            'access_invoices': accessInvoices,
-            'access_inventory': accessInventory,
-            'access_customers': accessCustomers,
-            'access_rates': accessRates,
-            'access_reports': accessReports,
+            'access_dashboard': permissions['access_dashboard'] ?? true,
+            'access_invoices': permissions['access_invoices'] ?? true,
+            'access_customers': permissions['access_customers'] ?? true,
+            'access_inventory': permissions['access_inventory'] ?? true,
+            'access_reports': permissions['access_reports'] ?? true,
+            'access_records': permissions['access_records'] ?? true,
+            'access_rates': permissions['access_rates'] ?? true,
+            'access_staff': permissions['access_staff'] ?? true,
+            'access_settings': permissions['access_settings'] ?? true,
+            'access_coupons': permissions['access_coupons'] ?? true,
           })
           .inFilter('id', userIds);
       await loadStaff();

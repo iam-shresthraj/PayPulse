@@ -18,6 +18,7 @@ import '../../../models/company_settings.dart' as model_settings;
 import '../company_provider.dart';
 import '../coupons_provider.dart';
 import '../staff_provider.dart';
+import '../role_permissions_provider.dart';
 import '../../auth/auth_provider.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -1065,12 +1066,17 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
   bool _isLoading = false;
   model_user.User? _editingUser;
 
-  // Feature-wise toggles for editing
+  // Feature-wise toggles for editing (10 sections)
+  bool _accessDashboard = true;
   bool _accessInvoices = true;
-  bool _accessInventory = true;
   bool _accessCustomers = true;
-  bool _accessRates = true;
+  bool _accessInventory = true;
   bool _accessReports = true;
+  bool _accessRecords = true;
+  bool _accessRates = true;
+  bool _accessStaff = true;
+  bool _accessSettings = true;
+  bool _accessCoupons = true;
 
   @override
   void dispose() {
@@ -1090,11 +1096,16 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
       _role = user.role;
       _passwordController.clear();
       _phoneController.text = user.phone ?? '';
+      _accessDashboard = user.accessDashboard;
       _accessInvoices = user.accessInvoices;
-      _accessInventory = user.accessInventory;
       _accessCustomers = user.accessCustomers;
-      _accessRates = user.accessRates;
+      _accessInventory = user.accessInventory;
       _accessReports = user.accessReports;
+      _accessRecords = user.accessRecords;
+      _accessRates = user.accessRates;
+      _accessStaff = user.accessStaff;
+      _accessSettings = user.accessSettings;
+      _accessCoupons = user.accessCoupons;
     });
   }
 
@@ -1153,12 +1164,20 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
         await ref.read(staffProvider.notifier).updateStaff(
               id: _editingUser!.id,
               name: _nameController.text.trim(),
+              phone: _phoneController.text.trim(),
               role: _role,
-              accessInvoices: _accessInvoices,
-              accessInventory: _accessInventory,
-              accessCustomers: _accessCustomers,
-              accessRates: _accessRates,
-              accessReports: _accessReports,
+              permissions: {
+                'access_dashboard': _accessDashboard,
+                'access_invoices': _accessInvoices,
+                'access_customers': _accessCustomers,
+                'access_inventory': _accessInventory,
+                'access_reports': _accessReports,
+                'access_records': _accessRecords,
+                'access_rates': _accessRates,
+                'access_staff': _accessStaff,
+                'access_settings': _accessSettings,
+                'access_coupons': _accessCoupons,
+              },
             );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1239,6 +1258,16 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
               Row(
                 children: [
                   if (!_showAddForm) ...[
+                    SecondaryButton(
+                      label: 'Role Access',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => const RoleAccessDialog(),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
                     SecondaryButton(
                       label: 'Edit Access',
                       onPressed: () {
@@ -1334,11 +1363,16 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    _buildPermissionToggle('Access Dashboard', _accessDashboard, (v) => setState(() => _accessDashboard = v)),
                     _buildPermissionToggle('Access Invoices', _accessInvoices, (v) => setState(() => _accessInvoices = v)),
-                    _buildPermissionToggle('Access Inventory', _accessInventory, (v) => setState(() => _accessInventory = v)),
                     _buildPermissionToggle('Access Customers', _accessCustomers, (v) => setState(() => _accessCustomers = v)),
-                    _buildPermissionToggle('Access Rates', _accessRates, (v) => setState(() => _accessRates = v)),
+                    _buildPermissionToggle('Access Inventory', _accessInventory, (v) => setState(() => _accessInventory = v)),
                     _buildPermissionToggle('Access Reports', _accessReports, (v) => setState(() => _accessReports = v)),
+                    _buildPermissionToggle('Access Record Book', _accessRecords, (v) => setState(() => _accessRecords = v)),
+                    _buildPermissionToggle('Access Daily Rates', _accessRates, (v) => setState(() => _accessRates = v)),
+                    _buildPermissionToggle('Access Staff Management', _accessStaff, (v) => setState(() => _accessStaff = v)),
+                    _buildPermissionToggle('Access Company Settings', _accessSettings, (v) => setState(() => _accessSettings = v)),
+                    _buildPermissionToggle('Access Coupon Settings', _accessCoupons, (v) => setState(() => _accessCoupons = v)),
                   ],
                   const SizedBox(height: 24),
                   PrimaryButton(
@@ -1424,11 +1458,16 @@ class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
   String _searchQuery = '';
   bool _isLoading = false;
 
+  bool _accessDashboard = true;
   bool _accessInvoices = true;
-  bool _accessInventory = true;
   bool _accessCustomers = true;
-  bool _accessRates = true;
+  bool _accessInventory = true;
   bool _accessReports = true;
+  bool _accessRecords = true;
+  bool _accessRates = true;
+  bool _accessStaff = true;
+  bool _accessSettings = true;
+  bool _accessCoupons = true;
 
   Future<void> _submitBulk() async {
     if (_selectedUserIds.isEmpty) {
@@ -1445,11 +1484,18 @@ class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
     try {
       await ref.read(staffProvider.notifier).bulkUpdateAccess(
             userIds: _selectedUserIds,
-            accessInvoices: _accessInvoices,
-            accessInventory: _accessInventory,
-            accessCustomers: _accessCustomers,
-            accessRates: _accessRates,
-            accessReports: _accessReports,
+            permissions: {
+              'access_dashboard': _accessDashboard,
+              'access_invoices': _accessInvoices,
+              'access_customers': _accessCustomers,
+              'access_inventory': _accessInventory,
+              'access_reports': _accessReports,
+              'access_records': _accessRecords,
+              'access_rates': _accessRates,
+              'access_staff': _accessStaff,
+              'access_settings': _accessSettings,
+              'access_coupons': _accessCoupons,
+            },
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1600,11 +1646,16 @@ class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
             style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
+          _buildPermissionToggle('Access Dashboard', _accessDashboard, (v) => setState(() => _accessDashboard = v)),
           _buildPermissionToggle('Access Invoices', _accessInvoices, (v) => setState(() => _accessInvoices = v)),
-          _buildPermissionToggle('Access Inventory', _accessInventory, (v) => setState(() => _accessInventory = v)),
           _buildPermissionToggle('Access Customers', _accessCustomers, (v) => setState(() => _accessCustomers = v)),
-          _buildPermissionToggle('Access Rates', _accessRates, (v) => setState(() => _accessRates = v)),
+          _buildPermissionToggle('Access Inventory', _accessInventory, (v) => setState(() => _accessInventory = v)),
           _buildPermissionToggle('Access Reports', _accessReports, (v) => setState(() => _accessReports = v)),
+          _buildPermissionToggle('Access Record Book', _accessRecords, (v) => setState(() => _accessRecords = v)),
+          _buildPermissionToggle('Access Daily Rates', _accessRates, (v) => setState(() => _accessRates = v)),
+          _buildPermissionToggle('Access Staff Management', _accessStaff, (v) => setState(() => _accessStaff = v)),
+          _buildPermissionToggle('Access Company Settings', _accessSettings, (v) => setState(() => _accessSettings = v)),
+          _buildPermissionToggle('Access Coupon Settings', _accessCoupons, (v) => setState(() => _accessCoupons = v)),
         ],
       ),
     );
@@ -1828,6 +1879,174 @@ class HelpSupportDialog extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class RoleAccessDialog extends ConsumerStatefulWidget {
+  const RoleAccessDialog({super.key});
+
+  @override
+  ConsumerState<RoleAccessDialog> createState() => _RoleAccessDialogState();
+}
+
+class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
+  String _selectedRole = 'STAFF'; // STAFF or MANAGER
+  bool _isLoading = false;
+
+  final Map<String, bool> _permissions = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRolePermissions();
+    });
+  }
+
+  void _loadRolePermissions() {
+    final stateVal = ref.read(rolePermissionsProvider).value ?? {};
+    setState(() {
+      final prefix = _selectedRole.toLowerCase();
+      _permissions['access_dashboard'] = stateVal['${prefix}_access_dashboard'] ?? true;
+      _permissions['access_invoices'] = stateVal['${prefix}_access_invoices'] ?? true;
+      _permissions['access_customers'] = stateVal['${prefix}_access_customers'] ?? true;
+      _permissions['access_inventory'] = stateVal['${prefix}_access_inventory'] ?? true;
+      _permissions['access_reports'] = stateVal['${prefix}_access_reports'] ?? (_selectedRole == 'MANAGER');
+      _permissions['access_records'] = stateVal['${prefix}_access_records'] ?? true;
+      _permissions['access_rates'] = stateVal['${prefix}_access_rates'] ?? true;
+      _permissions['access_staff'] = stateVal['${prefix}_access_staff'] ?? (_selectedRole == 'MANAGER');
+      _permissions['access_settings'] = stateVal['${prefix}_access_settings'] ?? false;
+      _permissions['access_coupons'] = stateVal['${prefix}_access_coupons'] ?? (_selectedRole == 'MANAGER');
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _isLoading = true);
+    try {
+      final current = Map<String, bool>.from(ref.read(rolePermissionsProvider).value ?? {});
+      final prefix = _selectedRole.toLowerCase();
+      _permissions.forEach((key, val) {
+        current['${prefix}_$key'] = val;
+      });
+
+      await ref.read(rolePermissionsProvider.notifier).updatePermissions(current);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$_selectedRole default permissions saved successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save role permissions: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _buildToggle(String label, String key) {
+    final value = _permissions[key] ?? true;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.bodyMd),
+          Switch(
+            value: value,
+            activeColor: AppColors.primary,
+            onChanged: (val) {
+              setState(() => _permissions[key] = val);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassDialogWrapper(
+      title: 'Configure Role Access',
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+        ),
+        const SizedBox(width: 12),
+        PrimaryButton(
+          label: 'Apply to Role',
+          isLoading: _isLoading,
+          onPressed: _save,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Staff Role')),
+                  selected: _selectedRole == 'STAFF',
+                  selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() {
+                        _selectedRole = 'STAFF';
+                        _loadRolePermissions();
+                      });
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Manager Role')),
+                  selected: _selectedRole == 'MANAGER',
+                  selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() {
+                        _selectedRole = 'MANAGER';
+                        _loadRolePermissions();
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '$_selectedRole Default Access Permissions',
+            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          _buildToggle('Access Dashboard', 'access_dashboard'),
+          _buildToggle('Access Invoices', 'access_invoices'),
+          _buildToggle('Access Customers', 'access_customers'),
+          _buildToggle('Access Inventory', 'access_inventory'),
+          _buildToggle('Access Reports', 'access_reports'),
+          _buildToggle('Access Record Book', 'access_records'),
+          _buildToggle('Access Daily Rates', 'access_rates'),
+          _buildToggle('Access Staff Management', 'access_staff'),
+          _buildToggle('Access Company Settings', 'access_settings'),
+          _buildToggle('Access Coupon Settings', 'access_coupons'),
+        ],
+      ),
     );
   }
 }

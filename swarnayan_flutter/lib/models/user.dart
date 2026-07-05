@@ -12,12 +12,17 @@ class User {
   final String? phone;
   final String? address;
 
-  // Feature-wise Access Control Toggles
+  // Feature-wise Access Control Toggles (10 sections)
+  final bool accessDashboard;
   final bool accessInvoices;
-  final bool accessInventory;
   final bool accessCustomers;
-  final bool accessRates;
+  final bool accessInventory;
   final bool accessReports;
+  final bool accessRecords;
+  final bool accessRates;
+  final bool accessStaff;
+  final bool accessSettings;
+  final bool accessCoupons;
 
   const User({
     required this.id,
@@ -31,20 +36,52 @@ class User {
     this.lastLogin,
     this.phone,
     this.address,
+    this.accessDashboard = true,
     this.accessInvoices = true,
-    this.accessInventory = true,
     this.accessCustomers = true,
-    this.accessRates = true,
+    this.accessInventory = true,
     this.accessReports = true,
+    this.accessRecords = true,
+    this.accessRates = true,
+    this.accessStaff = true,
+    this.accessSettings = true,
+    this.accessCoupons = true,
   });
 
   bool get isOwner => role.toUpperCase() == 'OWNER';
-  bool get isManager => role.toUpperCase() == 'MANAGER' || role.toUpperCase() == 'CO_OWNER';
+  bool get isManager => role.toUpperCase() == 'MANAGER';
   bool get isStaff => role.toUpperCase() == 'STAFF';
   bool get isApproved => approvalStatus.toUpperCase() == 'APPROVED';
 
   /// Manager-level access (manager or owner).
   bool get canManage => isOwner || isManager;
+
+  /// Dynamic access check combining individual permissions and role configurations.
+  bool hasAccess(String section, Map<String, bool> rolePermissions) {
+    if (isOwner) return true; // Owners always have full access
+
+    // Check if the individual profile allows access
+    bool profileAllowed = true;
+    switch (section.toLowerCase()) {
+      case 'dashboard': profileAllowed = accessDashboard; break;
+      case 'invoices': profileAllowed = accessInvoices; break;
+      case 'customers': profileAllowed = accessCustomers; break;
+      case 'inventory': profileAllowed = accessInventory; break;
+      case 'reports': profileAllowed = accessReports; break;
+      case 'records': profileAllowed = accessRecords; break;
+      case 'rates': profileAllowed = accessRates; break;
+      case 'staff': profileAllowed = accessStaff; break;
+      case 'settings': profileAllowed = accessSettings; break;
+      case 'coupons': profileAllowed = accessCoupons; break;
+    }
+
+    // Check if the role configuration allows access
+    final prefix = role.toLowerCase(); // staff or manager
+    final key = '${prefix}_access_${section.toLowerCase()}';
+    final roleAllowed = rolePermissions[key] ?? true;
+
+    return profileAllowed && roleAllowed;
+  }
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -64,11 +101,16 @@ class User {
               : null),
       phone: json['phone'],
       address: json['address'],
+      accessDashboard: json['accessDashboard'] ?? json['access_dashboard'] ?? true,
       accessInvoices: json['accessInvoices'] ?? json['access_invoices'] ?? true,
-      accessInventory: json['accessInventory'] ?? json['access_inventory'] ?? true,
       accessCustomers: json['accessCustomers'] ?? json['access_customers'] ?? true,
-      accessRates: json['accessRates'] ?? json['access_rates'] ?? true,
+      accessInventory: json['accessInventory'] ?? json['access_inventory'] ?? true,
       accessReports: json['accessReports'] ?? json['access_reports'] ?? true,
+      accessRecords: json['accessRecords'] ?? json['access_records'] ?? true,
+      accessRates: json['accessRates'] ?? json['access_rates'] ?? true,
+      accessStaff: json['accessStaff'] ?? json['access_staff'] ?? true,
+      accessSettings: json['accessSettings'] ?? json['access_settings'] ?? true,
+      accessCoupons: json['accessCoupons'] ?? json['access_coupons'] ?? true,
     );
   }
 
@@ -84,11 +126,16 @@ class User {
         'lastLogin': lastLogin?.toIso8601String(),
         'phone': phone,
         'address': address,
+        'access_dashboard': accessDashboard,
         'access_invoices': accessInvoices,
         'access_inventory': accessInventory,
         'access_customers': accessCustomers,
-        'access_rates': accessRates,
         'access_reports': accessReports,
+        'access_records': accessRecords,
+        'access_rates': accessRates,
+        'access_staff': accessStaff,
+        'access_settings': accessSettings,
+        'access_coupons': accessCoupons,
       };
 
   User copyWith({
@@ -103,11 +150,16 @@ class User {
     DateTime? lastLogin,
     String? phone,
     String? address,
+    bool? accessDashboard,
     bool? accessInvoices,
     bool? accessInventory,
     bool? accessCustomers,
-    bool? accessRates,
     bool? accessReports,
+    bool? accessRecords,
+    bool? accessRates,
+    bool? accessStaff,
+    bool? accessSettings,
+    bool? accessCoupons,
   }) {
     return User(
       id: id ?? this.id,
@@ -121,11 +173,16 @@ class User {
       lastLogin: lastLogin ?? this.lastLogin,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      accessDashboard: accessDashboard ?? this.accessDashboard,
       accessInvoices: accessInvoices ?? this.accessInvoices,
       accessInventory: accessInventory ?? this.accessInventory,
       accessCustomers: accessCustomers ?? this.accessCustomers,
-      accessRates: accessRates ?? this.accessRates,
       accessReports: accessReports ?? this.accessReports,
+      accessRecords: accessRecords ?? this.accessRecords,
+      accessRates: accessRates ?? this.accessRates,
+      accessStaff: accessStaff ?? this.accessStaff,
+      accessSettings: accessSettings ?? this.accessSettings,
+      accessCoupons: accessCoupons ?? this.accessCoupons,
     );
   }
 }

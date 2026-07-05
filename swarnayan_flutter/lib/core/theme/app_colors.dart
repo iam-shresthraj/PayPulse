@@ -51,7 +51,7 @@ class AppColors {
   static Color get pending => const Color(0xFFE74C3C);
 
   // ── Tier Colors ──
-  static Color get tierGold => const Color(0xFFFFD700);
+  static Color get tierGold => const Color(0xFFC5A059);
   static Color get tierSilver => const Color(0xFFC0C0C0);
   static Color get tierBronze => const Color(0xFFCD7F32);
 

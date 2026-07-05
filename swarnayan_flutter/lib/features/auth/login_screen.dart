@@ -181,16 +181,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     height: 52,
                                     fit: BoxFit.contain,
                                   ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'PAYPULSE',
-                                    style: AppTextStyles.displayLg.copyWith(
-                                      color: AppColors.primary,
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 2.0,
-                                    ),
-                                  ),
                                   const SizedBox(height: 6),
                                   Text(
                                     'BILLING & INVENTORY SYSTEM',

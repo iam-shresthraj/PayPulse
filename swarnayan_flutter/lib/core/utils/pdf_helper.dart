@@ -625,8 +625,14 @@ class PdfHelper {
   }
 
   static pw.Widget _tableHeaderCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.center}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+    return pw.Container(
+      color: PdfColors.grey200,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      alignment: align == pw.TextAlign.left
+          ? pw.Alignment.centerLeft
+          : align == pw.TextAlign.right
+              ? pw.Alignment.centerRight
+              : pw.Alignment.center,
       child: pw.Text(
         text,
         style: pw.TextStyle(font: font, fontSize: 7.5),

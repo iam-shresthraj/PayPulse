@@ -434,6 +434,13 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       },
                     ),
                     IconButton(
+                      icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _confirmDeleteProduct(context, ref, p);
+                      },
+                    ),
+                    IconButton(
                       icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
                       onPressed: () => Navigator.pop(context),
                     ),

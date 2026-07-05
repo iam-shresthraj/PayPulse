@@ -139,8 +139,8 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
 
   Future<void> deleteProduct(String id) async {
     try {
-      // Soft-delete: set is_active to false
-      await _client.from('products').update({'is_active': false}).eq('id', id);
+      // Hard-delete: remove from database permanently
+      await _client.from('products').delete().eq('id', id);
       final list = state.value ?? [];
       state = AsyncValue.data(list.where((p) => p.id != id).toList());
     } catch (e) {

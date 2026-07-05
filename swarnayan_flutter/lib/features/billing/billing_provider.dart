@@ -267,6 +267,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
     state = state.copyWith(
       couponCode: coupon.code,
       appliedCoupon: coupon,
+      customDiscount: 0.0,
     );
   }
 
@@ -275,7 +276,10 @@ class BillingNotifier extends StateNotifier<BillingState> {
   }
 
   void setCustomDiscount(double discount) {
-    state = state.copyWith(customDiscount: discount);
+    state = state.copyWith(
+      customDiscount: discount,
+      clearCoupon: true,
+    );
   }
 
   void setCashAmount(double amount) {

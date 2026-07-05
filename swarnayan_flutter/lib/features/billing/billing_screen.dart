@@ -552,6 +552,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     // Listen to billing updates to keep text fields in sync
     ref.listen<BillingState>(billingProvider, (prev, next) {
+      // 1. Customer detail changes
       if (prev?.editingInvoice?.id != next.editingInvoice?.id ||
           prev?.customerId != next.customerId ||
           prev?.customerPhone != next.customerPhone) {
@@ -583,26 +584,44 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           _emailController.text = '';
           _gstController.text = '';
         }
-        
+      }
+
+      // 2. Custom Discount sync (keeps field in sync if coupon clears it or state changes)
+      final userCustomDiscount = next.customDiscount;
+      final currentParsedDiscount = double.tryParse(_customDiscountController.text.trim()) ?? 0.0;
+      if (currentParsedDiscount != userCustomDiscount) {
+        _customDiscountController.text = userCustomDiscount > 0 ? userCustomDiscount.toStringAsFixed(0) : '';
+      }
+
+      // 3. Coupon sync
+      final stateCoupon = next.couponCode ?? '';
+      if (_couponController.text.trim().toUpperCase() != stateCoupon.toUpperCase() && stateCoupon.isEmpty) {
+        _couponController.text = stateCoupon;
+      }
+
+      // 4. Payment splits sync
+      final currentCash = double.tryParse(_cashController.text.trim()) ?? 0.0;
+      if (currentCash != next.cashAmount) {
         _cashController.text = next.cashAmount > 0 ? next.cashAmount.toStringAsFixed(0) : '';
+      }
+      final currentUpi = double.tryParse(_upiController.text.trim()) ?? 0.0;
+      if (currentUpi != next.upiAmount) {
         _upiController.text = next.upiAmount > 0 ? next.upiAmount.toStringAsFixed(0) : '';
+      }
+      final currentCard = double.tryParse(_cardController.text.trim()) ?? 0.0;
+      if (currentCard != next.cardAmount) {
         _cardController.text = next.cardAmount > 0 ? next.cardAmount.toStringAsFixed(0) : '';
-        
-        final userCustomDiscount = next.customDiscount;
-        final currentParsed = double.tryParse(_customDiscountController.text.trim()) ?? 0.0;
-        if (currentParsed != userCustomDiscount) {
-          _customDiscountController.text = userCustomDiscount > 0 ? userCustomDiscount.toStringAsFixed(0) : '';
-        }
-        
-        if (next.editingInvoice != null) {
-          _receivedFullAmount = next.editingInvoice!.balanceDue <= 0.05;
-          _receivedAmountController.text = next.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
-          _dueAmountController.text = next.editingInvoice!.balanceDue.toStringAsFixed(0);
-        } else {
-          _receivedFullAmount = false;
-          _receivedAmountController.clear();
-          _dueAmountController.clear();
-        }
+      }
+
+      // 5. Invoice edit status sync
+      if (next.editingInvoice != null) {
+        _receivedFullAmount = next.editingInvoice!.balanceDue <= 0.05;
+        _receivedAmountController.text = next.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
+        _dueAmountController.text = next.editingInvoice!.balanceDue.toStringAsFixed(0);
+      } else {
+        _receivedFullAmount = false;
+        _receivedAmountController.clear();
+        _dueAmountController.clear();
       }
     });
 
@@ -1757,6 +1776,38 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
+  bool _matchInvoiceNumber(String? invoiceNumber, String query) {
+    if (invoiceNumber == null) return false;
+    final cleanInv = invoiceNumber.trim().toLowerCase();
+    final cleanQuery = query.trim().toLowerCase();
+    
+    // 1. Exact match
+    if (cleanInv == cleanQuery) return true;
+    
+    // 2. Extract final numeric sequences from both
+    final invDigitsMatch = RegExp(r'(\d+)$').firstMatch(cleanInv);
+    final queryDigitsMatch = RegExp(r'(\d+)$').firstMatch(cleanQuery);
+    
+    if (invDigitsMatch != null && queryDigitsMatch != null) {
+      final invDigitsStr = invDigitsMatch.group(1)!;
+      final queryDigitsStr = queryDigitsMatch.group(1)!;
+      
+      final invVal = int.tryParse(invDigitsStr);
+      final queryVal = int.tryParse(queryDigitsStr);
+      
+      if (invVal != null && queryVal != null && invVal == queryVal) {
+        final invPrefix = cleanInv.substring(0, invDigitsMatch.start);
+        final queryPrefix = cleanQuery.substring(0, queryDigitsMatch.start);
+        
+        if (queryPrefix.isEmpty || invPrefix.endsWith(queryPrefix)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
   void _showEditInvoiceNumberDialog(BuildContext context, BillingState billing) {
     final companyState = ref.read(companyProvider);
     final defaultNum = billing.customInvoiceNumber ?? getNextInvoiceNumber(companyState.value);
@@ -1815,7 +1866,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   final invoicesState = ref.read(invoicesProvider);
                   if (invoicesState is AsyncData<List<Invoice>>) {
                     final matchedIdx = invoicesState.value.indexWhere(
-                      (inv) => inv.invoiceNumber == newNum && inv.deletedAt == null,
+                      (inv) => _matchInvoiceNumber(inv.invoiceNumber, newNum) && inv.deletedAt == null,
                     );
                     if (matchedIdx != -1) {
                       final inv = invoicesState.value[matchedIdx];
@@ -1855,18 +1906,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   Future<void> _applyDiscountAndCoupon(BillingState billing) async {
     final code = _couponController.text.trim().toUpperCase();
     final customDiscText = _customDiscountController.text.trim();
-    final customDisc = double.tryParse(customDiscText);
     
     List<String> errors = [];
+    double? customDisc;
 
-    // Validate discount value
-    if (customDiscText.isNotEmpty && customDisc == null) {
-      errors.add('Discount value must be a number.');
-    } else if (customDisc != null && customDisc > 0) {
-      ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+    // 1. Validate discount value
+    if (customDiscText.isNotEmpty) {
+      customDisc = double.tryParse(customDiscText);
+      if (customDisc == null) {
+        errors.add('Discount value must be a number (written in digits).');
+      } else if (customDisc < 0) {
+        errors.add('Discount value cannot be negative.');
+      }
     }
 
-    // Validate coupon code
+    // 2. Validate coupon code
+    Coupon? validCoupon;
     if (code.isNotEmpty) {
       setState(() {
         _isValidatingCoupon = true;
@@ -1878,19 +1933,44 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           billing.subtotal,
           date: billing.invoiceDate,
         );
-        ref.read(billingProvider.notifier).applyCoupon(coupon);
-        _couponController.clear();
+        validCoupon = coupon;
       } catch (e) {
-        errors.add(e.toString().replaceAll('Exception: ', ''));
+        errors.add('Coupon Error: ${e.toString().replaceAll('Exception: ', '')}');
       } finally {
         setState(() => _isValidatingCoupon = false);
       }
+    }
+
+    // 3. Handle mutual exclusivity and apply remaining valid inputs
+    if (customDisc != null && customDisc > 0 && validCoupon != null) {
+      _couponController.clear();
+      validCoupon = null;
+      errors.add('Only one discount/coupon can be applied. Applied Custom Discount.');
     }
 
     if (errors.isNotEmpty) {
       setState(() {
         _couponError = errors.join('\n');
       });
+    } else {
+      setState(() {
+        _couponError = null;
+      });
+    }
+
+    // Apply the valid custom discount
+    if (customDiscText.isEmpty) {
+      if (validCoupon == null) {
+        ref.read(billingProvider.notifier).setCustomDiscount(0.0);
+      }
+    } else if (customDisc != null && customDisc >= 0) {
+      ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+    }
+
+    // Apply the valid coupon
+    if (validCoupon != null) {
+      ref.read(billingProvider.notifier).applyCoupon(validCoupon);
+      _couponController.clear();
     }
 
     // Move focus to payment split (UPI -> CASH -> CARD)
@@ -1928,8 +2008,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   hint: 'e.g. 500',
                   keyboardType: TextInputType.number,
                   onChanged: (val) {
-                    final customDisc = double.tryParse(val.trim()) ?? 0.0;
-                    ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+                    final trimmed = val.trim();
+                    if (trimmed.isEmpty) {
+                      ref.read(billingProvider.notifier).setCustomDiscount(0.0);
+                    } else {
+                      final customDisc = double.tryParse(trimmed);
+                      if (customDisc != null && customDisc >= 0) {
+                        ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+                      }
+                    }
                   },
                   onFieldSubmitted: (_) => _applyButtonFocusNode.requestFocus(),
                 ),

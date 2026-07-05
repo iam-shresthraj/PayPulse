@@ -49,22 +49,35 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
       final response = await _client
           .from('products')
           .select('huid_number')
-          .like('huid_number', 'HUID%')
-          .order('huid_number', ascending: false)
-          .limit(1)
-          .maybeSingle();
+          .not('huid_number', 'is', null);
 
-      if (response != null && response['huid_number'] != null) {
-        final String lastHuid = response['huid_number'];
-        final regExp = RegExp(r'^HUID(\d+)');
-        final match = regExp.firstMatch(lastHuid);
-        if (match != null) {
-          final int nextNum = int.parse(match.group(1)!) + 1;
-          return 'HUID${nextNum.toString().padLeft(6, '0')}';
+      if (response != null && response is List) {
+        int maxVal = -1;
+        int maxLen = 3;
+
+        for (final item in response) {
+          final String? huid = item['huid_number'];
+          if (huid != null && huid.isNotEmpty) {
+            final numericOnly = huid.replaceAll(RegExp(r'\D'), '');
+            if (numericOnly.isNotEmpty) {
+              final val = int.tryParse(numericOnly);
+              if (val != null) {
+                if (val > maxVal) {
+                  maxVal = val;
+                  maxLen = numericOnly.length;
+                }
+              }
+            }
+          }
+        }
+
+        if (maxVal != -1) {
+          final nextNum = maxVal + 1;
+          return nextNum.toString().padLeft(maxLen, '0');
         }
       }
     } catch (_) {}
-    return 'HUID000001';
+    return '001';
   }
 
   Future<void> loadProducts() async {

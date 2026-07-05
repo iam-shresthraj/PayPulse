@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/glass_input.dart';
 import '../../core/utils/file_saver_helper.dart';
 import 'package:go_router/go_router.dart';
 import '../billing/invoices_provider.dart';
@@ -30,6 +31,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   List<Invoice> _filteredInvoices = [];
   bool _hasSearched = false;
   String _selectedStatusFilter = 'ALL';
+  String _selectedSearchField = 'ALL';
+  final TextEditingController _searchQueryController = TextEditingController();
 
   @override
   void initState() {
@@ -40,11 +43,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _searchQueryController.dispose();
+    super.dispose();
+  }
+
   void _performSearch() {
     final invoicesState = ref.read(invoicesProvider);
     if (invoicesState is AsyncData<List<Invoice>>) {
       final startOfDay = DateTime(_startDate.year, _startDate.month, _startDate.day);
       final endOfDay = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+      final query = _searchQueryController.text.trim().toLowerCase();
 
       setState(() {
         _filteredInvoices = invoicesState.value.where((inv) {
@@ -61,6 +71,56 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             if (_selectedStatusFilter == 'PAID' && !isPaid) return false;
             if (_selectedStatusFilter == 'PARTIAL' && !isPartial) return false;
             if (_selectedStatusFilter == 'CANCELLED' && !isCancelled) return false;
+          }
+
+          if (query.isNotEmpty) {
+            final custName = _getCustomerName(inv).toLowerCase();
+            final invNum = (inv.invoiceNumber ?? inv.id ?? '').toLowerCase();
+            final prodDetails = _getProductDetails(inv).toLowerCase();
+            final grossAmt = inv.grossAmount.toStringAsFixed(2);
+            final discount = inv.couponDiscount.toStringAsFixed(2);
+            final taxable = inv.taxableAmount.toStringAsFixed(2);
+            final tax = inv.totalTax.toStringAsFixed(2);
+            final netAmt = inv.netAmount.toStringAsFixed(2);
+
+            switch (_selectedSearchField) {
+              case 'invoiceNumber':
+                if (!invNum.contains(query)) return false;
+                break;
+              case 'customerName':
+                if (!custName.contains(query)) return false;
+                break;
+              case 'productDetails':
+                if (!prodDetails.contains(query)) return false;
+                break;
+              case 'grossAmount':
+                if (!grossAmt.contains(query)) return false;
+                break;
+              case 'couponDiscount':
+                if (!discount.contains(query)) return false;
+                break;
+              case 'taxableAmount':
+                if (!taxable.contains(query)) return false;
+                break;
+              case 'totalTax':
+                if (!tax.contains(query)) return false;
+                break;
+              case 'netAmount':
+                if (!netAmt.contains(query)) return false;
+                break;
+              case 'ALL':
+              default:
+                final matchAny = invNum.contains(query) ||
+                    custName.contains(query) ||
+                    prodDetails.contains(query) ||
+                    grossAmt.contains(query) ||
+                    discount.contains(query) ||
+                    taxable.contains(query) ||
+                    tax.contains(query) ||
+                    netAmt.contains(query);
+                if (!matchAny) return false;
+                break;
+            }
           }
           return true;
         }).toList();
@@ -273,6 +333,50 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
+  Widget _buildSearchFieldDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedSearchField,
+      dropdownColor: AppColors.surface,
+      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+      decoration: InputDecoration(
+        labelText: 'Search Column',
+        labelStyle: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+      items: const [
+        DropdownMenuItem(value: 'ALL', child: Text('All Columns')),
+        DropdownMenuItem(value: 'invoiceNumber', child: Text('Invoice No')),
+        DropdownMenuItem(value: 'customerName', child: Text('Customer')),
+        DropdownMenuItem(value: 'productDetails', child: Text('Products')),
+        DropdownMenuItem(value: 'grossAmount', child: Text('Gross Amount')),
+        DropdownMenuItem(value: 'couponDiscount', child: Text('Discount')),
+        DropdownMenuItem(value: 'taxableAmount', child: Text('Taxable Amount')),
+        DropdownMenuItem(value: 'totalTax', child: Text('Total Tax')),
+        DropdownMenuItem(value: 'netAmount', child: Text('Net Amount')),
+      ],
+      onChanged: (val) {
+        if (val != null) {
+          setState(() {
+            _selectedSearchField = val;
+          });
+          _performSearch();
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
@@ -319,148 +423,171 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Date Filter Inputs
+          // Unified Filters Card
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: GlassCard(
               animationIndex: 0,
-              padding: const EdgeInsets.all(16),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isMobile = constraints.maxWidth < 600;
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 900;
 
-                  final startButton = InkWell(
-                    onTap: () => _selectDate(context, true),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceDim,
+                      final startWidget = InkWell(
+                        onTap: () => _selectDate(context, true),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Start Date',
-                            style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceDim,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(_startDate),
-                            style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Start Date',
+                                style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                DateFormat('dd MMM yyyy').format(_startDate),
+                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
+                        ),
+                      );
 
-                  final endButton = InkWell(
-                    onTap: () => _selectDate(context, false),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceDim,
+                      final endWidget = InkWell(
+                        onTap: () => _selectDate(context, false),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceDim,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'End Date',
+                                style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                DateFormat('dd MMM yyyy').format(_endDate),
+                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+
+                      final dropdownWidget = _buildSearchFieldDropdown();
+
+                      final inputWidget = GlassInput(
+                        controller: _searchQueryController,
+                        label: 'Search Query',
+                        hint: 'Type search text...',
+                        prefixIcon: Icon(Icons.search, color: AppColors.primary, size: 20),
+                        onChanged: (_) => _performSearch(),
+                      );
+
+                      if (isMobile) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(child: startWidget),
+                                const SizedBox(width: 12),
+                                Expanded(child: endWidget),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            dropdownWidget,
+                            const SizedBox(height: 12),
+                            inputWidget,
+                          ],
+                        );
+                      }
+
+                      return Row(
                         children: [
-                          Text(
-                            'End Date',
-                            style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(_endDate),
-                            style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold),
-                          ),
+                          Expanded(flex: 2, child: startWidget),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 2, child: endWidget),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 2, child: dropdownWidget),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 3, child: inputWidget),
                         ],
-                      ),
-                    ),
-                  );
-
-                  final searchButton = ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 16 : 20,
-                        vertical: isMobile ? 16 : 20,
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: _performSearch,
-                    icon: const Icon(Icons.search_rounded),
-                    label: Text(
-                      'Search',
-                      style: AppTextStyles.titleSm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  );
-
-                  if (isMobile) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        startButton,
-                        const SizedBox(height: 12),
-                        endButton,
-                        const SizedBox(height: 16),
-                        searchButton,
-                      ],
-                    );
-                  }
-
-                  return Row(
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: startButton),
-                      const SizedBox(width: 12),
-                      Expanded(child: endButton),
-                      const SizedBox(width: 12),
-                      searchButton,
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-
-          // Filter Status Chips
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: ['ALL', 'PAID', 'PARTIAL', 'CANCELLED'].map((filter) {
-                  final isSelected = _selectedStatusFilter == filter;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(
-                        filter,
-                        style: AppTextStyles.labelMd.copyWith(
-                          color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: ['ALL', 'PAID', 'PARTIAL', 'CANCELLED'].map((filter) {
+                              final isSelected = _selectedStatusFilter == filter;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(
+                                    filter,
+                                    style: AppTextStyles.labelMd.copyWith(
+                                      color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.primary,
+                                  backgroundColor: AppColors.surfaceContainer,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _selectedStatusFilter = filter;
+                                      });
+                                      _performSearch();
+                                    }
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
-                      selected: isSelected,
-                      selectedColor: AppColors.primary,
-                      backgroundColor: AppColors.surfaceContainer,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _selectedStatusFilter = filter;
-                          });
-                          _performSearch();
-                        }
-                      },
-                    ),
-                  );
-                }).toList(),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _performSearch,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(
+                          'Update',
+                          style: AppTextStyles.titleSm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

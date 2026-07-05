@@ -160,7 +160,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'add',
-                parentNavigatorKey: _rootNavigatorKey,
                 pageBuilder: (context, state) => _buildSlidePage(
                   const AddCustomerDialog(),
                   state,
@@ -168,7 +167,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'edit',
-                parentNavigatorKey: _rootNavigatorKey,
                 pageBuilder: (context, state) => _buildSlidePage(
                   AddCustomerDialog(customerToEdit: state.extra as Customer?),
                   state,
@@ -176,7 +174,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: ':id',
-                parentNavigatorKey: _rootNavigatorKey,
                 pageBuilder: (context, state) => _buildSlidePage(
                   CustomerDetailScreen(
                     customerId: state.pathParameters['id']!,
@@ -195,7 +192,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'add',
-                parentNavigatorKey: _rootNavigatorKey,
                 pageBuilder: (context, state) => _buildSlidePage(
                   const AddProductScreen(),
                   state,
@@ -203,7 +199,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'edit',
-                parentNavigatorKey: _rootNavigatorKey,
                 pageBuilder: (context, state) => _buildSlidePage(
                   AddProductScreen(product: state.extra as Product?),
                   state,

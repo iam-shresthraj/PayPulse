@@ -507,6 +507,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       : 'assets/images/paypulse1.png',
                   height: 36,
                   fit: BoxFit.contain,
+                  alignment: Alignment.centerLeft,
                 ),
                 const SizedBox(height: 8),
                 Text(

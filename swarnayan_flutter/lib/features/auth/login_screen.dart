@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_input.dart';
@@ -97,6 +98,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final themeOverride = ref.watch(themeModeProvider);
+    final isWide = MediaQuery.of(context).size.width >= 850;
+    final isLight = themeOverride ?? isWide;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -171,7 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: Column(
                                 children: [
                                   Image.asset(
-                                    AppColors.isLight
+                                    isLight
                                         ? 'assets/images/paypulse2.png'
                                         : 'assets/images/paypulse1.png',
                                     height: 52,

@@ -126,7 +126,7 @@ class _DeassociatedScreenState extends ConsumerState<DeassociatedScreen> {
             constraints: const BoxConstraints(maxWidth: 440),
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
             decoration: BoxDecoration(
-              color: Colors.grey.shade950, // Premium dark glass feel
+              color: const Color(0xFF0F0F0F), // Premium dark glass feel
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               boxShadow: [

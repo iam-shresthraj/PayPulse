@@ -25,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _companyCodeController = TextEditingController();
   bool _obscurePassword = true;
   bool _isSignUp = false;
 
@@ -33,6 +34,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _companyCodeController.dispose();
     super.dispose();
   }
 
@@ -44,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               _emailController.text.trim(),
               _passwordController.text,
               _nameController.text.trim(),
+              _companyCodeController.text.trim().toUpperCase(),
             )
         : await ref.read(authProvider.notifier).login(
               _emailController.text.trim(),
@@ -56,7 +59,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ref.invalidate(dailyRatesProvider);
       ref.invalidate(customersProvider);
       ref.invalidate(productsProvider);
-      context.go('/');
+      final auth = ref.read(authProvider);
+      context.go(auth.isPendingApproval ? '/pending' : '/');
     }
   }
 
@@ -159,7 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 40),
 
-                            // Name Field (Sign Up Only)
+                            // Name & Company Code Fields (Sign Up Only)
                             if (_isSignUp) ...[
                               GlassInput(
                                 controller: _nameController,
@@ -172,6 +176,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 },
                               ),
                               const SizedBox(height: 20),
+                              GlassInput(
+                                controller: _companyCodeController,
+                                label: 'Company Code',
+                                hint: '8-character access code',
+                                prefixIcon: Icon(Icons.vpn_key_outlined, color: AppColors.onSurfaceMuted, size: 20),
+                                validator: (val) {
+                                  final v = val?.trim() ?? '';
+                                  if (v.isEmpty) return 'Company code is required';
+                                  if (v.length != 8) return 'Code must be exactly 8 characters';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Ask your owner or manager for your company access code. It decides your role.',
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
+                              ),
+                              const SizedBox(height: 14),
                             ],
 
                             // Email Field

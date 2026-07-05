@@ -10,8 +10,10 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/app_header.dart';
 import '../auth/auth_provider.dart';
 import 'widgets/more_dialogs.dart';
+import 'widgets/team_dialogs.dart';
 import 'company_provider.dart';
 import 'daily_rates_provider.dart';
+import 'team_provider.dart';
 import '../../core/theme/theme_provider.dart';
 
 class MoreScreen extends ConsumerWidget {
@@ -21,8 +23,9 @@ class MoreScreen extends ConsumerWidget {
     switch (role.toUpperCase()) {
       case 'OWNER':
         return 'Owner';
+      case 'MANAGER':
       case 'CO_OWNER':
-        return 'Co-Owner';
+        return 'Manager';
       case 'STAFF':
         return 'Staff';
       default:
@@ -36,6 +39,12 @@ class MoreScreen extends ConsumerWidget {
     final isWide = MediaQuery.of(context).size.width >= 850;
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final canManage = user?.canManage ?? false;
+    final isOwner = user?.isOwner ?? false;
+    final companyName =
+        ref.watch(companyProvider).value?.companyName ?? 'PayPulse';
+    final pendingCount =
+        canManage ? (ref.watch(pendingMembersProvider).value?.length ?? 0) : 0;
     final themeOverride = ref.watch(themeModeProvider);
     final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
 
@@ -80,16 +89,28 @@ class MoreScreen extends ConsumerWidget {
                         Container(
                           width: 56,
                           height: 56,
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppColors.primary.withValues(alpha: 0.15),
                             border: Border.all(color: AppColors.primary, width: 2),
                           ),
-                          child: Icon(
-                            Icons.person,
-                            color: AppColors.primary,
-                            size: 28,
-                          ),
+                          child: (user?.avatarUrl != null &&
+                                  user!.avatarUrl!.isNotEmpty)
+                              ? Image.network(
+                                  user.avatarUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(
+                                    Icons.person,
+                                    color: AppColors.primary,
+                                    size: 28,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  color: AppColors.primary,
+                                  size: 28,
+                                ),
                         ),
                         Positioned(
                           bottom: 0,
@@ -120,7 +141,7 @@ class MoreScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_formatRole(user?.role ?? 'OWNER')} • PayPulse',
+                            '${_formatRole(user?.role ?? 'STAFF')} • $companyName',
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.onSurfaceMuted,
                             ),
@@ -176,25 +197,27 @@ class MoreScreen extends ConsumerWidget {
             _buildSectionLabel('Business'),
             const SizedBox(height: 12),
             if (!isWide) ...[
-              _buildMenuItem(
-                icon: Icons.analytics_rounded,
-                label: 'Reports',
-                subtitle: 'Search & export reports',
-                index: 0,
-                onTap: () => context.go('/reports'),
-              ),
-              _buildMenuItem(
-                icon: Icons.business_rounded,
-                label: 'Company Settings',
-                subtitle: 'Name, address, GSTIN, logo',
-                index: 1,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const CompanySettingsDialog(),
-                  );
-                },
-              ),
+              if (canManage)
+                _buildMenuItem(
+                  icon: Icons.analytics_rounded,
+                  label: 'Reports',
+                  subtitle: 'Search & export reports',
+                  index: 0,
+                  onTap: () => context.go('/reports'),
+                ),
+              if (isOwner)
+                _buildMenuItem(
+                  icon: Icons.business_rounded,
+                  label: 'Company Settings',
+                  subtitle: 'Name, address, GSTIN, logo',
+                  index: 1,
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const CompanySettingsDialog(),
+                    );
+                  },
+                ),
             ],
             _buildMenuItem(
               icon: Icons.trending_up_rounded,
@@ -229,18 +252,49 @@ class MoreScreen extends ConsumerWidget {
             // ── Team Section ──
             _buildSectionLabel('Team'),
             const SizedBox(height: 12),
-            _buildMenuItem(
-              icon: Icons.people_outline_rounded,
-              label: 'Staff Management',
-              subtitle: 'Users, roles & permissions',
-              index: 5,
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const StaffManagementDialog(),
-                );
-              },
-            ),
+            if (canManage) ...[
+              _buildMenuItem(
+                icon: Icons.people_outline_rounded,
+                label: 'Staff Management',
+                subtitle: 'Users, roles & permissions',
+                index: 5,
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const StaffManagementDialog(),
+                  );
+                },
+              ),
+              _buildMenuItem(
+                icon: Icons.how_to_reg_rounded,
+                label: 'Pending Approvals',
+                subtitle: pendingCount > 0
+                    ? '$pendingCount request${pendingCount == 1 ? '' : 's'} waiting for you'
+                    : 'Review new account requests',
+                index: 10,
+                badgeCount: pendingCount,
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const PendingApprovalsDialog(),
+                  ).then((_) => ref.invalidate(pendingMembersProvider));
+                },
+              ),
+              _buildMenuItem(
+                icon: Icons.vpn_key_rounded,
+                label: 'Company Codes',
+                subtitle: isOwner
+                    ? 'Staff, manager & owner access codes'
+                    : 'Staff access code',
+                index: 11,
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const CompanyCodesDialog(),
+                  );
+                },
+              ),
+            ],
             _buildMenuItem(
               icon: Icons.lock_outline_rounded,
               label: 'Change Password',
@@ -394,6 +448,7 @@ class MoreScreen extends ConsumerWidget {
     required String label,
     required String subtitle,
     required int index,
+    int? badgeCount,
     VoidCallback? onTap,
   }) {
     return Padding(
@@ -427,6 +482,24 @@ class MoreScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            if (badgeCount != null && badgeCount > 0) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
              Icon(
               Icons.chevron_right_rounded,
               color: AppColors.onSurfaceDim,

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../models/user.dart';
@@ -14,6 +16,10 @@ class AuthState {
     this.isLoading = false,
     this.errorMessage,
   });
+
+  /// True when logged in but the account is still waiting for approval.
+  bool get isPendingApproval =>
+      isAuthenticated && user != null && !user!.isApproved;
 
   AuthState copyWith({
     User? user,
@@ -41,7 +47,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     try {
       final session = _client.auth.currentSession;
-      if (session != null && session.user != null) {
+      if (session != null) {
         final profile = await _fetchProfile(session.user.id);
         if (profile != null) {
           state = AuthState(
@@ -68,22 +74,40 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .eq('id', uid)
           .maybeSingle();
       if (data != null) {
-        final userMap = {
-          '_id': data['id'],
-          'name': data['name'],
-          'email': data['email'],
-          'role': data['role'] ?? 'STAFF',
-          'isActive': data['is_active'] ?? true,
-          'phone': data['phone'],
-          'address': data['address'],
-          'lastLogin': data['last_login'],
-        };
-        return User.fromJson(userMap);
+        return User(
+          id: data['id'],
+          name: data['name'] ?? '',
+          email: data['email'] ?? '',
+          role: data['role'] ?? 'STAFF',
+          isActive: data['is_active'] ?? true,
+          approvalStatus: data['approval_status'] ?? 'APPROVED',
+          companyId: data['company_id']?.toString(),
+          avatarUrl: data['avatar_url'],
+          phone: data['phone'],
+          address: data['address'],
+          lastLogin: data['last_login'] != null
+              ? DateTime.tryParse(data['last_login'].toString())
+              : null,
+        );
       }
     } catch (e) {
-      // Log or handle error
+      // Profile fetch failed; treated as unauthenticated.
     }
     return null;
+  }
+
+  /// Refresh the current profile (used by the pending-approval screen).
+  Future<void> refreshProfile() async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return;
+    final profile = await _fetchProfile(uid);
+    if (profile != null) {
+      state = AuthState(
+        user: profile,
+        isAuthenticated: true,
+        isLoading: false,
+      );
+    }
   }
 
   Future<bool> login(String email, String password) async {
@@ -104,7 +128,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return false;
         }
 
-        if (!profile.isActive) {
+        if (profile.approvalStatus == 'REJECTED') {
+          await _client.auth.signOut();
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage:
+                'Your access request was rejected. Contact your manager or owner.',
+          );
+          return false;
+        }
+
+        if (!profile.isActive && profile.isApproved) {
           await _client.auth.signOut();
           state = state.copyWith(
             isLoading: false,
@@ -113,10 +147,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return false;
         }
 
-        // Update last login in profiles table
-        await _client.from('profiles').update({
-          'last_login': DateTime.now().toIso8601String(),
-        }).eq('id', profile.id);
+        if (profile.isApproved) {
+          await _client.from('profiles').update({
+            'last_login': DateTime.now().toIso8601String(),
+          }).eq('id', profile.id);
+        }
 
         state = AuthState(
           user: profile,
@@ -143,54 +178,76 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> signUp(String email, String password, String name) async {
+  /// Validates an 8-character company code without exposing other codes.
+  /// Returns the role the code grants (STAFF / MANAGER / OWNER) or null.
+  Future<({String companyName, String role})?> validateCompanyCode(
+      String code) async {
+    final result = await _client.rpc('validate_company_code',
+        params: {'p_code': code.trim().toUpperCase()});
+    if (result is List && result.isNotEmpty) {
+      final row = Map<String, dynamic>.from(result.first);
+      return (
+        companyName: (row['company_name'] ?? '').toString(),
+        role: (row['role'] ?? 'STAFF').toString(),
+      );
+    }
+    return null;
+  }
+
+  Future<bool> signUp(
+    String email,
+    String password,
+    String name,
+    String companyCode,
+  ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final role = email.toLowerCase() == 'swarnayanjewellers@gmail.com' ? 'OWNER' : 'STAFF';
-      
+      // 1. Validate the company code first so the user gets a clear error.
+      final validation = await validateCompanyCode(companyCode);
+      if (validation == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Invalid company code. Please check with your company.',
+        );
+        return false;
+      }
+
+      // 2. Create the account; the DB trigger assigns role + approval status.
       final response = await _client.auth.signUp(
         email: email,
         password: password,
         data: {
           'name': name,
-          'role': role,
+          'company_code': companyCode.trim().toUpperCase(),
         },
       );
 
       if (response.user != null) {
-        // Wait a small bit for DB trigger to complete and then fetch profile
-        await Future.delayed(const Duration(milliseconds: 500));
-        final profile = await _fetchProfile(response.user!.id);
-        
+        // Give the DB trigger a moment to create the profile.
+        User? profile;
+        for (var attempt = 0; attempt < 3; attempt++) {
+          await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+          profile = await _fetchProfile(response.user!.id);
+          if (profile != null) break;
+        }
+
         if (profile != null) {
-          // If we want immediate login after sign up
           state = AuthState(
             user: profile,
             isAuthenticated: true,
             isLoading: false,
           );
           return true;
-        } else {
-          // Trigger might still be running or delayed, try one more time
-          await Future.delayed(const Duration(seconds: 1));
-          final retryProfile = await _fetchProfile(response.user!.id);
-          if (retryProfile != null) {
-            state = AuthState(
-              user: retryProfile,
-              isAuthenticated: true,
-              isLoading: false,
-            );
-            return true;
-          }
         }
-        
+
         state = state.copyWith(
           isLoading: false,
-          errorMessage: 'Account created, but profile initialization failed. Please try logging in.',
+          errorMessage:
+              'Account created, but profile initialization failed. Please try logging in.',
         );
         return false;
       }
-      
+
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to create account.',
@@ -200,6 +257,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       String msg = 'Failed to create account.';
       if (e is sb.AuthException) {
         msg = e.message;
+      } else if (e.toString().contains('Invalid company code')) {
+        msg = 'Invalid company code. Please check with your company.';
       }
       state = state.copyWith(
         isLoading: false,
@@ -231,6 +290,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
       rethrow;
     }
+  }
+
+  /// Uploads a profile photo to the `avatars` bucket and stores its URL.
+  Future<void> uploadProfilePhoto(Uint8List bytes, String extension) async {
+    final currentUser = _client.auth.currentUser;
+    if (currentUser == null) throw Exception('No logged in user found');
+
+    final safeExt = extension.replaceAll('.', '').toLowerCase();
+    final path = '${currentUser.id}.$safeExt';
+    await _client.storage.from('avatars').uploadBinary(
+          path,
+          bytes,
+          fileOptions: sb.FileOptions(
+            upsert: true,
+            contentType: safeExt == 'png' ? 'image/png' : 'image/jpeg',
+          ),
+        );
+
+    // Cache-bust so the new photo shows immediately.
+    final publicUrl = _client.storage.from('avatars').getPublicUrl(path);
+    final url = '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+
+    await _client
+        .from('profiles')
+        .update({'avatar_url': url}).eq('id', currentUser.id);
+
+    final updatedProfile = await _fetchProfile(currentUser.id);
+    state = state.copyWith(user: updatedProfile, isLoading: false);
   }
 
   Future<void> logout() async {

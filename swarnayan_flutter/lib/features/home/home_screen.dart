@@ -20,6 +20,7 @@ import '../../models/customer.dart';
 import '../../models/daily_rate.dart';
 import '../../core/utils/pdf_helper.dart';
 import '../more/company_provider.dart';
+import '../auth/auth_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -1081,6 +1082,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _showInvoiceDetails(BuildContext context, WidgetRef ref, Invoice inv, Customer customer) {
+    final user = ref.read(authProvider).user;
+    final canManage = user?.canManage ?? false;
+
     showDialog(
       context: context,
       builder: (context) => BackdropFilter(
@@ -1192,24 +1196,26 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.edit_rounded, size: 18),
-                        label: const Text('EDIT BILL'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: BorderSide(color: AppColors.primary),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    if (canManage) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.edit_rounded, size: 18),
+                          label: const Text('EDIT BILL'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
+                            Navigator.pop(context);
+                            context.go('/billing');
+                          },
                         ),
-                        onPressed: () {
-                          ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
-                          Navigator.pop(context);
-                          context.go('/billing');
-                        },
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
+                    ],
                     Expanded(
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.print_rounded, size: 18),

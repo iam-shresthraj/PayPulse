@@ -471,6 +471,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     final themeOverride = ref.watch(themeModeProvider);
     final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
 
+    final user = ref.watch(authProvider).user;
+    final canManage = user?.canManage ?? false;
+    final isOwner = user?.isOwner ?? false;
+
     return Container(
       width: 260,
       decoration: BoxDecoration(
@@ -528,12 +532,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                   isActive: currentIndex == 3,
                   onTap: () => _onTap(context, 3),
                 ),
-                _buildSidebarItem(
-                  icon: Icons.analytics_rounded,
-                  label: 'Reports',
-                  isActive: currentIndex == 4,
-                  onTap: () => _onTap(context, 4),
-                ),
+                if (canManage)
+                  _buildSidebarItem(
+                    icon: Icons.analytics_rounded,
+                    label: 'Reports',
+                    isActive: currentIndex == 4,
+                    onTap: () => _onTap(context, 4),
+                  ),
                 _buildSidebarItem(
                   icon: Icons.book_rounded,
                   label: 'Record Book',
@@ -556,17 +561,18 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ref.read(themeModeProvider.notifier).toggleTheme(isLight);
                   },
                 ),
-                _buildSidebarItem(
-                  icon: Icons.settings_rounded,
-                  label: 'Settings',
-                  isActive: false,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const CompanySettingsDialog(),
-                    );
-                  },
-                ),
+                if (isOwner)
+                  _buildSidebarItem(
+                    icon: Icons.settings_rounded,
+                    label: 'Settings',
+                    isActive: false,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const CompanySettingsDialog(),
+                      );
+                    },
+                  ),
                 _buildSidebarItem(
                   icon: Icons.help_outline_rounded,
                   label: 'Help',

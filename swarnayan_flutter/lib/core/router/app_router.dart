@@ -15,6 +15,7 @@ import '../../features/more/record_book_screen.dart';
 import '../../features/reports/reports_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/auth_provider.dart';
+import '../../features/auth/pending_approval_screen.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
 
@@ -30,14 +31,29 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (authState.isLoading) return null;
 
-      final isLoggingIn = state.uri.toString() == '/login';
+      final location = state.uri.toString();
+      final isLoggingIn = location == '/login';
+      final isPendingPage = location == '/pending';
 
       if (!authState.isAuthenticated) {
         return '/login';
       }
 
-      if (isLoggingIn) {
+      // Approved users never see login/pending; pending users only see /pending.
+      if (authState.isPendingApproval) {
+        return isPendingPage ? null : '/pending';
+      }
+
+      if (isLoggingIn || isPendingPage) {
         return '/';
+      }
+
+      // Non-managers/non-owners cannot access reports
+      if (location.startsWith('/reports')) {
+        final canManage = authState.user?.canManage ?? false;
+        if (!canManage) {
+          return '/';
+        }
       }
 
       return null;
@@ -48,6 +64,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _buildPage(
           const LoginScreen(),
+          state,
+        ),
+      ),
+      GoRoute(
+        path: '/pending',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _buildPage(
+          const PendingApprovalScreen(),
           state,
         ),
       ),
@@ -167,7 +191,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   ref.listen<AuthState>(authProvider, (previous, next) {
     if (previous?.isAuthenticated != next.isAuthenticated ||
-        previous?.isLoading != next.isLoading) {
+        previous?.isLoading != next.isLoading ||
+        previous?.user?.approvalStatus != next.user?.approvalStatus) {
       router.refresh();
     }
   });

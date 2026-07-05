@@ -137,6 +137,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _customerPhoneFocusNode.requestFocus();
     });
+
+    void addAutoSelectListener(FocusNode node, TextEditingController controller) {
+      node.addListener(() {
+        if (node.hasFocus && controller.text.isNotEmpty) {
+          Future.microtask(() {
+            if (node.hasFocus && controller.text.isNotEmpty) {
+              controller.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: controller.text.length,
+              );
+            }
+          });
+        }
+      });
+    }
+
+    addAutoSelectListener(_cashFocusNode, _cashController);
+    addAutoSelectListener(_upiFocusNode, _upiController);
+    addAutoSelectListener(_cardFocusNode, _cardController);
+    addAutoSelectListener(_receivedAmountFocusNode, _receivedAmountController);
   }
 
   @override

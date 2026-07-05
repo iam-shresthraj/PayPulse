@@ -30,6 +30,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   bool _isSignUp = false;
 
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _loginButtonFocusNode = FocusNode();
+  
+  final _signUpNameFocusNode = FocusNode();
+  final _signUpPhoneFocusNode = FocusNode();
+  final _signUpCodeFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isSignUp) {
+        _signUpNameFocusNode.requestFocus();
+      } else {
+        _emailFocusNode.requestFocus();
+      }
+    });
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -37,6 +57,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.dispose();
     _phoneController.dispose();
     _companyCodeController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _loginButtonFocusNode.dispose();
+    _signUpNameFocusNode.dispose();
+    _signUpPhoneFocusNode.dispose();
+    _signUpCodeFocusNode.dispose();
     super.dispose();
   }
 
@@ -170,6 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             if (_isSignUp) ...[
                               GlassInput(
                                 controller: _nameController,
+                                focusNode: _signUpNameFocusNode,
                                 label: 'Full Name',
                                 hint: 'Enter your full name',
                                 prefixIcon:  Icon(Icons.person_outline, color: AppColors.onSurfaceMuted, size: 20),
@@ -177,10 +204,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (val == null || val.trim().isEmpty) return 'Name is required';
                                   return null;
                                 },
+                                onFieldSubmitted: (_) => _signUpPhoneFocusNode.requestFocus(),
                               ),
                               const SizedBox(height: 20),
                               GlassInput(
                                 controller: _phoneController,
+                                focusNode: _signUpPhoneFocusNode,
                                 label: 'Phone Number',
                                 hint: 'Enter your phone number',
                                 keyboardType: TextInputType.phone,
@@ -189,10 +218,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (val == null || val.trim().isEmpty) return 'Phone number is required';
                                   return null;
                                 },
+                                onFieldSubmitted: (_) => _signUpCodeFocusNode.requestFocus(),
                               ),
                               const SizedBox(height: 20),
                               GlassInput(
                                 controller: _companyCodeController,
+                                focusNode: _signUpCodeFocusNode,
                                 label: 'Company Code',
                                 hint: '8-character access code',
                                 prefixIcon: Icon(Icons.vpn_key_outlined, color: AppColors.onSurfaceMuted, size: 20),
@@ -202,6 +233,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (v.length != 8) return 'Code must be exactly 8 characters';
                                   return null;
                                 },
+                                onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
                               ),
                               const SizedBox(height: 6),
                               Text(
@@ -214,6 +246,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             // Email Field
                             GlassInput(
                               controller: _emailController,
+                              focusNode: _emailFocusNode,
                               label: 'Email Address',
                               hint: 'Enter your email address',
                               keyboardType: TextInputType.emailAddress,
@@ -223,12 +256,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 if (!val.contains('@')) return 'Please enter a valid email';
                                 return null;
                               },
+                              onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
                             ),
                             const SizedBox(height: 20),
 
                             // Password Field
                             GlassInput(
                               controller: _passwordController,
+                              focusNode: _passwordFocusNode,
                               label: 'Password',
                               hint: 'Enter your password',
                               obscureText: _obscurePassword,
@@ -246,6 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 if (_isSignUp && val.length < 6) return 'Password must be at least 6 characters';
                                 return null;
                               },
+                              onFieldSubmitted: (_) => _loginButtonFocusNode.requestFocus(),
                             ),
                             const SizedBox(height: 16),
 
@@ -261,10 +297,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: 12),
 
                             // Primary Action Button
-                            PrimaryButton(
-                              label: _isSignUp ? 'CREATE ACCOUNT' : 'LOG IN',
-                              isLoading: authState.isLoading,
-                              onPressed: _handleAction,
+                            Focus(
+                              focusNode: _loginButtonFocusNode,
+                              onKeyEvent: (node, event) {
+                                if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                                  if (!authState.isLoading) {
+                                    _handleAction();
+                                  }
+                                  return KeyEventResult.handled;
+                                }
+                                return KeyEventResult.ignored;
+                              },
+                              child: Builder(
+                                builder: (context) {
+                                  final isFocused = Focus.of(context).hasFocus;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: isFocused ? Border.all(color: AppColors.primary, width: 2) : null,
+                                    ),
+                                    padding: const EdgeInsets.all(2),
+                                    child: PrimaryButton(
+                                      label: _isSignUp ? 'CREATE ACCOUNT' : 'LOG IN',
+                                      isLoading: authState.isLoading,
+                                      onPressed: _handleAction,
+                                    ),
+                                  );
+                                }
+                              ),
                             ),
 
                             const SizedBox(height: 16),
@@ -278,6 +338,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     _formKey.currentState?.reset();
                                     // Reset AuthState error messages
                                     ref.invalidate(authProvider);
+
+                                    // Request focus on the first field of the new view
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      if (_isSignUp) {
+                                        _signUpNameFocusNode.requestFocus();
+                                      } else {
+                                        _emailFocusNode.requestFocus();
+                                      }
+                                    });
                                   });
                                 },
                                 child: Text(

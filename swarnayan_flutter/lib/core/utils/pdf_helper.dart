@@ -218,30 +218,48 @@ class PdfHelper {
                           style: pw.TextStyle(font: fontBold, fontSize: 9, color: PdfColors.grey600),
                         ),
                         pw.SizedBox(height: 3),
-                        pw.Text(
-                          customer.name,
-                          style: pw.TextStyle(font: fontBold, fontSize: 11),
-                        ),
-                        pw.SizedBox(height: 1),
-                        pw.Text(
-                          'Mobile: ${customer.mobile}',
-                          style: pw.TextStyle(font: fontData, fontSize: 9),
-                        ),
-                        if (customer.email != null && customer.email!.isNotEmpty)
+                        if (customer.name.isNotEmpty && customer.name.toLowerCase() != 'client')
                           pw.Text(
-                            'Email: ${customer.email!}',
-                            style: pw.TextStyle(font: fontData, fontSize: 9),
+                            customer.name,
+                            style: pw.TextStyle(font: fontBold, fontSize: 11),
+                          ),
+                        if (customer.mobile.isNotEmpty)
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.only(top: 1),
+                            child: pw.Text(
+                              'Mobile: ${customer.mobile}',
+                              style: pw.TextStyle(font: fontData, fontSize: 9),
+                            ),
+                          ),
+                        if (customer.email != null && customer.email!.isNotEmpty)
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.only(top: 1),
+                            child: pw.Text(
+                              'Email: ${customer.email!}',
+                              style: pw.TextStyle(font: fontData, fontSize: 9),
+                            ),
                           ),
                         if (customer.address != null && customer.address!.isNotEmpty)
-                          pw.Text(
-                            'Address: ${customer.address!}',
-                            style: pw.TextStyle(font: fontData, fontSize: 9),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.only(top: 1),
+                            child: pw.Text(
+                              'Address: ${customer.address!}${customer.city != null && customer.city!.isNotEmpty ? ', ${customer.city!}' : ''}${customer.state != null && customer.state!.isNotEmpty ? ', ${customer.state!}' : ''}${customer.pincode != null && customer.pincode!.isNotEmpty ? ' - ${customer.pincode!}' : ''}',
+                              style: pw.TextStyle(font: fontData, fontSize: 9),
+                            ),
                           ),
                         if (customer.panCard != null && customer.panCard!.isNotEmpty)
                           pw.Padding(
                             padding: const pw.EdgeInsets.only(top: 2),
                             child: pw.Text(
                               'PAN Card: ${customer.panCard!}',
+                              style: pw.TextStyle(font: fontBold, fontSize: 9),
+                            ),
+                          ),
+                        if (customer.gstNumber != null && customer.gstNumber!.isNotEmpty)
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.only(top: 2),
+                            child: pw.Text(
+                              'GSTIN: ${customer.gstNumber!}',
                               style: pw.TextStyle(font: fontBold, fontSize: 9),
                             ),
                           ),
@@ -257,13 +275,14 @@ class PdfHelper {
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                 columnWidths: {
-                  0: const pw.FlexColumnWidth(3.0), // Name/Details
-                  1: const pw.FlexColumnWidth(1.0), // HSN
-                  2: const pw.FlexColumnWidth(1.0), // Purity
-                  3: const pw.FlexColumnWidth(1.2), // Weight
-                  4: const pw.FlexColumnWidth(1.2), // Rate
-                  5: const pw.FlexColumnWidth(1.5), // Making Charge (format: ₹Amount/type)
-                  6: const pw.FlexColumnWidth(1.5), // Total
+                  0: const pw.FlexColumnWidth(2.5), // Name/Details
+                  1: const pw.FlexColumnWidth(0.8), // HSN
+                  2: const pw.FlexColumnWidth(0.8), // Purity
+                  3: const pw.FlexColumnWidth(1.1), // Weight
+                  4: const pw.FlexColumnWidth(1.1), // Rate
+                  5: const pw.FlexColumnWidth(1.3), // Making Charge (format: ₹Amount/type)
+                  6: const pw.FlexColumnWidth(1.5), // Stone (Weight (Value))
+                  7: const pw.FlexColumnWidth(1.4), // Total
                 },
                 children: [
                   // Table Header
@@ -276,6 +295,7 @@ class PdfHelper {
                       _tableHeaderCell('Weight', fontBold),
                       _tableHeaderCell('Rate', fontBold),
                       _tableHeaderCell('Making Charge', fontBold),
+                      _tableHeaderCell('Stone (Wt (Val))', fontBold),
                       _tableHeaderCell('Total', fontBold),
                     ],
                   ),
@@ -304,7 +324,14 @@ class PdfHelper {
                         _tableDataCell(item.purity, fontData, align: pw.TextAlign.center),
                         _tableDataCell('${item.grossWeight.toStringAsFixed(3)} g', fontData, align: pw.TextAlign.right),
                         _tableDataCell(_currencyFormat.format(item.rate), fontData, align: pw.TextAlign.right),
-                        _tableDataCell('$makingChargeDetail\n(₹${item.makingChargeTotal.toStringAsFixed(2)})', fontData, align: pw.TextAlign.right),
+                        _tableDataCell(makingChargeDetail, fontData, align: pw.TextAlign.right),
+                        _tableDataCell(
+                          (item.stoneWeight > 0 || item.stoneValue > 0)
+                              ? '${item.stoneWeight.toStringAsFixed(3)} g\n(₹${item.stoneValue.toStringAsFixed(0)})'
+                              : '-',
+                          fontData,
+                          align: pw.TextAlign.right,
+                        ),
                         _tableDataCell(_currencyFormat.format(item.itemTotal), fontBold, align: pw.TextAlign.right),
                       ],
                     );
@@ -438,6 +465,36 @@ class PdfHelper {
                             ),
                           ],
                         ),
+                        if (invoice.balanceDue > 0.05) ...[
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text(
+                                'Total Paid:',
+                                style: pw.TextStyle(font: fontData, fontSize: 9.5),
+                              ),
+                              pw.Text(
+                                _currencyFormat.format(invoice.totalAmountPaid),
+                                style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.green800),
+                              ),
+                            ],
+                          ),
+                          pw.SizedBox(height: 2),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text(
+                                'Balance Due:',
+                                style: pw.TextStyle(font: fontData, fontSize: 9.5, color: PdfColors.red800),
+                              ),
+                              pw.Text(
+                                _currencyFormat.format(invoice.balanceDue),
+                                style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.red800),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

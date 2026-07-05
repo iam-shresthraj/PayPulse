@@ -5,7 +5,8 @@ import '../theme/app_text_styles.dart';
 
 /// Dark input field with glass-compatible styling.
 /// Matches the billing form inputs from the designs.
-class GlassInput extends StatelessWidget {
+/// Auto-selects all text when focused for fast editing.
+class GlassInput extends StatefulWidget {
   final TextEditingController? controller;
   final String? label;
   final String? hint;
@@ -46,14 +47,61 @@ class GlassInput extends StatelessWidget {
   });
 
   @override
+  State<GlassInput> createState() => _GlassInputState();
+}
+
+class _GlassInputState extends State<GlassInput> {
+  FocusNode? _internalFocusNode;
+
+  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_internalFocusNode ??= FocusNode());
+
+  @override
+  void initState() {
+    super.initState();
+    _effectiveFocusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(GlassInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      oldWidget.focusNode?.removeListener(_handleFocusChange);
+      _effectiveFocusNode.addListener(_handleFocusChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    _effectiveFocusNode.removeListener(_handleFocusChange);
+    _internalFocusNode?.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (_effectiveFocusNode.hasFocus) {
+      final controller = widget.controller;
+      if (controller != null && controller.text.isNotEmpty) {
+        Future.microtask(() {
+          if (controller.text.isNotEmpty && _effectiveFocusNode.hasFocus) {
+            controller.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: controller.text.length,
+            );
+          }
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null) ...[
+        if (widget.label != null) ...[
           Text(
-            label!.toUpperCase(),
+            widget.label!.toUpperCase(),
             style: AppTextStyles.labelMd.copyWith(
               color: AppColors.onSurfaceMuted,
               letterSpacing: 1.0,
@@ -62,26 +110,26 @@ class GlassInput extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          readOnly: readOnly,
-          maxLines: maxLines,
-          validator: validator,
-          onChanged: onChanged,
-          onTap: onTap,
-          textInputAction: textInputAction ?? (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
-          onFieldSubmitted: onFieldSubmitted ?? (value) {
+          controller: widget.controller,
+          focusNode: _effectiveFocusNode,
+          keyboardType: widget.keyboardType,
+          obscureText: widget.obscureText,
+          readOnly: widget.readOnly,
+          maxLines: widget.maxLines,
+          validator: widget.validator,
+          onChanged: widget.onChanged,
+          onTap: widget.onTap,
+          textInputAction: widget.textInputAction ?? (widget.maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
+          onFieldSubmitted: widget.onFieldSubmitted ?? (value) {
             FocusScope.of(context).nextFocus();
           },
-          textAlign: textAlign,
+          textAlign: widget.textAlign,
           style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
           decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            contentPadding: contentPadding ??
+            hintText: widget.hint,
+            prefixIcon: widget.prefixIcon,
+            suffixIcon: widget.suffixIcon,
+            contentPadding: widget.contentPadding ??
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             filled: true,
             fillColor: AppColors.surfaceContainer.withValues(alpha: 0.4),

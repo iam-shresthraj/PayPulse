@@ -28,6 +28,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing')) return 1;
+    if (location.startsWith('/more/rates')) return 7;
     if (location.startsWith('/customers')) return 2;
     if (location.startsWith('/products')) return 3;
     if (location.startsWith('/reports')) return 4;
@@ -58,6 +59,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         break;
       case 6:
         context.go('/more');
+        break;
+      case 7:
+        context.go('/more/rates');
         break;
     }
   }
@@ -521,6 +525,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                     label: 'Invoice',
                     isActive: currentIndex == 1,
                     onTap: () => _onTap(context, 1),
+                  ),
+                if (user?.hasAccess('rates', rolePermissions) ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.trending_up_rounded,
+                    label: 'Rate Management',
+                    isActive: currentIndex == 7,
+                    onTap: () => _onTap(context, 7),
                   ),
                 if (user?.hasAccess('customers', rolePermissions) ?? true)
                   _buildSidebarItem(

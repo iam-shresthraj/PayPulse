@@ -227,8 +227,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'rates',
-                parentNavigatorKey: _rootNavigatorKey,
-                pageBuilder: (context, state) => _buildSlidePage(
+                pageBuilder: (context, state) => _buildPage(
                   const RateManagementScreen(),
                   state,
                 ),

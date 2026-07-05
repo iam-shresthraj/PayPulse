@@ -13,7 +13,10 @@ import '../../core/utils/pdf_helper.dart';
 import '../../core/utils/whatsapp_helper.dart';
 import '../billing/invoices_provider.dart';
 import '../customers/customers_provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/invoice.dart';
+import '../../models/customer.dart';
+import '../billing/billing_provider.dart';
 import 'company_provider.dart';
 class RecordBookScreen extends ConsumerStatefulWidget {
   const RecordBookScreen({super.key});
@@ -520,9 +523,33 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      'Client: $customerName (${inv.items.length} items)',
-                                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          constraints: const BoxConstraints(),
+                                          padding: EdgeInsets.zero,
+                                          icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
+                                          onPressed: () {
+                                            final customers = ref.read(customersProvider).value ?? [];
+                                            final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
+                                            final customer = customerIndex != -1 
+                                                ? customers[customerIndex] 
+                                                : Customer(
+                                                    name: inv.tempCustomerName ?? 'Customer',
+                                                    mobile: inv.tempCustomerMobile ?? '',
+                                                    address: inv.tempCustomerAddress ?? '',
+                                                  );
+                                            ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
+                                            context.go('/billing');
+                                          },
+                                          tooltip: 'Edit Invoice',
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Client: $customerName (${inv.items.length} items)',
+                                          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -559,6 +586,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                                 onPressed: () async {
                                                   final phone = customerIndex != -1 ? customers[customerIndex].mobile : (inv.tempCustomerMobile ?? '');
                                                   final name = customerIndex != -1 ? customers[customerIndex].name : (inv.tempCustomerName ?? 'Customer');
+                                                  final company = ref.read(companyProvider).value;
                                                   await WhatsAppHelper.shareInvoice(
                                                     customerName: name,
                                                     customerPhone: phone,
@@ -566,6 +594,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                                     totalAmount: inv.finalPayable,
                                                     balanceDue: inv.balanceDue,
                                                     date: inv.invoiceDate,
+                                                    company: company,
                                                   );
                                                 },
                                                 tooltip: 'Share on WhatsApp',

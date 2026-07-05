@@ -1,4 +1,5 @@
 import 'package:url_launcher/url_launcher.dart';
+import '../../models/company_settings.dart';
 
 class WhatsAppHelper {
   static Future<void> shareInvoice({
@@ -8,6 +9,7 @@ class WhatsAppHelper {
     required double totalAmount,
     required double balanceDue,
     required DateTime date,
+    CompanySettings? company,
   }) async {
     final phoneNum = customerPhone ?? '';
     final name = customerName ?? 'Customer';
@@ -18,10 +20,30 @@ class WhatsAppHelper {
       phone = '91$phone';
     }
 
+    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PAYPULSE';
+    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';
+    final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Offering Gold, Silver & Diamond Collections.';
+    
+    String cAddressLine = '';
+    if (company != null) {
+      final addr = company.address;
+      final parts = <String>[];
+      if (addr.line1.isNotEmpty) parts.add(addr.line1);
+      if (addr.line2.isNotEmpty) parts.add(addr.line2);
+      if (addr.city.isNotEmpty) parts.add(addr.city);
+      if (addr.state.isNotEmpty) parts.add(addr.state);
+      cAddressLine = parts.join(', ');
+      if (addr.postalCode.isNotEmpty) {
+        cAddressLine += ' - ${addr.postalCode}';
+      }
+    } else {
+      cAddressLine = 'Gulab Bagh Market, Thakurbari Road, Patna - 800004';
+    }
+
     final message = '''
 Hello $name,
 
-Thank you for shopping at *PayPulse*! 🙏
+Thank you for shopping at *$cName*! 🙏
 Here is your invoice summary:
 
 *Invoice No:* $invoiceNumber
@@ -29,9 +51,9 @@ Here is your invoice summary:
 *Grand Total:* ₹${totalAmount.toStringAsFixed(0)}
 *Balance Due:* ₹${balanceDue.toStringAsFixed(0)}
 
-_Offering Gold, Silver & Diamond Collections._
-Gulab Bagh Market, Thakurbari Road, Patna - 800004
-Phone: 7903111274
+_${cTagline}_
+$cAddressLine
+Phone: $cPhone
 ''';
 
     final encodedMessage = Uri.encodeComponent(message);

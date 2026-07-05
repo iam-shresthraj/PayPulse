@@ -10,7 +10,7 @@ class StatusBadge extends StatelessWidget {
   const StatusBadge({
     super.key,
     required this.status,
-    this.fontSize = 7.0,
+    this.fontSize = 6.0,
   });
 
   Color get _backgroundColor {
@@ -48,7 +48,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.0),
       decoration: BoxDecoration(
         color: _backgroundColor,
         borderRadius: BorderRadius.circular(20),

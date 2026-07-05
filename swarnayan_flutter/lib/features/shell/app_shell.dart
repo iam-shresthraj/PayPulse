@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -495,13 +496,29 @@ class _AppShellState extends ConsumerState<AppShell> {
         children: [
           // Logo & Branding
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-            child: Image.asset(
-              isLight
-                  ? 'assets/images/paypulse2.png'
-                  : 'assets/images/paypulse1.png',
-              height: 36,
-              fit: BoxFit.contain,
+            padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 32.0, bottom: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  isLight
+                      ? 'assets/images/paypulse2.png'
+                      : 'assets/images/paypulse1.png',
+                  height: 36,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  DateFormat('dd MMMM yyyy').format(DateTime.now()).toUpperCase(),
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: AppColors.onSurfaceMuted,
+                    letterSpacing: 1.2,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
 

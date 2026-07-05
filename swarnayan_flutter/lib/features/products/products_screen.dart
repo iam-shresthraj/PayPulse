@@ -45,7 +45,38 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           SizedBox(height: topPadding + 8),
 
           // ── Top Bar ──
-          const AppHeader(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      context.go('/more');
+                    }
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.glassBorder),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.onSurface,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text('Products', style: AppTextStyles.titleMd),
+              ],
+            ),
+          ).animate().fadeIn(duration: 300.ms),
 
           const SizedBox(height: 16),
 

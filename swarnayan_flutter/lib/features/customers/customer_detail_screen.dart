@@ -322,6 +322,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                     IconButton(
                                       icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                                       onPressed: () async {
+                                        final company = ref.read(companyProvider).value;
                                         await WhatsAppHelper.shareInvoice(
                                           customerName: customer.name,
                                           customerPhone: customer.mobile,
@@ -329,6 +330,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                           totalAmount: inv.finalPayable,
                                           balanceDue: inv.balanceDue,
                                           date: inv.invoiceDate,
+                                          company: company,
                                         );
                                       },
                                       tooltip: 'Share on WhatsApp',

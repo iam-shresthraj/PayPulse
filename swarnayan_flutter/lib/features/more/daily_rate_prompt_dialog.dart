@@ -12,7 +12,8 @@ import 'daily_rates_provider.dart';
 
 class DailyRatePromptDialog extends ConsumerStatefulWidget {
   final bool isDismissible;
-  const DailyRatePromptDialog({super.key, this.isDismissible = false});
+  final DailyRate? initialRate;
+  const DailyRatePromptDialog({super.key, this.isDismissible = false, this.initialRate});
 
   @override
   ConsumerState<DailyRatePromptDialog> createState() => _DailyRatePromptDialogState();
@@ -30,9 +31,12 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialRate != null) {
+      _selectedDate = widget.initialRate!.date;
+    }
     // Pre-populate with latest available rates
     final rates = ref.read(dailyRatesProvider).value ?? [];
-    final latestRate = rates.isNotEmpty ? rates.first : null;
+    final latestRate = widget.initialRate ?? (rates.isNotEmpty ? rates.first : null);
 
     _gold22Controller = TextEditingController(
       text: latestRate != null ? latestRate.rateGold22K.toStringAsFixed(0) : '6850',
@@ -67,12 +71,12 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
       final silver = double.parse(_silverController.text);
 
       final rate = DailyRate(
-        id: 'RATE-${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}',
+        id: widget.initialRate?.id ?? 'RATE-${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}',
         date: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day),
         rateGold22K: g22,
         rateGold18K: g18,
         rateSilver: silver,
-        enteredBy: null,
+        enteredBy: widget.initialRate?.enteredBy,
       );
 
       await ref.read(dailyRatesProvider.notifier).addDailyRate(rate);

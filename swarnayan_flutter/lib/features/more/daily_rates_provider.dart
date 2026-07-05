@@ -45,7 +45,7 @@ class DailyRatesNotifier extends StateNotifier<AsyncValue<List<DailyRate>>> {
   Future<void> addDailyRate(DailyRate rate) async {
     try {
       final payload = _unmapDailyRate(rate);
-      final data = await _client.from('daily_rates').insert(payload).select().single();
+      final data = await _client.from('daily_rates').upsert(payload, onConflict: 'date').select().single();
       final newRate = _mapDailyRate(data);
       final list = state.value ?? [];
       

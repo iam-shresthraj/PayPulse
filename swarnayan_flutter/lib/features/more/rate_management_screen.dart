@@ -123,12 +123,32 @@ class RateManagementScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  Formatters.formatDate(rate.date),
-                                  style: AppTextStyles.cardTitle.copyWith(color: AppColors.primary),
+                                Row(
+                                  children: [
+                                    Text(
+                                      Formatters.formatDate(rate.date),
+                                      style: AppTextStyles.cardTitle.copyWith(color: AppColors.primary),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: EdgeInsets.zero,
+                                      icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: true,
+                                          builder: (context) => DailyRatePromptDialog(
+                                            isDismissible: true,
+                                            initialRate: rate,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                                 if (rate.enteredBy != null)
                                   Text(

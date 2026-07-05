@@ -29,6 +29,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   DateTime _endDate = DateTime.now();
   List<Invoice> _filteredInvoices = [];
   bool _hasSearched = false;
+  String _selectedStatusFilter = 'ALL';
 
   @override
   void initState() {
@@ -47,9 +48,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
       setState(() {
         _filteredInvoices = invoicesState.value.where((inv) {
-          return inv.invoiceDate.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+          final dateMatch = inv.invoiceDate.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
                  inv.invoiceDate.isBefore(endOfDay.add(const Duration(seconds: 1))) &&
                  inv.deletedAt == null;
+          if (!dateMatch) return false;
+
+          if (_selectedStatusFilter != 'ALL') {
+            final isPaid = inv.balanceDue <= 0.05 && inv.status != 'CANCELLED';
+            final isPartial = inv.balanceDue > 0.05 && inv.status != 'CANCELLED';
+            final isCancelled = inv.status == 'CANCELLED';
+
+            if (_selectedStatusFilter == 'PAID' && !isPaid) return false;
+            if (_selectedStatusFilter == 'PARTIAL' && !isPartial) return false;
+            if (_selectedStatusFilter == 'CANCELLED' && !isCancelled) return false;
+          }
+          return true;
         }).toList();
         _hasSearched = true;
       });
@@ -150,7 +163,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 'SGST',
                 'Total Tax',
                 'Net Amt',
-                'Paid',
               ],
               columnWidths: {
                 0: const pw.FixedColumnWidth(40), // Invoice No
@@ -165,7 +177,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 9: const pw.FixedColumnWidth(30), // SGST
                 10: const pw.FixedColumnWidth(45), // Total Tax
                 11: const pw.FixedColumnWidth(45), // Net Amt
-                12: const pw.FixedColumnWidth(45), // Paid
               },
               data: _filteredInvoices.map((inv) {
                 final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
@@ -182,7 +193,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   inv.sgst.toStringAsFixed(2),
                   inv.totalTax.toStringAsFixed(2),
                   inv.netAmount.toStringAsFixed(2),
-                  inv.totalAmountPaid.toStringAsFixed(2),
                 ];
               }).toList(),
               headerStyle: pw.TextStyle(font: fontBold, fontSize: 6.5),
@@ -231,7 +241,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       'SGST (₹)',
       'Total Tax (₹)',
       'Net Amount (₹)',
-      'Paid (₹)',
     ].map((h) => TextCellValue(h)).toList();
     sheet.appendRow(headers);
 
@@ -251,7 +260,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         DoubleCellValue(inv.sgst),
         DoubleCellValue(inv.totalTax),
         DoubleCellValue(inv.netAmount),
-        DoubleCellValue(inv.totalAmountPaid),
       ]);
     }
 
@@ -420,6 +428,43 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
 
+          // Filter Status Chips
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: ['ALL', 'PAID', 'PARTIAL', 'CANCELLED'].map((filter) {
+                  final isSelected = _selectedStatusFilter == filter;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(
+                        filter,
+                        style: AppTextStyles.labelMd.copyWith(
+                          color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: AppColors.primary,
+                      backgroundColor: AppColors.surfaceContainer,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedStatusFilter = filter;
+                          });
+                          _performSearch();
+                        }
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
           const SizedBox(height: 20),
 
           // Action Toolbar (Export Buttons)
@@ -494,7 +539,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   DataColumn(label: Text('SGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('Total Tax (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('Net Amt (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Paid (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
                                 ],
                                 rows: _filteredInvoices.map((inv) {
                                   final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
@@ -522,7 +566,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       DataCell(Text(inv.sgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
                                       DataCell(Text(inv.totalTax.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
                                       DataCell(Text(inv.netAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataCell(Text(inv.totalAmountPaid.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
                                     ],
                                   );
                                 }).toList(),

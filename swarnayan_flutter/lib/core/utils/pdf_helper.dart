@@ -196,6 +196,19 @@ class PdfHelper {
                       _invoiceMetaRow('Invoice No:', invoice.invoiceNumber ?? 'N/A', fontBold, fontData),
                       _invoiceMetaRow('Date:', DateFormat('dd MMM yyyy').format(invoice.invoiceDate), fontBold, fontData),
                       _invoiceMetaRow('Status:', invoice.status, fontBold, fontData),
+                      pw.SizedBox(height: 6),
+                      pw.Container(
+                        width: 45,
+                        height: 45,
+                        child: pw.BarcodeWidget(
+                          barcode: pw.Barcode.qrCode(),
+                          data: company?.logoUrl.isNotEmpty == true
+                              ? company!.logoUrl
+                              : 'https://maps.app.goo.gl/JC4gdmnJizG5NULs5',
+                          width: 45,
+                          height: 45,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -319,20 +332,19 @@ class PdfHelper {
                         _tableDataCell(
                           '${item.productName}${item.huidNumber != null && item.huidNumber!.isNotEmpty ? '\nHUID: ${item.huidNumber}' : ''}',
                           fontData,
+                          align: pw.TextAlign.left,
                         ),
                         _tableDataCell(item.hsnCode, fontData, align: pw.TextAlign.center),
                         _tableDataCell(item.purity, fontData, align: pw.TextAlign.center),
-                        _tableDataCell('${item.grossWeight.toStringAsFixed(3)} g', fontData, align: pw.TextAlign.right),
-                        _tableDataCell(_currencyFormat.format(item.rate), fontData, align: pw.TextAlign.right),
-                        _tableDataCell(makingChargeDetail, fontData, align: pw.TextAlign.right),
+                        _tableDataCell('${item.grossWeight.toStringAsFixed(3)} g', fontData, align: pw.TextAlign.center),
+                        _tableDataCell(_currencyFormat.format(item.rate), fontData, align: pw.TextAlign.center),
+                        _tableDataCell(makingChargeDetail, fontData, align: pw.TextAlign.center),
                         _tableDataCell(
-                          (item.stoneWeight > 0 || item.stoneValue > 0)
-                              ? '${item.stoneWeight.toStringAsFixed(3)} g\n(₹${item.stoneValue.toStringAsFixed(0)})'
-                              : '-',
+                          '${item.stoneWeight.toStringAsFixed(3)} g\n(₹${item.stoneValue.toStringAsFixed(0)})',
                           fontData,
-                          align: pw.TextAlign.right,
+                          align: pw.TextAlign.center,
                         ),
-                        _tableDataCell(_currencyFormat.format(item.itemTotal), fontBold, align: pw.TextAlign.right),
+                        _tableDataCell(_currencyFormat.format(item.itemTotal), fontBold, align: pw.TextAlign.center),
                       ],
                     );
                   }),
@@ -465,36 +477,7 @@ class PdfHelper {
                             ),
                           ],
                         ),
-                        if (invoice.balanceDue > 0.05) ...[
-                          pw.SizedBox(height: 4),
-                          pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                            children: [
-                              pw.Text(
-                                'Total Paid:',
-                                style: pw.TextStyle(font: fontData, fontSize: 9.5),
-                              ),
-                              pw.Text(
-                                _currencyFormat.format(invoice.totalAmountPaid),
-                                style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.green800),
-                              ),
-                            ],
-                          ),
-                          pw.SizedBox(height: 2),
-                          pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                            children: [
-                              pw.Text(
-                                'Balance Due:',
-                                style: pw.TextStyle(font: fontData, fontSize: 9.5, color: PdfColors.red800),
-                              ),
-                              pw.Text(
-                                _currencyFormat.format(invoice.balanceDue),
-                                style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.red800),
-                              ),
-                            ],
-                          ),
-                        ],
+                        // Total Paid and Balance Due are already shown in the left Payment Details section
                       ],
                     ),
                   ),

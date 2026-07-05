@@ -96,8 +96,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _stoneWeightFocusNode = FocusNode();
   final _stoneValueFocusNode = FocusNode();
   final _makingChargeFocusNode = FocusNode();
+  final _unitFocusNode = FocusNode();
   final _discountFocusNode = FocusNode();
   final _generalDiscountFocusNode = FocusNode();
+  final _couponCodeFocusNode = FocusNode();
+  final _applyButtonFocusNode = FocusNode();
   List<FocusNode> _productSuggestionFocusNodes = [];
 
   // New Product Inline Fields
@@ -205,8 +208,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _stoneWeightFocusNode.dispose();
     _stoneValueFocusNode.dispose();
     _makingChargeFocusNode.dispose();
+    _unitFocusNode.dispose();
     _discountFocusNode.dispose();
     _generalDiscountFocusNode.dispose();
+    _couponCodeFocusNode.dispose();
+    _applyButtonFocusNode.dispose();
     for (final node in _productSuggestionFocusNodes) {
       node.dispose();
     }
@@ -480,6 +486,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   icon: const Icon(Icons.chat_bubble_outline_rounded),
                   label: const Text('WhatsApp Share'),
                   onPressed: () async {
+                    final company = ref.read(companyProvider).value;
                     await WhatsAppHelper.shareInvoice(
                       customerName: customer.name,
                       customerPhone: customer.mobile,
@@ -487,6 +494,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       totalAmount: savedInvoice.finalPayable,
                       balanceDue: savedInvoice.balanceDue,
                       date: savedInvoice.invoiceDate,
+                      company: company,
                     );
                   },
                 ),
@@ -1336,13 +1344,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       hint: '0',
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      onFieldSubmitted: (_) => _stoneWeightFocusNode.requestFocus(),
+                      onFieldSubmitted: (_) => _unitFocusNode.requestFocus(),
                     ),
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
                     width: 85,
                     child: GlassDropdown<String>(
+                      focusNode: _unitFocusNode,
                       label: 'Unit',
                       value: _makingChargeType == 'PER_GRAM'
                           ? '/gm'
@@ -1363,6 +1372,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               _makingChargeType = 'PERCENTAGE';
                             }
                           });
+                          _stoneWeightFocusNode.requestFocus();
                         }
                       },
                     ),
@@ -1588,7 +1598,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _makingChargeType = 'PER_GRAM';
     });
 
-    _searchFocusNode.requestFocus();
+    _couponCodeFocusNode.requestFocus();
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Product added to invoice'), duration: Duration(seconds: 1)),
@@ -1796,13 +1806,41 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.black,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
                 final newNum = controller.text.trim();
                 if (newNum.isNotEmpty) {
-                  ref.read(billingProvider.notifier).setCustomInvoiceNumber(newNum);
+                  final invoicesState = ref.read(invoicesProvider);
+                  if (invoicesState is AsyncData<List<Invoice>>) {
+                    final matchedIdx = invoicesState.value.indexWhere(
+                      (inv) => inv.invoiceNumber == newNum && inv.deletedAt == null,
+                    );
+                    if (matchedIdx != -1) {
+                      final inv = invoicesState.value[matchedIdx];
+                      final customers = ref.read(customersProvider).value ?? [];
+                      final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
+                      final customer = customerIndex != -1 
+                          ? customers[customerIndex] 
+                          : Customer(
+                              name: inv.tempCustomerName ?? 'Customer',
+                              mobile: inv.tempCustomerMobile ?? '',
+                              address: inv.tempCustomerAddress ?? '',
+                            );
+                      ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Existing invoice "$newNum" loaded for editing.'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    } else {
+                      ref.read(billingProvider.notifier).setCustomInvoiceNumber(newNum);
+                    }
+                  } else {
+                    ref.read(billingProvider.notifier).setCustomInvoiceNumber(newNum);
+                  }
                 }
                 Navigator.pop(context);
               },
@@ -1812,6 +1850,51 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _applyDiscountAndCoupon(BillingState billing) async {
+    final code = _couponController.text.trim().toUpperCase();
+    final customDiscText = _customDiscountController.text.trim();
+    final customDisc = double.tryParse(customDiscText);
+    
+    List<String> errors = [];
+
+    // Validate discount value
+    if (customDiscText.isNotEmpty && customDisc == null) {
+      errors.add('Discount value must be a number.');
+    } else if (customDisc != null && customDisc > 0) {
+      ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+    }
+
+    // Validate coupon code
+    if (code.isNotEmpty) {
+      setState(() {
+        _isValidatingCoupon = true;
+        _couponError = null;
+      });
+      try {
+        final coupon = await ref.read(couponsProvider.notifier).validateCouponCode(
+          code,
+          billing.subtotal,
+          date: billing.invoiceDate,
+        );
+        ref.read(billingProvider.notifier).applyCoupon(coupon);
+        _couponController.clear();
+      } catch (e) {
+        errors.add(e.toString().replaceAll('Exception: ', ''));
+      } finally {
+        setState(() => _isValidatingCoupon = false);
+      }
+    }
+
+    if (errors.isNotEmpty) {
+      setState(() {
+        _couponError = errors.join('\n');
+      });
+    }
+
+    // Move focus to payment split (UPI -> CASH -> CARD)
+    _upiFocusNode.requestFocus();
   }
 
   Widget _buildCouponSection(BillingState billing) {
@@ -1825,6 +1908,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               Expanded(
                 child: GlassInput(
                   controller: _couponController,
+                  focusNode: _couponCodeFocusNode,
                   label: 'Coupon Code',
                   hint: 'ENTER CODE',
                   onChanged: (val) {
@@ -1832,6 +1916,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       setState(() => _couponError = null);
                     }
                   },
+                  onFieldSubmitted: (_) => _generalDiscountFocusNode.requestFocus(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1846,7 +1931,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     final customDisc = double.tryParse(val.trim()) ?? 0.0;
                     ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
                   },
-                  onFieldSubmitted: (_) => _upiFocusNode.requestFocus(),
+                  onFieldSubmitted: (_) => _applyButtonFocusNode.requestFocus(),
                 ),
               ),
             ],
@@ -1866,38 +1951,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ),
                     ),
                   )
-                : SecondaryButton(
-                    label: 'Apply',
-                    isOutlined: true,
-                    onPressed: () async {
-                      final code = _couponController.text.trim().toUpperCase();
-                      final customDiscText = _customDiscountController.text.trim();
-                      final customDisc = double.tryParse(customDiscText) ?? 0.0;
-
-                      ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
-
-                      if (code.isNotEmpty) {
-                        setState(() {
-                          _isValidatingCoupon = true;
-                          _couponError = null;
-                        });
-                        try {
-                          final coupon = await ref.read(couponsProvider.notifier).validateCouponCode(
-                            code,
-                            billing.subtotal,
-                            date: billing.invoiceDate,
-                          );
-                          ref.read(billingProvider.notifier).applyCoupon(coupon);
-                          _couponController.clear();
-                        } catch (e) {
-                          setState(() {
-                            _couponError = e.toString().replaceAll('Exception: ', '');
-                          });
-                        } finally {
-                          setState(() => _isValidatingCoupon = false);
-                        }
+                : Focus(
+                    focusNode: _applyButtonFocusNode,
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                        _applyDiscountAndCoupon(billing);
+                        return KeyEventResult.handled;
                       }
+                      return KeyEventResult.ignored;
                     },
+                    child: SecondaryButton(
+                      label: 'Apply',
+                      isOutlined: true,
+                      onPressed: () => _applyDiscountAndCoupon(billing),
+                    ),
                   ),
           ),
           if (_couponError != null) ...[

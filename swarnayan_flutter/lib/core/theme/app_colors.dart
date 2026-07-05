@@ -17,11 +17,11 @@ class AppColors {
   static Color get surfaceContainerHigh => isLight ? const Color(0xFFE1E6EB) : const Color(0xFF2A2A2A);
   static Color get surfaceContainerHighest => isLight ? const Color(0xFFD5DCE3) : const Color(0xFF353534);
 
-  // ── Primary (PayPulse Dark Red #7D0202) ──
-  static Color get primary => const Color(0xFF7D0202);
-  static Color get primaryLight => const Color(0xFFA51C1C);
-  static Color get primaryDark => const Color(0xFF500000);
-  static Color get primaryContainer => isLight ? const Color(0xFFFDE8E8) : const Color(0xFF320202);
+  // ── Primary (PayPulse Red #C10303) ──
+  static Color get primary => const Color(0xFFC10303);
+  static Color get primaryLight => const Color(0xFFE02D2D);
+  static Color get primaryDark => const Color(0xFF8B0000);
+  static Color get primaryContainer => isLight ? const Color(0xFFFEECEF) : const Color(0xFF3B0101);
 
   // ── Text ──
   static Color get onBackground => isLight ? const Color(0xFF1F2328) : const Color(0xFFFFFFFF);
@@ -57,13 +57,13 @@ class AppColors {
 
   // ── Premium Gradients ──
   static List<Color> get primaryGradient => const [
-    Color(0xFF7D0202),
-    Color(0xFFA51C1C),
+    Color(0xFFC10303),
+    Color(0xFFE02D2D),
   ];
 
   static List<Color> get primaryGradientSoft => const [
-    Color(0xFF7D0202),
-    Color(0xFFB82828),
+    Color(0xFFC10303),
+    Color(0xFFF35151),
   ];
 
   static List<Color> get darkGradient => isLight 
@@ -75,5 +75,5 @@ class AppColors {
       : const [Color(0x1AFFFFFF), Color(0x05FFFFFF)];
 
   // ── Glow Effect ──
-  static Color get primaryGlow => const Color(0xFF7D0202).withValues(alpha: 0.3);
+  static Color get primaryGlow => const Color(0xFFC10303).withValues(alpha: 0.3);
 }

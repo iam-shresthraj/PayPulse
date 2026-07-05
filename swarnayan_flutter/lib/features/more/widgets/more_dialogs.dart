@@ -464,8 +464,8 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
             const SizedBox(height: 16),
             GlassInput(
               controller: _logoUrlController,
-              label: 'Logo URL',
-              hint: 'Enter direct image URL for logo',
+              label: 'QR Code / Maps Link',
+              hint: 'e.g. https://maps.app.goo.gl/JC4gdmnJizG5NULs5',
             ),
             const SizedBox(height: 16),
             Row(

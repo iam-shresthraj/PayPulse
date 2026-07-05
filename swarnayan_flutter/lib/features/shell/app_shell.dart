@@ -497,29 +497,13 @@ class _AppShellState extends ConsumerState<AppShell> {
           // Logo & Branding
           Padding(
             padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 32.0, bottom: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  isLight
-                      ? 'assets/images/paypulse2.png'
-                      : 'assets/images/paypulse1.png',
-                  height: 36,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.centerLeft,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  DateFormat('dd MMMM yyyy').format(DateTime.now()).toUpperCase(),
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: AppColors.onSurfaceMuted,
-                    letterSpacing: 1.2,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            child: Image.asset(
+              isLight
+                  ? 'assets/images/paypulse2.png'
+                  : 'assets/images/paypulse1.png',
+              height: 36,
+              fit: BoxFit.contain,
+              alignment: Alignment.centerLeft,
             ),
           ),
 
@@ -628,6 +612,19 @@ class _AppShellState extends ConsumerState<AppShell> {
                   onTap: () => _handleLogout(context),
                 ),
               ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            child: Text(
+              DateFormat('dd MMMM yyyy').format(DateTime.now()).toUpperCase(),
+              style: AppTextStyles.labelMd.copyWith(
+                color: AppColors.onSurfaceMuted,
+                letterSpacing: 1.2,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

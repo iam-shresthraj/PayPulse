@@ -268,9 +268,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
 
     final rangeFormatted = '${DateFormat('dd-MM-yyyy').format(_startDate)} to ${DateFormat('dd-MM-yyyy').format(_endDate)}';
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => doc.save(),
-      name: '$companyName Report ($rangeFormatted).pdf',
+    final bytes = await doc.save();
+    await FileSaverHelper.savePdfFile(
+      bytes,
+      '$companyName Report ($rangeFormatted).pdf',
     );
   }
 

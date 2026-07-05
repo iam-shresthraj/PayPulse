@@ -734,7 +734,6 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
   @override
   Widget build(BuildContext context) {
     final couponsState = ref.watch(couponsProvider);
-    final now = DateTime.now();
 
     return GlassDialogWrapper(
       title: 'Coupons & Offers',
@@ -1003,6 +1002,37 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                                             await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
                                           }
                                         : null,
+                                  ),
+                                  IconButton(
+                                    icon:  Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          backgroundColor: AppColors.surfaceContainer,
+                                          title: Text('Delete Coupon', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
+                                          content: Text('Are you sure you want to permanently delete coupon "${item.code}"?', style: AppTextStyles.bodyMd),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              child: Text('Delete', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        await ref.read(couponsProvider.notifier).deleteCoupon(item.id!);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Coupon deleted successfully'), duration: Duration(seconds: 1)),
+                                          );
+                                        }
+                                      }
+                                    },
                                   ),
                                 ],
                               ),

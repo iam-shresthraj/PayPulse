@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../core/theme/app_colors.dart';
@@ -33,6 +34,18 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _stoneWeightController = TextEditingController();
   final _stoneValueController = TextEditingController();
   final _imageUrlController = TextEditingController();
+
+  final _nameFocusNode = FocusNode();
+  final _huidFocusNode = FocusNode();
+  final _hsnFocusNode = FocusNode();
+  final _weightFocusNode = FocusNode();
+  final _stockFocusNode = FocusNode();
+  final _makingChargeFocusNode = FocusNode();
+  final _stoneTypeFocusNode = FocusNode();
+  final _stoneWeightFocusNode = FocusNode();
+  final _stoneValueFocusNode = FocusNode();
+  final _imageUrlFocusNode = FocusNode();
+  final _saveButtonFocusNode = FocusNode();
 
   String? _selectedCategory;
   String? _selectedPurity;
@@ -95,6 +108,18 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     _stoneWeightController.dispose();
     _stoneValueController.dispose();
     _imageUrlController.dispose();
+
+    _nameFocusNode.dispose();
+    _huidFocusNode.dispose();
+    _hsnFocusNode.dispose();
+    _weightFocusNode.dispose();
+    _stockFocusNode.dispose();
+    _makingChargeFocusNode.dispose();
+    _stoneTypeFocusNode.dispose();
+    _stoneWeightFocusNode.dispose();
+    _stoneValueFocusNode.dispose();
+    _imageUrlFocusNode.dispose();
+    _saveButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -262,10 +287,12 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                 child: Column(
                   children: [
                     GlassInput(
+                      focusNode: _nameFocusNode,
                       controller: _nameController,
                       label: 'Product Name',
                       hint: 'Enter product name',
                       validator: (v) => Validators.validateRequired(v, 'Product Name'),
+                      onFieldSubmitted: (_) => _huidFocusNode.requestFocus(),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -293,23 +320,28 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                     ),
                     const SizedBox(height: 20),
                     GlassInput(
+                      focusNode: _huidFocusNode,
                       controller: _huidController,
                       label: 'HUID Number',
                       hint: _isEditing ? 'Preserved existing HUID' : 'Auto-generated when blank',
                       readOnly: _isEditing,
+                      onFieldSubmitted: (_) => _hsnFocusNode.requestFocus(),
                     ),
                     const SizedBox(height: 20),
                     GlassInput(
+                      focusNode: _hsnFocusNode,
                       controller: _hsnController,
                       label: 'HSN Code',
                       hint: 'e.g. 7113',
                       validator: (v) => Validators.validateRequired(v, 'HSN Code'),
+                      onFieldSubmitted: (_) => _weightFocusNode.requestFocus(),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
                           child: GlassInput(
+                            focusNode: _weightFocusNode,
                             controller: _weightController,
                             label: 'Weight (g)',
                             hint: '0.000',
@@ -320,11 +352,13 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                                 }
                               return null;
                             },
+                            onFieldSubmitted: (_) => _stockFocusNode.requestFocus(),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: GlassInput(
+                            focusNode: _stockFocusNode,
                             controller: _stockController,
                             label: 'Stock Units',
                             hint: '1',
@@ -334,6 +368,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                               if (int.tryParse(v) == null) return 'Enter a valid integer';
                                 return null;
                             },
+                            onFieldSubmitted: (_) => _makingChargeFocusNode.requestFocus(),
                           ),
                         ),
                       ],
@@ -343,18 +378,22 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       children: [
                         Expanded(
                           child: GlassInput(
+                            focusNode: _makingChargeFocusNode,
                             controller: _makingChargeController,
                             label: 'Making Charge',
                             hint: '0',
                             keyboardType: TextInputType.number,
+                            onFieldSubmitted: (_) => _stoneTypeFocusNode.requestFocus(),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: GlassInput(
+                            focusNode: _stoneTypeFocusNode,
                             controller: _stoneTypeController,
                             label: 'Stone Type',
                             hint: 'Optional',
+                            onFieldSubmitted: (_) => _stoneWeightFocusNode.requestFocus(),
                           ),
                         ),
                       ],
@@ -364,28 +403,34 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       children: [
                         Expanded(
                           child: GlassInput(
+                            focusNode: _stoneWeightFocusNode,
                             controller: _stoneWeightController,
                             label: 'Stone Weight (g)',
                             hint: '0.000',
                             keyboardType: TextInputType.number,
+                            onFieldSubmitted: (_) => _stoneValueFocusNode.requestFocus(),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: GlassInput(
+                            focusNode: _stoneValueFocusNode,
                             controller: _stoneValueController,
                             label: 'Stone Value (₹)',
                             hint: '0',
                             keyboardType: TextInputType.number,
+                            onFieldSubmitted: (_) => _imageUrlFocusNode.requestFocus(),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
                     GlassInput(
+                      focusNode: _imageUrlFocusNode,
                       controller: _imageUrlController,
                       label: 'Image URL',
                       hint: 'Optional',
+                      onFieldSubmitted: (_) => _saveButtonFocusNode.requestFocus(),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -398,11 +443,21 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: PrimaryButton(
-            label: 'Save Changes',
-            icon: Icons.check_rounded,
-            isLoading: _isSaving,
-            onPressed: _save,
+          child: Focus(
+            focusNode: _saveButtonFocusNode,
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                _save();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: PrimaryButton(
+              label: 'Save Changes',
+              icon: Icons.check_rounded,
+              isLoading: _isSaving,
+              onPressed: _save,
+            ),
           ),
         ),
       ),

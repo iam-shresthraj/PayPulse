@@ -587,41 +587,61 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
 
       // 2. Custom Discount sync (keeps field in sync if coupon clears it or state changes)
-      final userCustomDiscount = next.customDiscount;
-      final currentParsedDiscount = double.tryParse(_customDiscountController.text.trim()) ?? 0.0;
-      if (currentParsedDiscount != userCustomDiscount) {
-        _customDiscountController.text = userCustomDiscount > 0 ? userCustomDiscount.toStringAsFixed(0) : '';
+      if (!_generalDiscountFocusNode.hasFocus) {
+        final userCustomDiscount = next.customDiscount;
+        final currentParsedDiscount = double.tryParse(_customDiscountController.text.trim()) ?? 0.0;
+        if (currentParsedDiscount != userCustomDiscount) {
+          _customDiscountController.text = userCustomDiscount > 0 ? userCustomDiscount.toStringAsFixed(0) : '';
+        }
       }
 
       // 3. Coupon sync
-      final stateCoupon = next.couponCode ?? '';
-      if (_couponController.text.trim().toUpperCase() != stateCoupon.toUpperCase() && stateCoupon.isEmpty) {
-        _couponController.text = stateCoupon;
+      if (!_couponCodeFocusNode.hasFocus) {
+        final stateCoupon = next.couponCode ?? '';
+        if (_couponController.text.trim().toUpperCase() != stateCoupon.toUpperCase()) {
+          _couponController.text = stateCoupon;
+        }
       }
 
       // 4. Payment splits sync
-      final currentCash = double.tryParse(_cashController.text.trim()) ?? 0.0;
-      if (currentCash != next.cashAmount) {
-        _cashController.text = next.cashAmount > 0 ? next.cashAmount.toStringAsFixed(0) : '';
+      if (!_cashFocusNode.hasFocus) {
+        final currentCash = double.tryParse(_cashController.text.trim()) ?? 0.0;
+        if (currentCash != next.cashAmount) {
+          _cashController.text = next.cashAmount > 0 ? next.cashAmount.toStringAsFixed(0) : '';
+        }
       }
-      final currentUpi = double.tryParse(_upiController.text.trim()) ?? 0.0;
-      if (currentUpi != next.upiAmount) {
-        _upiController.text = next.upiAmount > 0 ? next.upiAmount.toStringAsFixed(0) : '';
+      if (!_upiFocusNode.hasFocus) {
+        final currentUpi = double.tryParse(_upiController.text.trim()) ?? 0.0;
+        if (currentUpi != next.upiAmount) {
+          _upiController.text = next.upiAmount > 0 ? next.upiAmount.toStringAsFixed(0) : '';
+        }
       }
-      final currentCard = double.tryParse(_cardController.text.trim()) ?? 0.0;
-      if (currentCard != next.cardAmount) {
-        _cardController.text = next.cardAmount > 0 ? next.cardAmount.toStringAsFixed(0) : '';
+      if (!_cardFocusNode.hasFocus) {
+        final currentCard = double.tryParse(_cardController.text.trim()) ?? 0.0;
+        if (currentCard != next.cardAmount) {
+          _cardController.text = next.cardAmount > 0 ? next.cardAmount.toStringAsFixed(0) : '';
+        }
       }
 
-      // 5. Invoice edit status sync
+      // 5. Invoice edit status sync & payment details sync
       if (next.editingInvoice != null) {
         _receivedFullAmount = next.editingInvoice!.balanceDue <= 0.05;
-        _receivedAmountController.text = next.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
+        if (!_receivedAmountFocusNode.hasFocus) {
+          _receivedAmountController.text = next.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
+        }
         _dueAmountController.text = next.editingInvoice!.balanceDue.toStringAsFixed(0);
       } else {
-        _receivedFullAmount = false;
-        _receivedAmountController.clear();
-        _dueAmountController.clear();
+        _receivedFullAmount = next.manualReceivedAmount != null || (next.totalPaid >= next.finalPayable && next.finalPayable > 0);
+        if (!_receivedAmountFocusNode.hasFocus) {
+          final currentParsedReceived = double.tryParse(_receivedAmountController.text.trim());
+          if (next.totalPaid != currentParsedReceived) {
+            _receivedAmountController.text = next.totalPaid > 0 ? next.totalPaid.toStringAsFixed(0) : '';
+          }
+        }
+        final currentParsedDue = double.tryParse(_dueAmountController.text.trim());
+        if (next.balanceDue != currentParsedDue) {
+          _dueAmountController.text = next.balanceDue >= 0 ? next.balanceDue.toStringAsFixed(0) : '0';
+        }
       }
     });
 
@@ -707,7 +727,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               keyboardType: TextInputType.phone,
               onChanged: (val) => _onPhoneChanged(val, ref),
               onFieldSubmitted: (val) {
-                if (billing.customerId == null || billing.customerId == '') {
+                if (_showSuggestions && _suggestions.isNotEmpty) {
+                  final c = _suggestions.first;
+                  ref.read(billingProvider.notifier).setCustomer(c);
+                  _phoneController.text = c.mobile;
+                  setState(() {
+                    _showSuggestions = false;
+                    _suggestions = [];
+                  });
+                  _searchFocusNode.requestFocus();
+                } else if (billing.customerId == null || billing.customerId == '') {
                   _customerNameFocusNode.requestFocus();
                 } else {
                   _searchFocusNode.requestFocus();
@@ -763,15 +792,29 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         setState(() {});
                       },
                       onKeyEvent: (fNode, event) {
-                        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-                          ref.read(billingProvider.notifier).setCustomer(c);
-                          _phoneController.text = c.mobile;
-                          setState(() {
-                            _showSuggestions = false;
-                            _suggestions = [];
-                          });
-                          _searchFocusNode.requestFocus();
-                          return KeyEventResult.handled;
+                        if (event is KeyDownEvent) {
+                          if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+                            ref.read(billingProvider.notifier).setCustomer(c);
+                            _phoneController.text = c.mobile;
+                            setState(() {
+                              _showSuggestions = false;
+                              _suggestions = [];
+                            });
+                            _searchFocusNode.requestFocus();
+                            return KeyEventResult.handled;
+                          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                            if (idx < _suggestions.length - 1) {
+                              _customerSuggestionFocusNodes[idx + 1].requestFocus();
+                            }
+                            return KeyEventResult.handled;
+                          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                            if (idx > 0) {
+                              _customerSuggestionFocusNodes[idx - 1].requestFocus();
+                            } else {
+                              _customerPhoneFocusNode.requestFocus();
+                            }
+                            return KeyEventResult.handled;
+                          }
                         }
                         return KeyEventResult.ignored;
                       },
@@ -1214,6 +1257,21 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               hint: 'Search by name, ID, HUID, purity...',
               prefixIcon: Icon(Icons.search_rounded, color: AppColors.primary),
               onChanged: (val) => _onProductSearchChanged(val, productsList),
+              onFieldSubmitted: (val) {
+                if (_showProductSuggestions && _productSuggestions.isNotEmpty) {
+                  final p = _productSuggestions.first;
+                  _onProductSelected(p);
+                  _searchController.text = p.name;
+                  setState(() {
+                    _showProductSuggestions = false;
+                  });
+                  _qtyFocusNode.requestFocus();
+                } else if (_selectedProduct != null) {
+                  _qtyFocusNode.requestFocus();
+                } else {
+                  FocusScope.of(context).nextFocus();
+                }
+              },
               suffixIcon: (_selectedProduct != null || _searchController.text.isNotEmpty)
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
@@ -1257,14 +1315,28 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         setState(() {});
                       },
                       onKeyEvent: (fNode, event) {
-                        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
-                          _onProductSelected(p);
-                          _searchController.text = p.name;
-                          setState(() {
-                            _showProductSuggestions = false;
-                          });
-                          _qtyFocusNode.requestFocus();
-                          return KeyEventResult.handled;
+                        if (event is KeyDownEvent) {
+                          if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+                            _onProductSelected(p);
+                            _searchController.text = p.name;
+                            setState(() {
+                              _showProductSuggestions = false;
+                            });
+                            _qtyFocusNode.requestFocus();
+                            return KeyEventResult.handled;
+                          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                            if (idx < _productSuggestions.length - 1) {
+                              _productSuggestionFocusNodes[idx + 1].requestFocus();
+                            }
+                            return KeyEventResult.handled;
+                          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                            if (idx > 0) {
+                              _productSuggestionFocusNodes[idx - 1].requestFocus();
+                            } else {
+                              _searchFocusNode.requestFocus();
+                            }
+                            return KeyEventResult.handled;
+                          }
                         }
                         return KeyEventResult.ignored;
                       },
@@ -1778,30 +1850,25 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   bool _matchInvoiceNumber(String? invoiceNumber, String query) {
     if (invoiceNumber == null) return false;
-    final cleanInv = invoiceNumber.trim().toLowerCase();
-    final cleanQuery = query.trim().toLowerCase();
     
-    // 1. Exact match
-    if (cleanInv == cleanQuery) return true;
+    final cleanInv = invoiceNumber.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+    final cleanQuery = query.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
     
-    // 2. Extract final numeric sequences from both
-    final invDigitsMatch = RegExp(r'(\d+)$').firstMatch(cleanInv);
-    final queryDigitsMatch = RegExp(r'(\d+)$').firstMatch(cleanQuery);
+    if (cleanInv.isEmpty || cleanQuery.isEmpty) return false;
+
+    // 1. Alphanumeric suffix or exact match
+    if (cleanInv == cleanQuery || cleanInv.endsWith(cleanQuery)) {
+      return true;
+    }
     
-    if (invDigitsMatch != null && queryDigitsMatch != null) {
-      final invDigitsStr = invDigitsMatch.group(1)!;
-      final queryDigitsStr = queryDigitsMatch.group(1)!;
-      
-      final invVal = int.tryParse(invDigitsStr);
-      final queryVal = int.tryParse(queryDigitsStr);
-      
+    // 2. Trailing digit matching (e.g. "000643" matches "643")
+    final invDigits = invoiceNumber.replaceAll(RegExp(r'\D'), '');
+    final queryDigits = query.replaceAll(RegExp(r'\D'), '');
+    if (invDigits.isNotEmpty && queryDigits.isNotEmpty) {
+      final invVal = int.tryParse(invDigits);
+      final queryVal = int.tryParse(queryDigits);
       if (invVal != null && queryVal != null && invVal == queryVal) {
-        final invPrefix = cleanInv.substring(0, invDigitsMatch.start);
-        final queryPrefix = cleanQuery.substring(0, queryDigitsMatch.start);
-        
-        if (queryPrefix.isEmpty || invPrefix.endsWith(queryPrefix)) {
-          return true;
-        }
+        return true;
       }
     }
     

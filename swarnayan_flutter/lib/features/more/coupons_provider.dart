@@ -32,8 +32,8 @@ class CouponsNotifier extends StateNotifier<AsyncValue<List<Coupon>>> {
       'discount_value': coupon.discountValue,
       'min_bill_amount': coupon.minBillAmount,
       'max_discount': coupon.maxDiscount,
-      'expiry_date': coupon.expiryDate.toIso8601String(),
-      'starts_at': coupon.startsAt?.toIso8601String(),
+      'expiry_date': coupon.expiryDate.toUtc().toIso8601String(),
+      'starts_at': coupon.startsAt?.toUtc().toIso8601String(),
       'is_active': coupon.isActive,
       'usage_limit': coupon.usageLimit,
       'used_count': coupon.usedCount,
@@ -123,6 +123,17 @@ class CouponsNotifier extends StateNotifier<AsyncValue<List<Coupon>>> {
       } else {
         await loadCoupons();
       }
+    } catch (e) {
+      await loadCoupons();
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCoupon(String id) async {
+    try {
+      await _client.from('coupons').delete().eq('id', id);
+      final list = state.value ?? [];
+      state = AsyncValue.data(list.where((c) => c.id != id).toList());
     } catch (e) {
       await loadCoupons();
       rethrow;

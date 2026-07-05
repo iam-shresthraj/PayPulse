@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -33,6 +34,19 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
   final _panController = TextEditingController();
   final _gstController = TextEditingController();
   final _noteController = TextEditingController();
+
+  final _nameFocusNode = FocusNode();
+  final _mobileFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+  final _addressFocusNode = FocusNode();
+  final _pincodeFocusNode = FocusNode();
+  final _cityFocusNode = FocusNode();
+  final _stateFocusNode = FocusNode();
+  final _panFocusNode = FocusNode();
+  final _gstFocusNode = FocusNode();
+  final _noteFocusNode = FocusNode();
+  final _saveButtonFocusNode = FocusNode();
+
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
 
@@ -69,6 +83,18 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
     _panController.dispose();
     _gstController.dispose();
     _noteController.dispose();
+
+    _nameFocusNode.dispose();
+    _mobileFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _addressFocusNode.dispose();
+    _pincodeFocusNode.dispose();
+    _cityFocusNode.dispose();
+    _stateFocusNode.dispose();
+    _panFocusNode.dispose();
+    _gstFocusNode.dispose();
+    _noteFocusNode.dispose();
+    _saveButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -251,49 +277,58 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                 child: Column(
                   children: [
                     GlassInput(
+                      focusNode: _nameFocusNode,
                       controller: _nameController,
                       label: 'Full Name',
                       hint: 'Enter customer name',
                       prefixIcon:  Icon(Icons.person_outline_rounded, color: AppColors.primary),
                       validator: (v) => Validators.validateRequired(v, 'Name'),
+                      onFieldSubmitted: (_) => _mobileFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _mobileFocusNode,
                       controller: _mobileController,
                       label: 'Mobile Number',
                       hint: 'Enter 10-digit number',
                       prefixIcon:  Icon(Icons.phone_rounded, color: AppColors.primary),
                       keyboardType: TextInputType.phone,
                       validator: Validators.validateMobile,
+                      onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _emailFocusNode,
                       controller: _emailController,
                       label: 'Email (Optional)',
                       hint: 'Enter email address',
                       prefixIcon:  Icon(Icons.email_outlined, color: AppColors.primary),
                       keyboardType: TextInputType.emailAddress,
                       validator: Validators.validateEmail,
+                      onFieldSubmitted: (_) => _addressFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _addressFocusNode,
                       controller: _addressController,
                       label: 'Address',
                       hint: 'Enter full address',
                       prefixIcon:  Icon(Icons.location_on_outlined, color: AppColors.primary),
                       maxLines: 3,
                       validator: (v) => Validators.validateRequired(v, 'Address'),
+                      onFieldSubmitted: (_) => _pincodeFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _pincodeFocusNode,
                       controller: _pincodeController,
                       label: 'Pincode',
                       hint: 'Enter 6-digit pincode',
@@ -307,6 +342,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                         }
                         return null;
                       },
+                      onFieldSubmitted: (_) => _cityFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
@@ -315,21 +351,25 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       children: [
                         Expanded(
                           child: GlassInput(
+                            focusNode: _cityFocusNode,
                             controller: _cityController,
                             label: 'City / District',
                             hint: 'Auto-filled City',
                             prefixIcon:  Icon(Icons.location_city_outlined, color: AppColors.primary),
                             validator: (v) => Validators.validateRequired(v, 'City'),
+                            onFieldSubmitted: (_) => _stateFocusNode.requestFocus(),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: GlassInput(
+                            focusNode: _stateFocusNode,
                             controller: _stateController,
                             label: 'State',
                             hint: 'Auto-filled State',
                             prefixIcon:  Icon(Icons.map_outlined, color: AppColors.primary),
                             validator: (v) => Validators.validateRequired(v, 'State'),
+                            onFieldSubmitted: (_) => _panFocusNode.requestFocus(),
                           ),
                         ),
                       ],
@@ -338,30 +378,36 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _panFocusNode,
                       controller: _panController,
                       label: 'PAN Card (Optional)',
                       hint: 'ABCDE1234F',
                       prefixIcon:  Icon(Icons.credit_card_rounded, color: AppColors.primary),
                       validator: Validators.validatePAN,
+                      onFieldSubmitted: (_) => _gstFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _gstFocusNode,
                       controller: _gstController,
                       label: 'GST Number (Optional)',
                       hint: '22AAAAA1111A1Z1',
                       prefixIcon:  Icon(Icons.receipt_long_rounded, color: AppColors.primary),
+                      onFieldSubmitted: (_) => _noteFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
 
                     GlassInput(
+                      focusNode: _noteFocusNode,
                       controller: _noteController,
                       label: 'Additional Note (Optional)',
                       hint: 'Add custom notes',
                       prefixIcon:  Icon(Icons.notes_rounded, color: AppColors.primary),
                       maxLines: 2,
+                      onFieldSubmitted: (_) => _saveButtonFocusNode.requestFocus(),
                     ),
 
                     const SizedBox(height: 20),
@@ -411,11 +457,21 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: PrimaryButton(
-            label: 'Save Changes',
-            icon: Icons.check_rounded,
-            isLoading: _isSaving,
-            onPressed: _save,
+          child: Focus(
+            focusNode: _saveButtonFocusNode,
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                _save();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: PrimaryButton(
+              label: 'Save Changes',
+              icon: Icons.check_rounded,
+              isLoading: _isSaving,
+              onPressed: _save,
+            ),
           ),
         ),
       ),

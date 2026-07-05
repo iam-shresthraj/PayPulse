@@ -794,13 +794,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       onKeyEvent: (fNode, event) {
                         if (event is KeyDownEvent) {
                           if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+                            _searchFocusNode.requestFocus();
                             ref.read(billingProvider.notifier).setCustomer(c);
                             _phoneController.text = c.mobile;
-                            setState(() {
-                              _showSuggestions = false;
-                              _suggestions = [];
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                setState(() {
+                                  _showSuggestions = false;
+                                  _suggestions = [];
+                                });
+                              }
                             });
-                            _searchFocusNode.requestFocus();
                             return KeyEventResult.handled;
                           } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                             if (idx < _suggestions.length - 1) {
@@ -825,13 +829,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           title: Text(c.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
                           subtitle: Text(c.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
                           onTap: () {
+                            _searchFocusNode.requestFocus();
                             ref.read(billingProvider.notifier).setCustomer(c);
                             _phoneController.text = c.mobile;
-                            setState(() {
-                              _showSuggestions = false;
-                              _suggestions = [];
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                setState(() {
+                                  _showSuggestions = false;
+                                  _suggestions = [];
+                                });
+                              }
                             });
-                            _searchFocusNode.requestFocus();
                           },
                         ),
                       ),
@@ -1317,12 +1325,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       onKeyEvent: (fNode, event) {
                         if (event is KeyDownEvent) {
                           if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+                            _qtyFocusNode.requestFocus();
                             _onProductSelected(p);
                             _searchController.text = p.name;
-                            setState(() {
-                              _showProductSuggestions = false;
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                setState(() {
+                                  _showProductSuggestions = false;
+                                  _productSuggestions = [];
+                                });
+                              }
                             });
-                            _qtyFocusNode.requestFocus();
                             return KeyEventResult.handled;
                           } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                             if (idx < _productSuggestions.length - 1) {
@@ -1347,12 +1360,17 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
                           subtitle: Text('${p.purity} • ${p.category} • stock: ${p.stockUnits}', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
                           onTap: () {
+                            _qtyFocusNode.requestFocus();
                             _onProductSelected(p);
                             _searchController.text = p.name;
-                            setState(() {
-                              _showProductSuggestions = false;
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                setState(() {
+                                  _showProductSuggestions = false;
+                                  _productSuggestions = [];
+                                });
+                              }
                             });
-                            _qtyFocusNode.requestFocus();
                           },
                         ),
                       ),

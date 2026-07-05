@@ -321,6 +321,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       hint: 'Enter full address',
                       prefixIcon:  Icon(Icons.location_on_outlined, color: AppColors.primary),
                       maxLines: 3,
+                      textInputAction: TextInputAction.next,
                       validator: (v) => Validators.validateRequired(v, 'Address'),
                       onFieldSubmitted: (_) => _pincodeFocusNode.requestFocus(),
                     ),
@@ -407,6 +408,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       hint: 'Add custom notes',
                       prefixIcon:  Icon(Icons.notes_rounded, color: AppColors.primary),
                       maxLines: 2,
+                      textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => _saveButtonFocusNode.requestFocus(),
                     ),
 

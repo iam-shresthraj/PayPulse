@@ -219,6 +219,7 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
         ),
         const SizedBox(width: 12),
         PrimaryButton(
+          width: 150,
           label: 'Save Changes',
           isLoading: _isLoading,
           onPressed: _submit,
@@ -440,6 +441,7 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
         ),
         const SizedBox(width: 12),
         PrimaryButton(
+          width: 150,
           label: 'Save Changes',
           isLoading: _isLoading,
           onPressed: _submit,
@@ -1580,6 +1582,7 @@ class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
         ),
         const SizedBox(width: 12),
         PrimaryButton(
+          width: 150,
           label: 'Apply Changes',
           isLoading: _isLoading,
           onPressed: _submitBulk,
@@ -1765,6 +1768,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
         ),
         const SizedBox(width: 12),
         PrimaryButton(
+          width: 150,
           label: 'Save Changes',
           isLoading: _isLoading,
           onPressed: _submit,
@@ -2016,6 +2020,7 @@ class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
         ),
         const SizedBox(width: 12),
         PrimaryButton(
+          width: 150,
           label: 'Apply to Role',
           isLoading: _isLoading,
           onPressed: _save,

@@ -286,11 +286,7 @@ class PdfHelper {
 
               // Items Table
               pw.Table(
-                border: const pw.TableBorder(
-                  top: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                ),
+                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                 columnWidths: {
                   0: const pw.FlexColumnWidth(2.5), // Name/Details
                   1: const pw.FlexColumnWidth(0.8), // HSN
@@ -559,7 +555,7 @@ class PdfHelper {
                       pw.Container(
                         alignment: pw.Alignment.center,
                         child: pw.Text(
-                          'Authorised Signatory',
+                          'Authorised Signature',
                           style: pw.TextStyle(font: fontBold, fontSize: 8),
                         ),
                       ),

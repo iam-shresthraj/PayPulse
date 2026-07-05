@@ -36,6 +36,8 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _imageUrlController = TextEditingController();
 
   final _nameFocusNode = FocusNode();
+  final _categoryFocusNode = FocusNode();
+  final _purityFocusNode = FocusNode();
   final _huidFocusNode = FocusNode();
   final _hsnFocusNode = FocusNode();
   final _weightFocusNode = FocusNode();
@@ -110,6 +112,8 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     _imageUrlController.dispose();
 
     _nameFocusNode.dispose();
+    _categoryFocusNode.dispose();
+    _purityFocusNode.dispose();
     _huidFocusNode.dispose();
     _hsnFocusNode.dispose();
     _weightFocusNode.dispose();
@@ -292,28 +296,36 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       label: 'Product Name',
                       hint: 'Enter product name',
                       validator: (v) => Validators.validateRequired(v, 'Product Name'),
-                      onFieldSubmitted: (_) => _huidFocusNode.requestFocus(),
+                      onFieldSubmitted: (_) => _categoryFocusNode.requestFocus(),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
                           child: GlassDropdown<String>(
+                            focusNode: _categoryFocusNode,
                             label: 'Category',
                             hint: 'Select',
                             value: _selectedCategory,
                             items: _categories,
-                            onChanged: (val) => setState(() => _selectedCategory = val),
+                            onChanged: (val) {
+                              setState(() => _selectedCategory = val);
+                              _purityFocusNode.requestFocus();
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: GlassDropdown<String>(
+                            focusNode: _purityFocusNode,
                             label: 'Purity',
                             hint: 'Select',
                             value: _selectedPurity,
                             items: _purities,
-                            onChanged: (val) => setState(() => _selectedPurity = val),
+                            onChanged: (val) {
+                              setState(() => _selectedPurity = val);
+                              _huidFocusNode.requestFocus();
+                            },
                           ),
                         ),
                       ],

@@ -16,6 +16,7 @@ import '../../features/reports/reports_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/auth/pending_approval_screen.dart';
+import '../../features/auth/deassociated_screen.dart';
 import '../../features/more/role_permissions_provider.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
@@ -40,12 +41,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
+      final isDeassociatedPage = location == '/deassociated';
+
+      // Deassociated users only see /deassociated page.
+      if (authState.isDeassociated) {
+        return isDeassociatedPage ? null : '/deassociated';
+      }
+
       // Approved users never see login/pending; pending users only see /pending.
       if (authState.isPendingApproval) {
         return isPendingPage ? null : '/pending';
       }
 
-      if (isLoggingIn || isPendingPage) {
+      if (isLoggingIn || isPendingPage || isDeassociatedPage) {
         return '/';
       }
 
@@ -114,6 +122,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _buildPage(
           const PendingApprovalScreen(),
+          state,
+        ),
+      ),
+      GoRoute(
+        path: '/deassociated',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _buildPage(
+          const DeassociatedScreen(),
           state,
         ),
       ),
@@ -234,7 +250,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.listen<AuthState>(authProvider, (previous, next) {
     if (previous?.isAuthenticated != next.isAuthenticated ||
         previous?.isLoading != next.isLoading ||
-        previous?.user?.approvalStatus != next.user?.approvalStatus) {
+        previous?.user?.approvalStatus != next.user?.approvalStatus ||
+        previous?.user?.companyId != next.user?.companyId) {
       router.refresh();
     }
   });

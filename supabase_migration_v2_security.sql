@@ -657,7 +657,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.update_role_permissions(BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN) TO authenticated;
 
 -- ----------------------------------------------------------------------------
--- 14. RPC: delete_user_pp (safely deletes from auth.users and profiles)
+-- 14. RPC: delete_user_pp (safely deassociates user from company settings)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.delete_user_pp(p_user_id UUID)
 RETURNS VOID AS $$
@@ -675,11 +675,61 @@ BEGIN
     RAISE EXCEPTION 'Managers can only delete staff accounts';
   END IF;
 
-  DELETE FROM auth.users WHERE id = p_user_id;
+  -- Remove company affiliation and reset role and status
+  UPDATE public.profiles
+  SET company_id = NULL,
+      role = 'STAFF',
+      approval_status = 'DEASSOCIATED',
+      is_active = FALSE
+  WHERE id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.delete_user_pp(UUID) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 15. RPC: reassociate_company (allows deassociated users to join a new company)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.reassociate_company(p_code TEXT)
+RETURNS VOID AS $$
+DECLARE
+  v_company public.companies%ROWTYPE;
+  v_role TEXT;
+  v_status TEXT;
+  v_owner_exists BOOLEAN;
+BEGIN
+  SELECT * INTO v_company FROM public.companies
+  WHERE staff_code = upper(trim(p_code)) OR manager_code = upper(trim(p_code)) OR owner_code = upper(trim(p_code));
+
+  IF v_company.id IS NULL THEN
+    RAISE EXCEPTION 'Invalid company code';
+  END IF;
+
+  IF upper(trim(p_code)) = v_company.owner_code THEN
+    v_role := 'OWNER';
+    SELECT EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE company_id = v_company.id AND role = 'OWNER' AND approval_status = 'APPROVED'
+    ) INTO v_owner_exists;
+    v_status := CASE WHEN v_owner_exists THEN 'PENDING' ELSE 'APPROVED' END;
+  ELSIF upper(trim(p_code)) = v_company.manager_code THEN
+    v_role := 'MANAGER';
+    v_status := 'PENDING';
+  ELSE
+    v_role := 'STAFF';
+    v_status := 'PENDING';
+  END IF;
+
+  UPDATE public.profiles
+  SET company_id = v_company.id,
+      role = v_role,
+      approval_status = v_status,
+      is_active = TRUE
+  WHERE id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.reassociate_company(TEXT) TO authenticated;
 
 -- Done. Verify with:
 --   SELECT name, staff_code, manager_code, owner_code FROM public.companies;

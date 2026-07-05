@@ -52,6 +52,7 @@ class User {
   bool get isManager => role.toUpperCase() == 'MANAGER';
   bool get isStaff => role.toUpperCase() == 'STAFF';
   bool get isApproved => approvalStatus.toUpperCase() == 'APPROVED';
+  bool get isDeassociated => companyId == null || companyId!.isEmpty || approvalStatus.toUpperCase() == 'DEASSOCIATED';
 
   /// Manager-level access (manager or owner).
   bool get canManage => isOwner || isManager;

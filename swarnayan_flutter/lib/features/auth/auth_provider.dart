@@ -19,7 +19,10 @@ class AuthState {
 
   /// True when logged in but the account is still waiting for approval.
   bool get isPendingApproval =>
-      isAuthenticated && user != null && !user!.isApproved;
+      isAuthenticated && user != null && !user!.isApproved && !user!.isDeassociated;
+
+  bool get isDeassociated =>
+      isAuthenticated && user != null && user!.isDeassociated;
 
   AuthState copyWith({
     User? user,
@@ -314,6 +317,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final updatedProfile = await _fetchProfile(currentUser.id);
     state = state.copyWith(user: updatedProfile, isLoading: false);
+  }
+
+  Future<bool> reassociateCompany(String code) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _client.rpc('reassociate_company', params: {'p_code': code.trim().toUpperCase()});
+      final profile = await _fetchProfile(_client.auth.currentUser!.id);
+      if (profile != null) {
+        state = AuthState(
+          user: profile,
+          isAuthenticated: true,
+          isLoading: false,
+        );
+        return true;
+      }
+      state = state.copyWith(isLoading: false, errorMessage: 'Failed to fetch updated profile.');
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
   }
 
   Future<void> logout() async {

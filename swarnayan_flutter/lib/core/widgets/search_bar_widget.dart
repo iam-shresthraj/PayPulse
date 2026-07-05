@@ -80,8 +80,8 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           hintStyle: AppTextStyles.bodyMd.copyWith(
             color: AppColors.onSurfaceDim,
           ),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.only(left: 16, right: 8),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 16, right: 8),
             child: Icon(
               Icons.search_rounded,
               color: AppColors.primary,

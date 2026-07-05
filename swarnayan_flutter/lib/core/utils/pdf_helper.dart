@@ -124,7 +124,7 @@ class PdfHelper {
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -145,7 +145,7 @@ class PdfHelper {
                           color: PdfColors.black,
                         ),
                       ),
-                      pw.SizedBox(height: 2),
+                      pw.SizedBox(height: 10),
                       pw.Text(
                         cTagline,
                         style: pw.TextStyle(
@@ -214,9 +214,9 @@ class PdfHelper {
                 ],
               ),
 
-              pw.SizedBox(height: 12),
-              pw.Divider(thickness: 1, color: PdfColors.grey400),
               pw.SizedBox(height: 8),
+              pw.Divider(thickness: 1, color: PdfColors.grey400),
+              pw.SizedBox(height: 6),
 
               // Customer Details block
               pw.Row(
@@ -282,11 +282,15 @@ class PdfHelper {
                 ],
               ),
 
-              pw.SizedBox(height: 16),
+              pw.SizedBox(height: 10),
 
               // Items Table
               pw.Table(
-                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                border: const pw.TableBorder(
+                  top: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                ),
                 columnWidths: {
                   0: const pw.FlexColumnWidth(2.5), // Name/Details
                   1: const pw.FlexColumnWidth(0.8), // HSN
@@ -294,21 +298,20 @@ class PdfHelper {
                   3: const pw.FlexColumnWidth(1.1), // Weight
                   4: const pw.FlexColumnWidth(1.1), // Rate
                   5: const pw.FlexColumnWidth(1.3), // Making Charge (format: ₹Amount/type)
-                  6: const pw.FlexColumnWidth(1.5), // Stone (Weight (Value))
+                  6: const pw.FlexColumnWidth(1.5), // Stone
                   7: const pw.FlexColumnWidth(1.4), // Total
                 },
                 children: [
                   // Table Header
                   pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                     children: [
-                      _tableHeaderCell('Product / Details', fontBold),
+                      _tableHeaderCell('Product / Details', fontBold, align: pw.TextAlign.left),
                       _tableHeaderCell('HSN', fontBold),
                       _tableHeaderCell('Purity', fontBold),
                       _tableHeaderCell('Weight', fontBold),
                       _tableHeaderCell('Rate', fontBold),
                       _tableHeaderCell('Making Charge', fontBold),
-                      _tableHeaderCell('Stone (Wt (Val))', fontBold),
+                      _tableHeaderCell('Stone', fontBold),
                       _tableHeaderCell('Total', fontBold),
                     ],
                   ),
@@ -320,10 +323,10 @@ class PdfHelper {
                       makingChargeDetail = '${item.makingChargeValue.toStringAsFixed(1)}% (₹${calcValue.toStringAsFixed(2)}/gm)';
                     } else {
                       final String makingTypeStr = item.makingChargeType == 'FIXED'
-                          ? '/pcs'
+                          ? ' /pcs'
                           : item.makingChargeType == 'PER_GRAM'
-                              ? '/gm'
-                              : '%';
+                              ? ' /gm'
+                              : ' %';
                       makingChargeDetail = '₹${item.makingChargeValue.toStringAsFixed(2)}$makingTypeStr';
                     }
 
@@ -340,7 +343,7 @@ class PdfHelper {
                         _tableDataCell(_currencyFormat.format(item.rate), fontData, align: pw.TextAlign.center),
                         _tableDataCell(makingChargeDetail, fontData, align: pw.TextAlign.center),
                         _tableDataCell(
-                          '${item.stoneWeight.toStringAsFixed(3)} g\n(₹${item.stoneValue.toStringAsFixed(0)})',
+                          '${item.stoneWeight.toStringAsFixed(2)}g (₹${item.stoneValue.toStringAsFixed(0)})',
                           fontData,
                           align: pw.TextAlign.center,
                         ),
@@ -351,7 +354,7 @@ class PdfHelper {
                 ],
               ),
 
-              pw.SizedBox(height: 16),
+              pw.SizedBox(height: 10),
 
               // Summary and Payments
               pw.Row(
@@ -487,7 +490,7 @@ class PdfHelper {
               pw.Spacer(),
 
               // Signature Box
-              pw.SizedBox(height: 35),
+              pw.SizedBox(height: 15),
               pw.Table(
                 columnWidths: {
                   0: const pw.FlexColumnWidth(1),
@@ -508,8 +511,8 @@ class PdfHelper {
                   ),
                   pw.TableRow(
                     children: [
-                      pw.SizedBox(height: 50), // Signing area
-                      pw.SizedBox(height: 50),
+                      pw.SizedBox(height: 30), // Signing area
+                      pw.SizedBox(height: 30),
                     ],
                   ),
                   pw.TableRow(
@@ -565,7 +568,7 @@ class PdfHelper {
                 ],
               ),
 
-              pw.SizedBox(height: 20),
+              pw.SizedBox(height: 8),
 
               // Footer Declarations
               pw.Divider(thickness: 0.5, color: PdfColors.grey400),
@@ -625,23 +628,23 @@ class PdfHelper {
     );
   }
 
-  static pw.Widget _tableHeaderCell(String text, pw.Font font) {
+  static pw.Widget _tableHeaderCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.center}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.all(5),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       child: pw.Text(
         text,
-        style: pw.TextStyle(font: font, fontSize: 8),
-        textAlign: pw.TextAlign.center,
+        style: pw.TextStyle(font: font, fontSize: 7.5),
+        textAlign: align,
       ),
     );
   }
 
   static pw.Widget _tableDataCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.all(5),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       child: pw.Text(
         text,
-        style: pw.TextStyle(font: font, fontSize: 8),
+        style: pw.TextStyle(font: font, fontSize: 7.5),
         textAlign: align,
       ),
     );

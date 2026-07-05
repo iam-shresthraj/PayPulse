@@ -97,6 +97,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _stoneValueFocusNode = FocusNode();
   final _makingChargeFocusNode = FocusNode();
   final _discountFocusNode = FocusNode();
+  final _generalDiscountFocusNode = FocusNode();
   List<FocusNode> _productSuggestionFocusNodes = [];
 
   // New Product Inline Fields
@@ -133,6 +134,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _customDiscountController.text = billing.customDiscount.toStringAsFixed(0);
       }
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _customerPhoneFocusNode.requestFocus();
+    });
   }
 
   @override
@@ -182,6 +186,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _stoneValueFocusNode.dispose();
     _makingChargeFocusNode.dispose();
     _discountFocusNode.dispose();
+    _generalDiscountFocusNode.dispose();
     for (final node in _productSuggestionFocusNodes) {
       node.dispose();
     }
@@ -215,6 +220,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           _suggestions = [];
           _showSuggestions = false;
         });
+        _searchFocusNode.requestFocus();
         return;
       }
       
@@ -657,7 +663,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 if (billing.customerId == null || billing.customerId == '') {
                   _customerNameFocusNode.requestFocus();
                 } else {
-                  _addItemButtonFocusNode.requestFocus();
+                  _searchFocusNode.requestFocus();
                 }
               },
               suffixIcon: (billing.customerName != null || _phoneController.text.isNotEmpty)
@@ -717,7 +723,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             _showSuggestions = false;
                             _suggestions = [];
                           });
-                          _addItemButtonFocusNode.requestFocus();
+                          _searchFocusNode.requestFocus();
                           return KeyEventResult.handled;
                         }
                         return KeyEventResult.ignored;
@@ -735,7 +741,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                               _showSuggestions = false;
                               _suggestions = [];
                             });
-                            _addItemButtonFocusNode.requestFocus();
+                            _searchFocusNode.requestFocus();
                           },
                         ),
                       ),
@@ -953,9 +959,31 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           Center(
             child: _isSavingProduct
                 ? const CircularProgressIndicator()
-                : SecondaryButton(
-                    label: _showInlineNewProductForm ? '+ Save & Add Item' : '+ Add Item',
-                    onPressed: _onAddProductItemPressed,
+                : Focus(
+                    focusNode: _addItemButtonFocusNode,
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                        _onAddProductItemPressed();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: Builder(
+                      builder: (context) {
+                        final isFocused = Focus.of(context).hasFocus;
+                        return Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: isFocused ? Border.all(color: AppColors.primary, width: 2) : null,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: SecondaryButton(
+                            label: _showInlineNewProductForm ? '+ Save & Add Item' : '+ Add Item',
+                            onPressed: _onAddProductItemPressed,
+                          ),
+                        );
+                      }
+                    ),
                   ),
           ),
         ],
@@ -1168,18 +1196,47 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   itemCount: _productSuggestions.length,
                   itemBuilder: (context, idx) {
                     final p = _productSuggestions[idx];
-                    return ListTile(
-                      leading: const Icon(Icons.inventory_2_outlined),
-                      title: Text(p.name),
-                      subtitle: Text('${p.purity} • ${p.category} • stock: ${p.stockUnits}'),
-                      onTap: () {
-                        _onProductSelected(p);
-                        _searchController.text = p.name;
-                        setState(() {
-                          _showProductSuggestions = false;
-                        });
-                        _qtyFocusNode.requestFocus();
+                    final node = _productSuggestionFocusNodes[idx];
+                    return Focus(
+                      focusNode: node,
+                      onFocusChange: (focused) {
+                        if (focused) {
+                          Scrollable.ensureVisible(
+                            context,
+                            duration: const Duration(milliseconds: 100),
+                            alignment: 0.5,
+                          );
+                        }
+                        setState(() {});
                       },
+                      onKeyEvent: (fNode, event) {
+                        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                          _onProductSelected(p);
+                          _searchController.text = p.name;
+                          setState(() {
+                            _showProductSuggestions = false;
+                          });
+                          _qtyFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: Container(
+                        color: node.hasFocus ? AppColors.primary.withOpacity(0.15) : Colors.transparent,
+                        child: ListTile(
+                          leading: const Icon(Icons.inventory_2_outlined),
+                          title: Text(p.name, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                          subtitle: Text('${p.purity} • ${p.category} • stock: ${p.stockUnits}', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                          onTap: () {
+                            _onProductSelected(p);
+                            _searchController.text = p.name;
+                            setState(() {
+                              _showProductSuggestions = false;
+                            });
+                            _qtyFocusNode.requestFocus();
+                          },
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -1213,6 +1270,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '1',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
+                onFieldSubmitted: (_) => _rateFocusNode.requestFocus(),
               ),
             ),
             const SizedBox(width: 12),
@@ -1224,12 +1282,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '6,850',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
+                onFieldSubmitted: (_) => _weightFocusNode.requestFocus(),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: GlassInput(
@@ -1239,17 +1299,55 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '0.000',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
+                onFieldSubmitted: (_) => _makingChargeFocusNode.requestFocus(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: GlassInput(
-                focusNode: _makingChargeFocusNode,
-                controller: _makingChargeController,
-                label: 'Making Charge (₹/g)',
-                hint: '0',
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: GlassInput(
+                      focusNode: _makingChargeFocusNode,
+                      controller: _makingChargeController,
+                      label: 'Making Charge',
+                      hint: '0',
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      onFieldSubmitted: (_) => _stoneWeightFocusNode.requestFocus(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 85,
+                    child: GlassDropdown<String>(
+                      label: 'Unit',
+                      value: _makingChargeType == 'PER_GRAM'
+                          ? '/gm'
+                          : (_makingChargeType == 'FIXED' ? '/pcs' : '%'),
+                      items: const [
+                        DropdownMenuItem(value: '/gm', child: Text('/gm')),
+                        DropdownMenuItem(value: '/pcs', child: Text('/pcs')),
+                        DropdownMenuItem(value: '%', child: Text('%')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            if (val == '/gm') {
+                              _makingChargeType = 'PER_GRAM';
+                            } else if (val == '/pcs') {
+                              _makingChargeType = 'FIXED';
+                            } else {
+                              _makingChargeType = 'PERCENTAGE';
+                            }
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1265,6 +1363,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '0.0',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
+                onFieldSubmitted: (_) => _stoneValueFocusNode.requestFocus(),
               ),
             ),
             const SizedBox(width: 12),
@@ -1276,6 +1375,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '0',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
+                onFieldSubmitted: (_) => _discountFocusNode.requestFocus(),
               ),
             ),
           ],
@@ -1287,6 +1387,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           label: 'Product Discount (₹)',
           hint: '0',
           keyboardType: TextInputType.number,
+          onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
         ),
       ],
     );
@@ -1464,7 +1565,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _showInlineNewProductForm = false;
       _productSuggestions = [];
       _showProductSuggestions = false;
+      _makingChargeType = 'PER_GRAM';
     });
+
+    _searchFocusNode.requestFocus();
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Product added to invoice'), duration: Duration(seconds: 1)),
@@ -1713,6 +1817,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: GlassInput(
+                  focusNode: _generalDiscountFocusNode,
                   controller: _customDiscountController,
                   label: 'Discount (₹)',
                   hint: 'e.g. 500',
@@ -1721,6 +1826,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     final customDisc = double.tryParse(val.trim()) ?? 0.0;
                     ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
                   },
+                  onFieldSubmitted: (_) => _upiFocusNode.requestFocus(),
                 ),
               ),
             ],
@@ -1910,22 +2016,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               .animate().fadeIn(duration: 300.ms, delay: 400.ms),
           const SizedBox(height: 16),
 
-          // Cash
-          _buildPaymentRow(
-            controller: _cashController,
-            label: 'CASH',
-            onChanged: (val) {
-              final amt = double.tryParse(val) ?? 0.0;
-              ref.read(billingProvider.notifier).setCashAmount(amt);
-              setState(() {
-                _receivedFullAmount = false;
-              });
-            },
-            focusNode: _cashFocusNode,
-            onFieldSubmitted: (_) => _upiFocusNode.requestFocus(),
-          ),
-          const SizedBox(height: 6),
-
           // UPI
           _buildPaymentRow(
             controller: _upiController,
@@ -1938,6 +2028,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               });
             },
             focusNode: _upiFocusNode,
+            onFieldSubmitted: (_) => _cashFocusNode.requestFocus(),
+          ),
+          const SizedBox(height: 6),
+
+          // Cash
+          _buildPaymentRow(
+            controller: _cashController,
+            label: 'CASH',
+            onChanged: (val) {
+              final amt = double.tryParse(val) ?? 0.0;
+              ref.read(billingProvider.notifier).setCashAmount(amt);
+              setState(() {
+                _receivedFullAmount = false;
+              });
+            },
+            focusNode: _cashFocusNode,
             onFieldSubmitted: (_) => _cardFocusNode.requestFocus(),
           ),
           const SizedBox(height: 6),
@@ -2142,6 +2248,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             const SizedBox(height: 20),
             Focus(
               focusNode: _generateButtonFocusNode,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter)) {
+                  if (!_isGenerating) {
+                    _generateInvoice();
+                  }
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

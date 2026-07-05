@@ -86,11 +86,11 @@ class AppTheme {
       ),
 
       // ── Bottom Navigation ──
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        selectedItemColor: Color(0xFFFF4041),
-        unselectedItemColor: Color(0xFFA0A0A0),
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: const Color(0xFFA0A0A0),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
       ),
@@ -238,11 +238,11 @@ class AppTheme {
       ),
 
       // ── Bottom Navigation ──
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        selectedItemColor: Color(0xFFFF4041),
-        unselectedItemColor: Color(0xFFA0A0A0),
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: const Color(0xFFA0A0A0),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
       ),

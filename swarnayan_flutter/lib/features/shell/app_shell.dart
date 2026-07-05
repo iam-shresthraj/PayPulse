@@ -334,15 +334,15 @@ class _AppShellState extends ConsumerState<AppShell> {
             final buttonWidget = Container(
               height: 58,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF4041), Color(0xFFFF5E5F)],
+                gradient: LinearGradient(
+                  colors: AppColors.primaryGradient,
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
                 borderRadius: BorderRadius.circular(29),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF4041).withValues(alpha: 0.3),
+                    color: AppColors.primaryGlow,
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),

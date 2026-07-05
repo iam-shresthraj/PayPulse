@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -169,11 +170,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Center(
                               child: Column(
                                 children: [
+                                  Image.asset(
+                                    AppColors.isLight
+                                        ? 'assets/images/paypulse2.png'
+                                        : 'assets/images/paypulse1.png',
+                                    height: 52,
+                                    fit: BoxFit.contain,
+                                  ),
+                                  const SizedBox(height: 12),
                                   Text(
                                     'PAYPULSE',
                                     style: AppTextStyles.displayLg.copyWith(
                                       color: AppColors.primary,
-                                      fontSize: 32,
+                                      fontSize: 26,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 2.0,
                                     ),

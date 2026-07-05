@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:supabase/supabase.dart' as sb_dart;
 import '../../models/user.dart';
 
 class StaffNotifier extends StateNotifier<AsyncValue<List<User>>> {
@@ -50,8 +51,8 @@ class StaffNotifier extends StateNotifier<AsyncValue<List<User>>> {
         throw Exception('Could not fetch company codes for registration.');
       }
 
-      // 2. Create the user via a temporary SupabaseClient instance
-      final tempClient = SupabaseClient(
+      // 2. Create the user via a temporary SupabaseClient instance (pure Dart client to avoid session storage conflict)
+      final tempClient = sb_dart.SupabaseClient(
         'https://gnyzctxlqcidubanoiae.supabase.co',
         'sb_publishable_h-fS9Q3g4ucAfmvD9btgWg_NwH4PKbH',
       );

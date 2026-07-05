@@ -570,14 +570,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                                 },
                                                 tooltip: 'Share on WhatsApp',
                                               ),
-                                              if (inv.status != 'CANCELLED') ...[
                                               const SizedBox(width: 8),
-                                              IconButton(
-                                                icon:  Icon(Icons.cancel_outlined, color: AppColors.error, size: 20),
-                                                onPressed: () => _cancelInvoice(inv),
-                                              ),
-                                            ],
-                                            const SizedBox(width: 8),
                                             IconButton(
                                               icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
                                               onPressed: () => _confirmDeleteInvoice(inv),
@@ -604,7 +597,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
   }
 
   Widget _buildFilterChips() {
-    final filters = ['ALL', 'PAID', 'PARTIAL', 'CANCELLED', 'DELETED'];
+    final filters = ['ALL', 'PAID', 'PARTIAL'];
     return SizedBox(
       height: 32,
       child: ListView.separated(

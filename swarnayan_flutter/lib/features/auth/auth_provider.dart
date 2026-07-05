@@ -198,6 +198,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String email,
     String password,
     String name,
+    String phone,
     String companyCode,
   ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -218,11 +219,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
         data: {
           'name': name,
+          'phone': phone,
           'company_code': companyCode.trim().toUpperCase(),
         },
       );
 
       if (response.user != null) {
+        if (response.session == null) {
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: 'Account created! Please check your email and click the confirmation link before logging in.',
+          );
+          return false;
+        }
+
         // Give the DB trigger a moment to create the profile.
         User? profile;
         for (var attempt = 0; attempt < 3; attempt++) {

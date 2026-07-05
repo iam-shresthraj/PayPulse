@@ -9,6 +9,7 @@ class BillingProduct {
   final String hsnCode;
   final String category;
   final String purity;
+  final String? huidNumber;
   final double rate;
   final int quantity;
   final double grossWeight;
@@ -24,6 +25,7 @@ class BillingProduct {
     required this.hsnCode,
     required this.category,
     required this.purity,
+    this.huidNumber,
     required this.rate,
     this.quantity = 1,
     this.grossWeight = 0,
@@ -59,6 +61,7 @@ class BillingProduct {
     String? hsnCode,
     String? category,
     String? purity,
+    String? huidNumber,
     double? rate,
     int? quantity,
     double? grossWeight,
@@ -74,6 +77,7 @@ class BillingProduct {
       hsnCode: hsnCode ?? this.hsnCode,
       category: category ?? this.category,
       purity: purity ?? this.purity,
+      huidNumber: huidNumber ?? this.huidNumber,
       rate: rate ?? this.rate,
       quantity: quantity ?? this.quantity,
       grossWeight: grossWeight ?? this.grossWeight,
@@ -222,11 +226,18 @@ class BillingNotifier extends StateNotifier<BillingState> {
   }
 
   void clearCustomer() {
-    state = state.copyWith(
-      customerId: null,
-      customerPhone: null,
-      customerName: null,
-      customerTier: null,
+    state = BillingState(
+      products: state.products,
+      couponCode: state.couponCode,
+      appliedCoupon: state.appliedCoupon,
+      customDiscount: state.customDiscount,
+      invoiceDate: state.invoiceDate,
+      editingInvoice: state.editingInvoice,
+      customInvoiceNumber: state.customInvoiceNumber,
+      cashAmount: state.cashAmount,
+      upiAmount: state.upiAmount,
+      cardAmount: state.cardAmount,
+      manualReceivedAmount: state.manualReceivedAmount,
     );
   }
 

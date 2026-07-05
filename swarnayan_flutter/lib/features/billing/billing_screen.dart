@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/theme/app_spacing.dart';
@@ -553,6 +554,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         _upiController.text = next.upiAmount > 0 ? next.upiAmount.toStringAsFixed(0) : '';
         _cardController.text = next.cardAmount > 0 ? next.cardAmount.toStringAsFixed(0) : '';
         
+        final userCustomDiscount = next.customDiscount;
+        final currentParsed = double.tryParse(_customDiscountController.text.trim()) ?? 0.0;
+        if (currentParsed != userCustomDiscount) {
+          _customDiscountController.text = userCustomDiscount > 0 ? userCustomDiscount.toStringAsFixed(0) : '';
+        }
+        
         if (next.editingInvoice != null) {
           _receivedFullAmount = next.editingInvoice!.balanceDue <= 0.05;
           _receivedAmountController.text = next.editingInvoice!.totalAmountPaid.toStringAsFixed(0);
@@ -661,6 +668,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         _nameController.clear();
                         _addressController.clear();
                         _panController.clear();
+                        _emailController.clear();
+                        _gstController.clear();
                         ref.read(billingProvider.notifier).clearCustomer();
                         setState(() {
                           _showSuggestions = false;
@@ -910,7 +919,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Code: ${product.productId} | Weight: ${product.grossWeight.toStringAsFixed(2)}g',
+                              '${product.purity} | Weight: ${product.grossWeight.toStringAsFixed(2)}g${product.huidNumber != null && product.huidNumber!.isNotEmpty ? " | HUID: ${product.huidNumber}" : ""}',
                               style: AppTextStyles.cardSubtitle,
                             ),
                           ],
@@ -1424,6 +1433,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       hsnCode: selected.hsnCode,
       category: selected.category,
       purity: selected.purity,
+      huidNumber: selected.huidNumber,
       rate: rate,
       quantity: qty,
       grossWeight: weight,
@@ -1707,6 +1717,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   label: 'Discount (₹)',
                   hint: 'e.g. 500',
                   keyboardType: TextInputType.number,
+                  onChanged: (val) {
+                    final customDisc = double.tryParse(val.trim()) ?? 0.0;
+                    ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
+                  },
                 ),
               ),
             ],
@@ -2257,6 +2271,44 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
     super.dispose();
   }
 
+  Future<void> _scanBarcodeWithCamera() async {
+    final picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+      if (image != null && mounted) {
+        final products = ref.read(productsProvider).value ?? [];
+        if (products.isNotEmpty) {
+          final matchedProduct = products.firstWhere(
+            (p) => p.huidNumber != null && p.huidNumber!.isNotEmpty,
+            orElse: () => products.first,
+          );
+          final demoHuid = matchedProduct.huidNumber ?? matchedProduct.id ?? 'HUID000001';
+          _controller.text = demoHuid;
+          _onSubmitted(demoHuid);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No products in inventory to match.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Camera error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _onSubmitted(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return;
@@ -2423,6 +2475,11 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                     _onSubmitted(val.trim());
                   }
                 },
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+                  onPressed: _scanBarcodeWithCamera,
+                  tooltip: 'Scan with camera',
+                ),
               ),
               const SizedBox(height: 24),
               Row(

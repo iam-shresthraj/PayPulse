@@ -121,11 +121,12 @@ BEGIN
     v_status := 'PENDING';
   END IF;
 
-  INSERT INTO public.profiles (id, name, email, role, is_active, company_id, approval_status)
+  INSERT INTO public.profiles (id, name, email, phone, role, is_active, company_id, approval_status)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'name', 'User'),
     new.email,
+    COALESCE(new.raw_user_meta_data->>'phone', ''),
     v_role,
     TRUE,
     v_company.id,
@@ -504,6 +505,41 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+-- ----------------------------------------------------------------------------
+-- 13. Add custom feature-wise permission toggles
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS access_invoices BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_inventory BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_customers BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_rates BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS access_reports BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- ----------------------------------------------------------------------------
+-- 14. RPC: delete_user_pp (safely deletes from auth.users and profiles)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.delete_user_pp(p_user_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  v_reviewer_role TEXT := public.current_role_pp();
+  v_target_role TEXT;
+BEGIN
+  SELECT role INTO v_target_role FROM public.profiles WHERE id = p_user_id;
+  
+  IF v_reviewer_role NOT IN ('OWNER', 'MANAGER') THEN
+    RAISE EXCEPTION 'Not authorised to delete users';
+  END IF;
+  
+  IF v_reviewer_role = 'MANAGER' AND v_target_role <> 'STAFF' THEN
+    RAISE EXCEPTION 'Managers can only delete staff accounts';
+  END IF;
+
+  DELETE FROM auth.users WHERE id = p_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.delete_user_pp(UUID) TO authenticated;
 
 -- Done. Verify with:
 --   SELECT name, staff_code, manager_code, owner_code FROM public.companies;

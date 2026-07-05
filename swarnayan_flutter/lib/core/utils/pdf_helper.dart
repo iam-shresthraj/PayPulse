@@ -460,7 +460,7 @@ class PdfHelper {
                       pw.Container(
                         alignment: pw.Alignment.center,
                         child: pw.Text(
-                          'For PayPulse',
+                          'For $cName',
                           style: pw.TextStyle(font: fontBold, fontSize: 8),
                         ),
                       ),

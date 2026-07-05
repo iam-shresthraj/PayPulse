@@ -44,7 +44,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     };
   }
 
-  Future<String> _generateNextHuid() async {
+  Future<String> generateNextHuid() async {
     try {
       final response = await _client
           .from('products')
@@ -83,7 +83,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     try {
       var payload = _unmapProduct(product);
       if (product.huidNumber == null || product.huidNumber!.trim().isEmpty) {
-        final nextHuid = await _generateNextHuid();
+        final nextHuid = await generateNextHuid();
         payload['huid_number'] = nextHuid;
       }
       final data = await _client.from('products').insert(payload).select().single();

@@ -12,6 +12,13 @@ class User {
   final String? phone;
   final String? address;
 
+  // Feature-wise Access Control Toggles
+  final bool accessInvoices;
+  final bool accessInventory;
+  final bool accessCustomers;
+  final bool accessRates;
+  final bool accessReports;
+
   const User({
     required this.id,
     required this.name,
@@ -24,6 +31,11 @@ class User {
     this.lastLogin,
     this.phone,
     this.address,
+    this.accessInvoices = true,
+    this.accessInventory = true,
+    this.accessCustomers = true,
+    this.accessRates = true,
+    this.accessReports = true,
   });
 
   bool get isOwner => role.toUpperCase() == 'OWNER';
@@ -52,6 +64,11 @@ class User {
               : null),
       phone: json['phone'],
       address: json['address'],
+      accessInvoices: json['accessInvoices'] ?? json['access_invoices'] ?? true,
+      accessInventory: json['accessInventory'] ?? json['access_inventory'] ?? true,
+      accessCustomers: json['accessCustomers'] ?? json['access_customers'] ?? true,
+      accessRates: json['accessRates'] ?? json['access_rates'] ?? true,
+      accessReports: json['accessReports'] ?? json['access_reports'] ?? true,
     );
   }
 
@@ -67,6 +84,11 @@ class User {
         'lastLogin': lastLogin?.toIso8601String(),
         'phone': phone,
         'address': address,
+        'access_invoices': accessInvoices,
+        'access_inventory': accessInventory,
+        'access_customers': accessCustomers,
+        'access_rates': accessRates,
+        'access_reports': accessReports,
       };
 
   User copyWith({
@@ -81,6 +103,11 @@ class User {
     DateTime? lastLogin,
     String? phone,
     String? address,
+    bool? accessInvoices,
+    bool? accessInventory,
+    bool? accessCustomers,
+    bool? accessRates,
+    bool? accessReports,
   }) {
     return User(
       id: id ?? this.id,
@@ -94,18 +121,11 @@ class User {
       lastLogin: lastLogin ?? this.lastLogin,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      accessInvoices: accessInvoices ?? this.accessInvoices,
+      accessInventory: accessInventory ?? this.accessInventory,
+      accessCustomers: accessCustomers ?? this.accessCustomers,
+      accessRates: accessRates ?? this.accessRates,
+      accessReports: accessReports ?? this.accessReports,
     );
   }
-}
-
-class AuthResponse {
-  final String token;
-  final User user;
-
-  const AuthResponse({required this.token, required this.user});
-
-  factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
-        token: json['token'] ?? '',
-        user: User.fromJson(Map<String, dynamic>.from(json['user'] ?? {})),
-      );
 }

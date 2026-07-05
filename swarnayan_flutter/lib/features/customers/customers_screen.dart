@@ -7,7 +7,6 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/search_bar_widget.dart';
 import '../../core/widgets/app_header.dart';
-import '../more/daily_rates_provider.dart';
 import 'customers_provider.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {

@@ -71,6 +71,15 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
       _imageUrlController.text = product.imageUrl ?? '';
       _selectedCategory = product.category;
       _selectedPurity = product.purity;
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final nextHuid = await ref.read(productsProvider.notifier).generateNextHuid();
+          if (mounted) {
+            _huidController.text = nextHuid;
+          }
+        } catch (_) {}
+      });
     }
   }
 

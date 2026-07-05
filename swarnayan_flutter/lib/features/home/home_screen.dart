@@ -21,6 +21,8 @@ import '../../models/daily_rate.dart';
 import '../../core/utils/pdf_helper.dart';
 import '../more/company_provider.dart';
 import '../auth/auth_provider.dart';
+import '../more/widgets/team_dialogs.dart';
+import '../more/team_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -137,6 +139,8 @@ class HomeScreen extends ConsumerWidget {
 
                   // 1. Live Gold Rate
                   _buildGoldRateBanner(latestRate),
+
+                  _buildPendingApprovalsBanner(context, ref),
 
                   const SizedBox(height: 24),
 
@@ -258,6 +262,8 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 32),
+
+          _buildPendingApprovalsBanner(context, ref),
 
           // ── Metrics Row (2 Cards) ──
           Row(
@@ -1263,6 +1269,94 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPendingApprovalsBanner(BuildContext context, WidgetRef ref) {
+    final user = ref.read(authProvider).user;
+    if (user == null || !user.canManage) return const SizedBox();
+
+    final pendingState = ref.watch(pendingMembersProvider);
+    return pendingState.maybeWhen(
+      data: (pendingList) {
+        if (pendingList.isEmpty) return const SizedBox();
+        final count = pendingList.length;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.warning.withValues(alpha: 0.15),
+                  AppColors.warning.withValues(alpha: 0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.warning.withValues(alpha: 0.3),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.how_to_reg_rounded,
+                  color: AppColors.warning,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pending Account Approvals',
+                        style: AppTextStyles.titleSm.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$count user request${count == 1 ? '' : 's'} waiting for review.',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const PendingApprovalsDialog(),
+                    ).then((_) => ref.invalidate(pendingMembersProvider));
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.warning,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Review',
+                    style: AppTextStyles.labelMd.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      orElse: () => const SizedBox(),
     );
   }
 }

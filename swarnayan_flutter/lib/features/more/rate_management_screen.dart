@@ -7,6 +7,8 @@ import '../../core/utils/formatters.dart';
 import '../../core/widgets/glass_card.dart';
 import 'daily_rates_provider.dart';
 import 'daily_rate_prompt_dialog.dart';
+import 'staff_provider.dart';
+import '../../models/user.dart';
 
 class RateManagementScreen extends ConsumerWidget {
   const RateManagementScreen({super.key});
@@ -98,6 +100,21 @@ class RateManagementScreen extends ConsumerWidget {
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final rate = list[index];
+                    final staffList = ref.watch(staffProvider).value ?? [];
+                    final enteredBy = rate.enteredBy;
+                    User? matchedStaff;
+                    if (enteredBy != null) {
+                      for (final s in staffList) {
+                        if (s.id == enteredBy ||
+                            s.email.toLowerCase() == enteredBy.toLowerCase() ||
+                            s.id.replaceAll('-', '') == enteredBy.replaceAll('-', '')) {
+                          matchedStaff = s;
+                          break;
+                        }
+                      }
+                    }
+                    final enteredByName = matchedStaff?.name ?? rate.enteredBy ?? 'System';
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GlassCard(
@@ -115,7 +132,7 @@ class RateManagementScreen extends ConsumerWidget {
                                 ),
                                 if (rate.enteredBy != null)
                                   Text(
-                                    'By: ${rate.enteredBy}',
+                                    'By: $enteredByName',
                                     style: AppTextStyles.labelSm.copyWith(
                                       color: AppColors.onSurfaceMuted,
                                       fontSize: 10,

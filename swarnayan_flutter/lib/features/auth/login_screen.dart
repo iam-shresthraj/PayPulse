@@ -25,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _companyCodeController = TextEditingController();
   bool _obscurePassword = true;
   bool _isSignUp = false;
@@ -34,6 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
     _companyCodeController.dispose();
     super.dispose();
   }
@@ -46,6 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               _emailController.text.trim(),
               _passwordController.text,
               _nameController.text.trim(),
+              _phoneController.text.trim(),
               _companyCodeController.text.trim().toUpperCase(),
             )
         : await ref.read(authProvider.notifier).login(
@@ -172,6 +175,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 prefixIcon:  Icon(Icons.person_outline, color: AppColors.onSurfaceMuted, size: 20),
                                 validator: (val) {
                                   if (val == null || val.trim().isEmpty) return 'Name is required';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              GlassInput(
+                                controller: _phoneController,
+                                label: 'Phone Number',
+                                hint: 'Enter your phone number',
+                                keyboardType: TextInputType.phone,
+                                prefixIcon: Icon(Icons.phone_outlined, color: AppColors.onSurfaceMuted, size: 20),
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) return 'Phone number is required';
                                   return null;
                                 },
                               ),

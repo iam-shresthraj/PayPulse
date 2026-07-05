@@ -514,25 +514,28 @@ class _AppShellState extends ConsumerState<AppShell> {
                   isActive: currentIndex == 0,
                   onTap: () => _onTap(context, 0),
                 ),
-                _buildSidebarItem(
-                  icon: Icons.receipt_long_rounded,
-                  label: 'Invoice',
-                  isActive: currentIndex == 1,
-                  onTap: () => _onTap(context, 1),
-                ),
-                _buildSidebarItem(
-                  icon: Icons.people_alt_rounded,
-                  label: 'Customers',
-                  isActive: currentIndex == 2,
-                  onTap: () => _onTap(context, 2),
-                ),
-                _buildSidebarItem(
-                  icon: Icons.diamond_rounded,
-                  label: 'Products',
-                  isActive: currentIndex == 3,
-                  onTap: () => _onTap(context, 3),
-                ),
-                if (canManage)
+                if (user?.accessInvoices ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.receipt_long_rounded,
+                    label: 'Invoice',
+                    isActive: currentIndex == 1,
+                    onTap: () => _onTap(context, 1),
+                  ),
+                if (user?.accessCustomers ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.people_alt_rounded,
+                    label: 'Customers',
+                    isActive: currentIndex == 2,
+                    onTap: () => _onTap(context, 2),
+                  ),
+                if (user?.accessInventory ?? true)
+                  _buildSidebarItem(
+                    icon: Icons.diamond_rounded,
+                    label: 'Products',
+                    isActive: currentIndex == 3,
+                    onTap: () => _onTap(context, 3),
+                  ),
+                if (canManage && (user?.accessReports ?? true))
                   _buildSidebarItem(
                     icon: Icons.analytics_rounded,
                     label: 'Reports',

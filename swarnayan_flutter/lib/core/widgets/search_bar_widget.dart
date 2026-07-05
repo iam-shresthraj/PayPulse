@@ -3,8 +3,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
-/// Glass search bar matching the Customer Directory design.
-class SearchBarWidget extends StatelessWidget {
+/// Glass search bar matching the Customer Directory design with focus border glow.
+class SearchBarWidget extends StatefulWidget {
   final TextEditingController? controller;
   final String hint;
   final void Function(String)? onChanged;
@@ -21,25 +21,66 @@ class SearchBarWidget extends StatelessWidget {
   });
 
   @override
+  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+}
+
+class _SearchBarWidgetState extends State<SearchBarWidget> {
+  late final FocusNode _focusNode;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (mounted) {
+        setState(() {
+          _isFocused = _focusNode.hasFocus;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color: AppColors.surfaceDim,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(
+          color: _isFocused ? AppColors.primary : AppColors.border,
+          width: _isFocused ? 1.5 : 1,
+        ),
+        boxShadow: _isFocused
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : null,
       ),
       child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        onTap: onTap,
-        readOnly: readOnly,
+        controller: widget.controller,
+        focusNode: _focusNode,
+        onChanged: widget.onChanged,
+        onTap: widget.onTap,
+        readOnly: widget.readOnly,
         style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
         decoration: InputDecoration(
-          hintText: hint,
+          hintText: widget.hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(
             color: AppColors.onSurfaceDim,
           ),
-          prefixIcon:  Padding(
+          prefixIcon: const Padding(
             padding: EdgeInsets.only(left: 16, right: 8),
             child: Icon(
               Icons.search_rounded,

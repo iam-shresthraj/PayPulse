@@ -48,12 +48,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
 
-      // Non-managers/non-owners cannot access reports
+      // Non-managers/non-owners cannot access reports, and it requires accessReports permission
       if (location.startsWith('/reports')) {
         final canManage = authState.user?.canManage ?? false;
-        if (!canManage) {
+        final accessReports = authState.user?.accessReports ?? true;
+        if (!canManage || !accessReports) {
           return '/';
         }
+      }
+
+      // Feature-wise checks for other routes
+      if (location.startsWith('/billing')) {
+        final accessInvoices = authState.user?.accessInvoices ?? true;
+        if (!accessInvoices) return '/';
+      }
+
+      if (location.startsWith('/customers')) {
+        final accessCustomers = authState.user?.accessCustomers ?? true;
+        if (!accessCustomers) return '/';
+      }
+
+      if (location.startsWith('/products')) {
+        final accessInventory = authState.user?.accessInventory ?? true;
+        if (!accessInventory) return '/';
+      }
+
+      if (location.startsWith('/more/rates')) {
+        final accessRates = authState.user?.accessRates ?? true;
+        if (!accessRates) return '/';
       }
 
       return null;

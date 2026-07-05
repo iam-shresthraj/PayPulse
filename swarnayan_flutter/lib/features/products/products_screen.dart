@@ -10,7 +10,6 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/search_bar_widget.dart';
 import '../../core/widgets/app_header.dart';
-import '../more/daily_rates_provider.dart';
 import 'products_provider.dart';
 import '../../models/product.dart';
 
@@ -183,7 +182,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                   Row(
                                     children: [
                                       Text(
-                                        p.huidNumber ?? p.id ?? '',
+                                        p.huidNumber ?? 'No HUID',
                                         style: AppTextStyles.cardSubtitle,
                                       ),
                                       const SizedBox(width: 8),
@@ -346,7 +345,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             style: AppTextStyles.titleLg.copyWith(color: AppColors.error),
           ),
           content: Text(
-            'Are you sure you want to delete product "${product.name}" (${product.id})?',
+            'Are you sure you want to delete product "${product.name}" (${product.huidNumber ?? 'No HUID'})?',
             style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
           ),
           actions: [
@@ -410,12 +409,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _detailRow('Product Code', p.huidNumber ?? p.id ?? ''),
+                _detailRow('HUID Number', p.huidNumber ?? 'No HUID'),
                 _detailRow('Category', p.category),
                 _detailRow('Purity', p.purity),
                 _detailRow('HSN Code', p.hsnCode),
                 if (p.huidNumber != null && p.huidNumber!.isNotEmpty) ...[
-                  _detailRow('HUID Number', p.huidNumber!),
                   const SizedBox(height: 16),
                   Center(
                     child: Container(

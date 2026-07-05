@@ -11,6 +11,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/utils/file_saver_helper.dart';
+import 'package:go_router/go_router.dart';
 import '../billing/invoices_provider.dart';
 import '../customers/customers_provider.dart';
 import '../more/company_provider.dart';
@@ -275,7 +276,40 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: topPadding + 16),
+          SizedBox(height: topPadding + 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      context.go('/more');
+                    }
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.glassBorder),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.onSurface,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text('Reports & Export', style: AppTextStyles.titleMd),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
 
           // Date Filter Inputs
           Padding(

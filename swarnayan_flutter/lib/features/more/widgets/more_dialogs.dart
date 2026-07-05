@@ -19,6 +19,7 @@ import '../company_provider.dart';
 import '../coupons_provider.dart';
 import '../staff_provider.dart';
 import '../../auth/auth_provider.dart';
+import 'package:image_picker/image_picker.dart';
 
 // -----------------------------------------------------------
 // Base Glass Dialog Wrapper
@@ -168,8 +169,46 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
     }
   }
 
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 400,
+        maxHeight: 400,
+      );
+      if (image != null) {
+        setState(() => _isLoading = true);
+        final bytes = await image.readAsBytes();
+        final ext = image.name.split('.').last;
+        await ref.read(authProvider.notifier).uploadProfilePhoto(bytes, ext);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profile photo uploaded successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload photo: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).user;
+
     return GlassDialogWrapper(
       title: 'Edit Profile',
       actions: [
@@ -189,6 +228,57 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Stack(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      border: Border.all(color: AppColors.primary, width: 2),
+                    ),
+                    child: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                        ? Image.network(
+                            user.avatarUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person,
+                              color: AppColors.primary,
+                              size: 40,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            color: AppColors.primary,
+                            size: 40,
+                          ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _pickAndUploadPhoto,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             GlassInput(
               controller: _nameController,
               label: 'Full Name',
@@ -969,16 +1059,25 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String _role = 'STAFF';
   bool _isLoading = false;
   model_user.User? _editingUser;
+
+  // Feature-wise toggles for editing
+  bool _accessInvoices = true;
+  bool _accessInventory = true;
+  bool _accessCustomers = true;
+  bool _accessRates = true;
+  bool _accessReports = true;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -990,7 +1089,60 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
       _emailController.text = user.email;
       _role = user.role;
       _passwordController.clear();
+      _phoneController.text = user.phone ?? '';
+      _accessInvoices = user.accessInvoices;
+      _accessInventory = user.accessInventory;
+      _accessCustomers = user.accessCustomers;
+      _accessRates = user.accessRates;
+      _accessReports = user.accessReports;
     });
+  }
+
+  Future<void> _confirmDelete(model_user.User user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        title: Text('Delete Account', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
+        content: Text('Are you sure you want to delete ${user.name}? This will permanently delete their account and profile.', style: AppTextStyles.bodyMd),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: AppColors.onSurfaceMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Delete', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      setState(() => _isLoading = true);
+      try {
+        await ref.read(staffProvider.notifier).deleteStaff(user.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Staff member deleted successfully.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete staff: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _submitStaff() async {
@@ -999,26 +1151,32 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
     try {
       if (_editingUser != null) {
         await ref.read(staffProvider.notifier).updateStaff(
-              _editingUser!.id,
-              _nameController.text.trim(),
-              _role,
+              id: _editingUser!.id,
+              name: _nameController.text.trim(),
+              role: _role,
+              accessInvoices: _accessInvoices,
+              accessInventory: _accessInventory,
+              accessCustomers: _accessCustomers,
+              accessRates: _accessRates,
+              accessReports: _accessReports,
             );
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-            content: Text('Staff member updated successfully!'),
+          SnackBar(
+            content: const Text('Staff member updated successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
       } else {
         await ref.read(staffProvider.notifier).addStaff(
-              _nameController.text.trim(),
-              _emailController.text.trim(),
-              _passwordController.text,
-              _role,
+              name: _nameController.text.trim(),
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              phone: _phoneController.text.trim(),
+              role: _role,
             );
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-            content: Text('Staff member registered successfully!'),
+          SnackBar(
+            content: const Text('Staff member registered successfully! Click confirmation link in the email.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -1027,6 +1185,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
       _nameController.clear();
       _emailController.clear();
       _passwordController.clear();
+      _phoneController.clear();
       setState(() {
         _role = 'STAFF';
         _showAddForm = false;
@@ -1042,6 +1201,23 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Widget _buildPermissionToggle(String label, bool value, ValueChanged<bool> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.bodyMd),
+          Switch(
+            value: value,
+            activeColor: AppColors.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1060,20 +1236,37 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                 _showAddForm ? (_editingUser != null ? 'Edit Staff Member' : 'Add Staff Member') : 'All Staff Members',
                 style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
               ),
-              SecondaryButton(
-                label: _showAddForm ? 'View List' : '+ Add Staff',
-                onPressed: () {
-                  setState(() {
-                    _showAddForm = !_showAddForm;
-                    if (!_showAddForm) {
-                      _editingUser = null;
-                      _nameController.clear();
-                      _emailController.clear();
-                      _passwordController.clear();
-                      _role = 'STAFF';
-                    }
-                  });
-                },
+              Row(
+                children: [
+                  if (!_showAddForm) ...[
+                    SecondaryButton(
+                      label: 'Edit Access',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => const BulkAccessDialog(),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  SecondaryButton(
+                    label: _showAddForm ? 'View List' : '+ Add Staff',
+                    onPressed: () {
+                      setState(() {
+                        _showAddForm = !_showAddForm;
+                        if (!_showAddForm) {
+                          _editingUser = null;
+                          _nameController.clear();
+                          _emailController.clear();
+                          _passwordController.clear();
+                          _phoneController.clear();
+                          _role = 'STAFF';
+                        }
+                      });
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -1088,6 +1281,14 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     label: 'Name',
                     hint: 'Enter full name',
                     validator: (v) => Validators.validateRequired(v, 'Name'),
+                  ),
+                  const SizedBox(height: 16),
+                  GlassInput(
+                    controller: _phoneController,
+                    label: 'Phone Number',
+                    hint: 'Enter phone number',
+                    keyboardType: TextInputType.phone,
+                    validator: (v) => Validators.validateRequired(v, 'Phone number'),
                   ),
                   const SizedBox(height: 16),
                   GlassInput(
@@ -1114,13 +1315,31 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     value: _role,
                     items: const [
                       DropdownMenuItem(value: 'STAFF', child: Text('Staff')),
-                      DropdownMenuItem(value: 'CO_OWNER', child: Text('Co-owner')),
+                      DropdownMenuItem(value: 'MANAGER', child: Text('Manager')),
                       DropdownMenuItem(value: 'OWNER', child: Text('Owner')),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => _role = val);
                     },
                   ),
+                  if (_editingUser != null) ...[
+                    const SizedBox(height: 20),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Feature Permissions',
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPermissionToggle('Access Invoices', _accessInvoices, (v) => setState(() => _accessInvoices = v)),
+                    _buildPermissionToggle('Access Inventory', _accessInventory, (v) => setState(() => _accessInventory = v)),
+                    _buildPermissionToggle('Access Customers', _accessCustomers, (v) => setState(() => _accessCustomers = v)),
+                    _buildPermissionToggle('Access Rates', _accessRates, (v) => setState(() => _accessRates = v)),
+                    _buildPermissionToggle('Access Reports', _accessReports, (v) => setState(() => _accessReports = v)),
+                  ],
                   const SizedBox(height: 24),
                   PrimaryButton(
                     label: 'Save Changes',
@@ -1164,8 +1383,12 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                             ),
                           ),
                           IconButton(
-                            icon:  Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                            icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
                             onPressed: () => _beginEdit(item),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                            onPressed: () => _confirmDelete(item),
                           ),
                           Switch(
                             value: item.isActive,
@@ -1180,9 +1403,208 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                   },
                 );
               },
-              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () => Center(child: CircularProgressIndicator(color: AppColors.primary)),
               error: (err, _) => Text('Error: $err', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class BulkAccessDialog extends ConsumerStatefulWidget {
+  const BulkAccessDialog({super.key});
+
+  @override
+  ConsumerState<BulkAccessDialog> createState() => _BulkAccessDialogState();
+}
+
+class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
+  final List<String> _selectedUserIds = [];
+  String _searchQuery = '';
+  bool _isLoading = false;
+
+  bool _accessInvoices = true;
+  bool _accessInventory = true;
+  bool _accessCustomers = true;
+  bool _accessRates = true;
+  bool _accessReports = true;
+
+  Future<void> _submitBulk() async {
+    if (_selectedUserIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select at least one staff member.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(staffProvider.notifier).bulkUpdateAccess(
+            userIds: _selectedUserIds,
+            accessInvoices: _accessInvoices,
+            accessInventory: _accessInventory,
+            accessCustomers: _accessCustomers,
+            accessRates: _accessRates,
+            accessReports: _accessReports,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Bulk permissions updated successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update bulk permissions: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _buildPermissionToggle(String label, bool value, ValueChanged<bool> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.bodyMd),
+          Switch(
+            value: value,
+            activeColor: AppColors.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final staffState = ref.watch(staffProvider);
+
+    return GlassDialogWrapper(
+      title: 'Bulk Edit Access',
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+        ),
+        const SizedBox(width: 12),
+        PrimaryButton(
+          label: 'Apply Changes',
+          isLoading: _isLoading,
+          onPressed: _submitBulk,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search Field
+          TextField(
+            onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+            decoration: InputDecoration(
+              hintText: 'Search staff by name or email...',
+              hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
+              prefixIcon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted, size: 20),
+              fillColor: AppColors.surfaceContainer,
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.glassBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.glassBorder),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // User Selection Checkbox List
+          Text(
+            'Select Users to Update',
+            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 180,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: staffState.when(
+              data: (list) {
+                final filtered = list.where((u) {
+                  return !u.isOwner && (u.name.toLowerCase().contains(_searchQuery) ||
+                      u.email.toLowerCase().contains(_searchQuery));
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No matching staff/managers found.',
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, idx) {
+                    final user = filtered[idx];
+                    final isChecked = _selectedUserIds.contains(user.id);
+                    return CheckboxListTile(
+                      value: isChecked,
+                      activeColor: AppColors.primary,
+                      title: Text(user.name, style: AppTextStyles.bodyMd),
+                      subtitle: Text('${user.email} • ${user.role}', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedUserIds.add(user.id);
+                          } else {
+                            _selectedUserIds.remove(user.id);
+                          }
+                        });
+                      },
+                    );
+                  },
+                );
+              },
+              loading: () => Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              error: (err, _) => Center(child: Text('Error: $err', style: TextStyle(color: AppColors.error))),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Toggles
+          Text(
+            'Set Feature Permissions',
+            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          _buildPermissionToggle('Access Invoices', _accessInvoices, (v) => setState(() => _accessInvoices = v)),
+          _buildPermissionToggle('Access Inventory', _accessInventory, (v) => setState(() => _accessInventory = v)),
+          _buildPermissionToggle('Access Customers', _accessCustomers, (v) => setState(() => _accessCustomers = v)),
+          _buildPermissionToggle('Access Rates', _accessRates, (v) => setState(() => _accessRates = v)),
+          _buildPermissionToggle('Access Reports', _accessReports, (v) => setState(() => _accessReports = v)),
         ],
       ),
     );

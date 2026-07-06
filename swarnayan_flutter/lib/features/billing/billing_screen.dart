@@ -2703,15 +2703,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
     super.dispose();
   }
 
-  void _scanBarcodeWithCamera() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Use a physical barcode scanner or type the HUID / Product ID manually.'),
-        backgroundColor: AppColors.surfaceContainer,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+
 
   void _onSubmitted(String value) {
     final trimmed = value.trim();
@@ -2883,11 +2875,6 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                   }
                 },
                 onFieldSubmitted: (val) => _onSubmitted(val.trim()),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.camera_alt_rounded, color: AppColors.primary),
-                  onPressed: _scanBarcodeWithCamera,
-                  tooltip: 'Scan with camera',
-                ),
               ),
               const SizedBox(height: 24),
               Row(

@@ -1306,6 +1306,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 constraints: const BoxConstraints(maxHeight: 180),
                 child: ListView.builder(
                   shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   itemCount: _productSuggestions.length,
                   itemBuilder: (context, idx) {
                     final p = _productSuggestions[idx];

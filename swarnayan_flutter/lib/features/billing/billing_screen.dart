@@ -109,6 +109,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   bool _isSavingProduct = false;
   String _newProductCategory = 'GOLD';
   String _newProductPurity = '22K';
+  bool _saveDetailsToInventory = false;
   final _newProductNameController = TextEditingController();
   final _newProductStockController = TextEditingController(text: '10');
   final _newProductHuidController = TextEditingController();
@@ -1271,6 +1272,31 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _saveDetailsToInventory,
+                    onChanged: (val) {
+                      setState(() {
+                        _saveDetailsToInventory = val ?? false;
+                      });
+                    },
+                    activeColor: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Save weight & making charge to inventory template',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             _buildSharedDetailInputs(),
           ],
@@ -1663,9 +1689,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           purity: _newProductPurity,
           huidNumber: huid.isEmpty ? null : huid,
           hsnCode: '7113', // default HSN for jewellery
-          weight: double.tryParse(_weightController.text) ?? 0.0,
+          weight: _saveDetailsToInventory ? (double.tryParse(_weightController.text) ?? 0.0) : 0.0,
           stockUnits: stock,
-          makingChargeValue: double.tryParse(_makingChargeController.text) ?? 0.0,
+          makingChargeValue: _saveDetailsToInventory ? (double.tryParse(_makingChargeController.text) ?? 0.0) : 0.0,
           isActive: true,
         );
         await ref.read(productsProvider.notifier).addProduct(product);
@@ -1740,6 +1766,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
 
     ref.read(billingProvider.notifier).addProduct(billingProduct);
+    HapticFeedback.mediumImpact();
 
     // Reset controllers for next product entry
     _searchController.clear();

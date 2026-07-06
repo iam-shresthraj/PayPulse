@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -75,6 +77,45 @@ class PdfHelper {
   );
 
   static Future<void> generateAndPrintInvoice({
+    required Invoice invoice,
+    required Customer customer,
+    CompanySettings? company,
+  }) async {
+    if (invoice.pdfBase64 != null && invoice.pdfBase64!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(invoice.pdfBase64!);
+        await Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => bytes,
+          name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
+        );
+        return;
+      } catch (_) {}
+    }
+    final doc = await buildInvoiceDocument(
+      invoice: invoice,
+      customer: customer,
+      company: company,
+    );
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => doc.save(),
+      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
+    );
+  }
+
+  static Future<Uint8List> generateInvoicePdfBytes({
+    required Invoice invoice,
+    required Customer customer,
+    CompanySettings? company,
+  }) async {
+    final doc = await buildInvoiceDocument(
+      invoice: invoice,
+      customer: customer,
+      company: company,
+    );
+    return doc.save();
+  }
+
+  static Future<pw.Document> buildInvoiceDocument({
     required Invoice invoice,
     required Customer customer,
     CompanySettings? company,
@@ -597,11 +638,7 @@ class PdfHelper {
       ),
     );
 
-    // Launch print preview overlay
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => doc.save(),
-      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
-    );
+    return doc;
   }
 
   static pw.Widget _invoiceMetaRow(String label, String value, pw.Font fontBold, pw.Font fontData) {

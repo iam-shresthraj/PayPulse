@@ -23,6 +23,7 @@ import '../more/company_provider.dart';
 import '../auth/auth_provider.dart';
 import '../more/widgets/team_dialogs.dart';
 import '../more/team_provider.dart';
+import '../admin/admin_dashboard_view.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,12 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // If the user is a Super Admin, show the Admin Dashboard
+    final user = ref.watch(authProvider).user;
+    if (user?.isSuperAdmin ?? false) {
+      return const AdminDashboardView();
+    }
+
     final invoicesState = ref.watch(invoicesProvider);
     final customersState = ref.watch(customersProvider);
     final ratesState = ref.watch(dailyRatesProvider);
@@ -218,12 +225,18 @@ class HomeScreen extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Dashboard',
-                    style: AppTextStyles.headlineLg.copyWith(
-                      color: AppColors.onBackground,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final userObj = ref.watch(authProvider).user;
+                      final isManagerOrOwner = userObj?.canManage ?? false;
+                      return Text(
+                        isManagerOrOwner ? 'Admin Dashboard' : 'Staff Dashboard',
+                        style: AppTextStyles.headlineLg.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    }
                   ),
                   const SizedBox(height: 4),
                   Text(

@@ -97,6 +97,7 @@ class Invoice with _$Invoice {
     @Default('PAID') String status, // PAID, PARTIALLY_PAID, CANCELLED
     required RatesSnapshot ratesSnapshot,
     DateTime? deletedAt,
+    String? pdfBase64,
   }) = _Invoice;
 
   factory Invoice.fromJson(Map<String, dynamic> json) => _$InvoiceFromJson(json);

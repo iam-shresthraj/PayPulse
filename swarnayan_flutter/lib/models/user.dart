@@ -48,17 +48,19 @@ class User {
     this.accessCoupons = true,
   });
 
-  bool get isOwner => role.toUpperCase() == 'OWNER';
+  bool get isSuperAdmin => role.toUpperCase() == 'SUPER_ADMIN';
+  bool get isOwner => role.toUpperCase() == 'OWNER' || role.toUpperCase() == 'SUPER_ADMIN';
   bool get isManager => role.toUpperCase() == 'MANAGER';
   bool get isStaff => role.toUpperCase() == 'STAFF';
-  bool get isApproved => approvalStatus.toUpperCase() == 'APPROVED';
-  bool get isDeassociated => companyId == null || companyId!.isEmpty || approvalStatus.toUpperCase() == 'DEASSOCIATED';
+  bool get isApproved => approvalStatus.toUpperCase() == 'APPROVED' || role.toUpperCase() == 'SUPER_ADMIN';
+  bool get isDeassociated => ((companyId == null || companyId!.isEmpty) && role.toUpperCase() != 'SUPER_ADMIN') || approvalStatus.toUpperCase() == 'DEASSOCIATED';
 
   /// Manager-level access (manager or owner).
-  bool get canManage => isOwner || isManager;
+  bool get canManage => isOwner || isManager || isSuperAdmin;
 
   /// Dynamic access check combining individual permissions and role configurations.
   bool hasAccess(String section, Map<String, bool> rolePermissions) {
+    if (isSuperAdmin) return true; // Super Admin always has full access
     if (isOwner) return true; // Owners always have full access
 
     // Check if the individual profile allows access

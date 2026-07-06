@@ -1,0 +1,241 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/glass_card.dart';
+import '../../more/widgets/more_dialogs.dart';
+import '../../../../models/user.dart';
+import '../admin_provider.dart';
+
+class UserAccessDialog extends ConsumerStatefulWidget {
+  final User user;
+  final String companyName;
+
+  const UserAccessDialog({
+    super.key,
+    required this.user,
+    required this.companyName,
+  });
+
+  @override
+  ConsumerState<UserAccessDialog> createState() => _UserAccessDialogState();
+}
+
+class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
+  late String _selectedRole;
+  late bool _isActive;
+  late String _selectedStatus;
+  late Map<String, bool> _accessList;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.user.role;
+    _isActive = widget.user.isActive;
+    _selectedStatus = widget.user.approvalStatus;
+    _accessList = {
+      'dashboard': widget.user.accessDashboard,
+      'invoices': widget.user.accessInvoices,
+      'customers': widget.user.accessCustomers,
+      'inventory': widget.user.accessInventory,
+      'reports': widget.user.accessReports,
+      'records': widget.user.accessRecords,
+      'rates': widget.user.accessRates,
+      'staff': widget.user.accessStaff,
+      'settings': widget.user.accessSettings,
+      'coupons': widget.user.accessCoupons,
+    };
+  }
+
+  Future<void> _save() async {
+    setState(() => _submitting = true);
+    final success = await ref.read(adminProvider.notifier).updateUserProfile(
+          widget.user.id,
+          role: _selectedRole,
+          isActive: _isActive,
+          approvalStatus: _selectedStatus,
+          accessList: _accessList,
+        );
+    if (mounted) {
+      setState(() => _submitting = false);
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('User profile and permissions updated successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ref.read(adminProvider).error ?? 'Failed to update user.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildSwitchTile(String key, String title, String subtitle) {
+    return SwitchListTile(
+      value: _accessList[key] ?? true,
+      onChanged: (val) {
+        setState(() {
+          _accessList[key] = val;
+        });
+      },
+      title: Text(title, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
+      subtitle: Text(subtitle, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+      activeColor: AppColors.primary,
+      inactiveThumbColor: Colors.grey,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final roles = ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF'];
+    final statuses = ['PENDING', 'APPROVED', 'REJECTED', 'DEASSOCIATED'];
+
+    return GlassDialogWrapper(
+      title: 'Manage User & Access',
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.pop(context),
+          child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton(
+          onPressed: _submitting ? null : _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: _submitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
+              : Text('Save Changes', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold)),
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // User Details Card
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: Text(
+                    widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : 'U',
+                    style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.user.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold)),
+                      Text(widget.user.email, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                      Text(
+                        widget.companyName.isNotEmpty ? 'Company: ${widget.companyName}' : 'No Company (Super Admin)',
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Role Selection
+          Text('ROLE & STATUS', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  items: roles.map((role) {
+                    return DropdownMenuItem(
+                      value: role,
+                      child: Text(role, style: AppTextStyles.bodyMd),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedRole = val);
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'User Role',
+                    labelStyle: TextStyle(color: AppColors.primary),
+                    filled: true,
+                    fillColor: AppColors.surfaceContainer,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedStatus,
+                  items: statuses.map((status) {
+                    return DropdownMenuItem(
+                      value: status,
+                      child: Text(status, style: AppTextStyles.bodyMd),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedStatus = val);
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Approval Status',
+                    labelStyle: TextStyle(color: AppColors.primary),
+                    filled: true,
+                    fillColor: AppColors.surfaceContainer,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            value: _isActive,
+            onChanged: (val) => setState(() => _isActive = val),
+            title: Text('Account Active', style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
+            subtitle: Text('Deactivated users cannot log in to the application', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+            activeColor: AppColors.primary,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 24),
+
+          // Feature Permissions
+          Text('FEATURE-WISE ACCESS PERMISSIONS', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          _buildSwitchTile('dashboard', 'Dashboard', 'Access home screens, business stats, and charts'),
+          _buildSwitchTile('invoices', 'Billing & Invoices', 'Create invoices, calculate payments, and view drafts'),
+          _buildSwitchTile('rates', 'Rate Management', 'Update and configure live gold and silver rates'),
+          _buildSwitchTile('customers', 'Customers Directory', 'Add and view customers, profiles, and histories'),
+          _buildSwitchTile('inventory', 'Inventory Products', 'Manage catalog templates, HUID barcodes, and weights'),
+          _buildSwitchTile('reports', 'Reports Engine', 'Generate custom audits, export PDF and Excel sheets'),
+          _buildSwitchTile('records', 'Record Book', 'Access active and deleted invoices log'),
+          _buildSwitchTile('staff', 'Staff Management', 'Add, edit, approve, and delete staff accounts'),
+          _buildSwitchTile('settings', 'Company Settings', 'Edit invoice prefix, financial year, and business codes'),
+          _buildSwitchTile('coupons', 'Coupons & Promo', 'Configure and toggle discount codes'),
+        ],
+      ),
+    );
+  }
+}

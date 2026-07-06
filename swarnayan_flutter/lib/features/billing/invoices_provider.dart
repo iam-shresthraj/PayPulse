@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/invoice.dart';
+import '../../models/customer.dart';
+import '../../core/utils/pdf_helper.dart';
 import '../products/products_provider.dart';
 import '../customers/customers_provider.dart';
 import '../more/company_provider.dart';
@@ -61,6 +65,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         rateSilver: (data['rates_snapshot_silver'] as num?)?.toDouble() ?? 0.0,
       ),
       deletedAt: data['deleted_at'] != null ? DateTime.parse(data['deleted_at']) : null,
+      pdfBase64: data['pdf_base64'],
     );
   }
 
@@ -97,6 +102,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       'rates_snapshot_gold_22k': invoice.ratesSnapshot.rateGold22K,
       'rates_snapshot_gold_18k': invoice.ratesSnapshot.rateGold18K,
       'rates_snapshot_silver': invoice.ratesSnapshot.rateSilver,
+      'pdf_base64': invoice.pdfBase64,
     };
   }
 
@@ -193,9 +199,40 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       _ref.read(customersProvider.notifier).loadCustomers();
       _ref.read(companyProvider.notifier).loadCompanySettings();
 
+      // 6. Generate and save PDF Base64 to database
+      Invoice finalInvoice = savedInvoice;
+      try {
+        final customersList = _ref.read(customersProvider).value ?? [];
+        final customerIndex = customersList.indexWhere((c) => c.id == invoice.customerId);
+        final Customer customer = customerIndex != -1 
+            ? customersList[customerIndex]
+            : Customer(
+                id: '',
+                name: invoice.tempCustomerName ?? 'Customer',
+                mobile: invoice.tempCustomerMobile ?? '',
+                address: invoice.tempCustomerAddress ?? '',
+              );
+        final companySettings = _ref.read(companyProvider).value;
+        final pdfBytes = await PdfHelper.generateInvoicePdfBytes(
+          invoice: savedInvoice,
+          customer: customer,
+          company: companySettings,
+        );
+        final pdfBase64 = base64Encode(pdfBytes);
+        
+        await _client
+            .from('invoices')
+            .update({'pdf_base64': pdfBase64})
+            .eq('id', savedInvoice.id!);
+            
+        finalInvoice = savedInvoice.copyWith(pdfBase64: pdfBase64);
+      } catch (e) {
+        debugPrint('Failed to save PDF to database: $e');
+      }
+
       final list = state.value ?? [];
-      state = AsyncValue.data([savedInvoice, ...list]);
-      return savedInvoice;
+      state = AsyncValue.data([finalInvoice, ...list]);
+      return finalInvoice;
     } catch (e) {
       await loadInvoices();
       rethrow;
@@ -300,7 +337,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       }
 
       // Check if it's the latest active invoice to rollback the counter
-      await _maybeRollbackCounter(invoice);
+      await _recalculateCurrentCounter();
 
       // Soft delete in DB
       await _client
@@ -364,7 +401,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       }
 
       // Check if it's the latest active invoice to rollback the counter
-      await _maybeRollbackCounter(invoice);
+      await _recalculateCurrentCounter();
 
       // Hard delete in DB
       await _client
@@ -550,26 +587,65 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       rethrow;
     }
   }
-  Future<void> _maybeRollbackCounter(Invoice invoice) async {
+  int? _parseCounter(String invoiceNum, Map<String, dynamic> settings) {
+    final prefix = (settings['invoice_prefix'] ?? '') as String;
+    final separator = (settings['invoice_separator'] ?? '-') as String;
+    final financialYear = (settings['invoice_financial_year'] ?? '') as String;
+    final suffix = (settings['invoice_suffix'] ?? '') as String;
+    
+    var temp = invoiceNum;
+    // Strip financial year
+    if (financialYear.isNotEmpty && temp.startsWith('$financialYear$separator')) {
+      temp = temp.substring(financialYear.length + separator.length);
+    }
+    // Strip prefix
+    if (prefix.isNotEmpty && temp.startsWith('$prefix$separator')) {
+      temp = temp.substring(prefix.length + separator.length);
+    } else if (prefix.isNotEmpty && temp.startsWith(prefix)) {
+      temp = temp.substring(prefix.length);
+    }
+    // Strip suffix
+    if (suffix.isNotEmpty && temp.endsWith('$separator$suffix')) {
+      temp = temp.substring(0, temp.length - suffix.length - separator.length);
+    }
+    
+    // Clean any remaining separators at the beginning/end
+    if (separator.isNotEmpty) {
+      if (temp.startsWith(separator)) temp = temp.substring(separator.length);
+      if (temp.endsWith(separator)) temp = temp.substring(0, temp.length - separator.length);
+    }
+    
+    return int.tryParse(temp);
+  }
+
+  Future<void> _recalculateCurrentCounter() async {
     try {
       final settingsData = await _client.from('company_settings').select().maybeSingle();
-      if (settingsData != null) {
-        final prefix = settingsData['invoice_prefix'] ?? 'S';
-        final separator = settingsData['invoice_separator'] ?? '-';
-        final padding = settingsData['invoice_padding_length'] ?? 6;
-        final int currentCounter = settingsData['invoice_current_counter'] ?? 0;
-        
-        final expectedInvoiceNum = '$prefix$separator${currentCounter.toString().padLeft(padding, '0')}';
-        
-        if (invoice.invoiceNumber == expectedInvoiceNum) {
-          if (currentCounter > 0) {
-            await _client
-                .from('company_settings')
-                .update({'invoice_current_counter': currentCounter - 1})
-                .eq('id', settingsData['id']);
+      if (settingsData == null) return;
+      
+      // Fetch all active invoice numbers
+      final List<dynamic> activeInvoicesData = await _client
+          .from('invoices')
+          .select('invoice_number')
+          .isFilter('deleted_at', null);
+          
+      int maxCounter = 0;
+      for (final inv in activeInvoicesData) {
+        final String? invNum = inv['invoice_number'];
+        if (invNum != null) {
+          final counter = _parseCounter(invNum, settingsData);
+          if (counter != null && counter > maxCounter) {
+            maxCounter = counter;
           }
         }
       }
+      
+      // Update the counter in company settings
+      await _client
+          .from('company_settings')
+          .update({'invoice_current_counter': maxCounter})
+          .eq('id', settingsData['id']);
+          
     } catch (_) {}
   }
 }

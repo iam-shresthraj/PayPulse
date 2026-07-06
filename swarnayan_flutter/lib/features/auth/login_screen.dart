@@ -243,6 +243,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 'Ask your owner or manager for your company access code. It decides your role.',
                                 style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
                               ),
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  'Note: If you are a business and want to use our software, please contact contact.shresthraj@gmail.com',
+                                  style: AppTextStyles.bodySm.copyWith(
+                                    color: AppColors.primary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                               const SizedBox(height: 14),
                             ],
 

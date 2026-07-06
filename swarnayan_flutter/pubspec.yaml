@@ -47,7 +47,7 @@ dependencies:
   fl_chart: ^0.68.0
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.10+1
-  freezed_annotation: ^2.4.1
+  freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
   barcode_widget: ^2.0.4
   url_launcher: ^6.3.2
@@ -59,10 +59,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  build_runner: ^2.4.9
-  freezed: ^2.5.2
-  json_serializable: ^6.8.0
-  riverpod_generator: ^2.4.0
+  build_runner: ^2.4.15
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
   flutter_launcher_icons: ^0.13.1
 
 flutter_launcher_icons:
@@ -94,6 +93,8 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

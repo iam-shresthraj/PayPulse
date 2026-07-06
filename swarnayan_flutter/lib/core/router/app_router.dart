@@ -14,6 +14,7 @@ import '../../features/more/rate_management_screen.dart';
 import '../../features/more/record_book_screen.dart';
 import '../../features/reports/reports_screen.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/splash_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/auth/pending_approval_screen.dart';
 import '../../features/auth/deassociated_screen.dart';
@@ -27,13 +28,16 @@ final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final authState = ref.read(authProvider);
 
       if (authState.isLoading) return null;
 
       final location = state.uri.toString();
+      final isSplash = location == '/splash';
+      if (isSplash) return null;
+
       final isLoggingIn = location == '/login';
       final isPendingPage = location == '/pending';
 
@@ -109,6 +113,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildPage(
+          const SplashScreen(),
+          state,
+        ),
+      ),
       GoRoute(
         path: '/login',
         parentNavigatorKey: rootNavigatorKey,

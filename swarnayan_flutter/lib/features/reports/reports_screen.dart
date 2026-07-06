@@ -13,6 +13,8 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/glass_input.dart';
 import '../../core/utils/file_saver_helper.dart';
 import 'package:go_router/go_router.dart';
+import '../auth/auth_provider.dart';
+import '../admin/admin_reports_view.dart';
 import '../billing/invoices_provider.dart';
 import '../customers/customers_provider.dart';
 import '../more/company_provider.dart';
@@ -394,6 +396,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // If the user is a Super Admin, show the Admin Reports view
+    final user = ref.watch(authProvider).user;
+    if (user?.isSuperAdmin ?? false) {
+      return const AdminReportsView();
+    }
+
     final topPadding = MediaQuery.of(context).padding.top;
     final companyState = ref.watch(companyProvider);
     final companyName = companyState.value?.companyName ?? 'PayPulse';

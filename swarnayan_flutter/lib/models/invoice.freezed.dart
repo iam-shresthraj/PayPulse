@@ -1275,6 +1275,7 @@ mixin _$Invoice {
       throw _privateConstructorUsedError; // PAID, PARTIALLY_PAID, CANCELLED
   RatesSnapshot get ratesSnapshot => throw _privateConstructorUsedError;
   DateTime? get deletedAt => throw _privateConstructorUsedError;
+  String? get pdfBase64 => throw _privateConstructorUsedError;
 
   /// Serializes this Invoice to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1321,6 +1322,7 @@ abstract class $InvoiceCopyWith<$Res> {
     String status,
     RatesSnapshot ratesSnapshot,
     DateTime? deletedAt,
+    String? pdfBase64,
   });
 
   $OldGoldAdjustmentCopyWith<$Res>? get oldGold;
@@ -1370,6 +1372,7 @@ class _$InvoiceCopyWithImpl<$Res, $Val extends Invoice>
     Object? status = null,
     Object? ratesSnapshot = null,
     Object? deletedAt = freezed,
+    Object? pdfBase64 = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -1485,6 +1488,10 @@ class _$InvoiceCopyWithImpl<$Res, $Val extends Invoice>
                 ? _value.deletedAt
                 : deletedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
+            pdfBase64: freezed == pdfBase64
+                ? _value.pdfBase64
+                : pdfBase64 // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -1554,6 +1561,7 @@ abstract class _$$InvoiceImplCopyWith<$Res> implements $InvoiceCopyWith<$Res> {
     String status,
     RatesSnapshot ratesSnapshot,
     DateTime? deletedAt,
+    String? pdfBase64,
   });
 
   @override
@@ -1604,6 +1612,7 @@ class __$$InvoiceImplCopyWithImpl<$Res>
     Object? status = null,
     Object? ratesSnapshot = null,
     Object? deletedAt = freezed,
+    Object? pdfBase64 = freezed,
   }) {
     return _then(
       _$InvoiceImpl(
@@ -1719,6 +1728,10 @@ class __$$InvoiceImplCopyWithImpl<$Res>
             ? _value.deletedAt
             : deletedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
+        pdfBase64: freezed == pdfBase64
+            ? _value.pdfBase64
+            : pdfBase64 // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -1758,6 +1771,7 @@ class _$InvoiceImpl implements _Invoice {
     this.status = 'PAID',
     required this.ratesSnapshot,
     this.deletedAt,
+    this.pdfBase64,
   }) : _items = items,
        _payments = payments;
 
@@ -1838,10 +1852,12 @@ class _$InvoiceImpl implements _Invoice {
   final RatesSnapshot ratesSnapshot;
   @override
   final DateTime? deletedAt;
+  @override
+  final String? pdfBase64;
 
   @override
   String toString() {
-    return 'Invoice(id: $id, invoiceNumber: $invoiceNumber, customerId: $customerId, tempCustomerName: $tempCustomerName, tempCustomerMobile: $tempCustomerMobile, tempCustomerAddress: $tempCustomerAddress, tempCustomerPincode: $tempCustomerPincode, tempCustomerCity: $tempCustomerCity, tempCustomerState: $tempCustomerState, items: $items, grossAmount: $grossAmount, couponCode: $couponCode, couponDiscount: $couponDiscount, oldGold: $oldGold, taxableAmount: $taxableAmount, cgst: $cgst, sgst: $sgst, totalTax: $totalTax, netAmount: $netAmount, finalPayable: $finalPayable, payments: $payments, totalAmountPaid: $totalAmountPaid, balanceDue: $balanceDue, invoiceDate: $invoiceDate, generatedBy: $generatedBy, status: $status, ratesSnapshot: $ratesSnapshot, deletedAt: $deletedAt)';
+    return 'Invoice(id: $id, invoiceNumber: $invoiceNumber, customerId: $customerId, tempCustomerName: $tempCustomerName, tempCustomerMobile: $tempCustomerMobile, tempCustomerAddress: $tempCustomerAddress, tempCustomerPincode: $tempCustomerPincode, tempCustomerCity: $tempCustomerCity, tempCustomerState: $tempCustomerState, items: $items, grossAmount: $grossAmount, couponCode: $couponCode, couponDiscount: $couponDiscount, oldGold: $oldGold, taxableAmount: $taxableAmount, cgst: $cgst, sgst: $sgst, totalTax: $totalTax, netAmount: $netAmount, finalPayable: $finalPayable, payments: $payments, totalAmountPaid: $totalAmountPaid, balanceDue: $balanceDue, invoiceDate: $invoiceDate, generatedBy: $generatedBy, status: $status, ratesSnapshot: $ratesSnapshot, deletedAt: $deletedAt, pdfBase64: $pdfBase64)';
   }
 
   @override
@@ -1897,7 +1913,9 @@ class _$InvoiceImpl implements _Invoice {
             (identical(other.ratesSnapshot, ratesSnapshot) ||
                 other.ratesSnapshot == ratesSnapshot) &&
             (identical(other.deletedAt, deletedAt) ||
-                other.deletedAt == deletedAt));
+                other.deletedAt == deletedAt) &&
+            (identical(other.pdfBase64, pdfBase64) ||
+                other.pdfBase64 == pdfBase64));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1932,6 +1950,7 @@ class _$InvoiceImpl implements _Invoice {
     status,
     ratesSnapshot,
     deletedAt,
+    pdfBase64,
   ]);
 
   /// Create a copy of Invoice
@@ -1980,6 +1999,7 @@ abstract class _Invoice implements Invoice {
     final String status,
     required final RatesSnapshot ratesSnapshot,
     final DateTime? deletedAt,
+    final String? pdfBase64,
   }) = _$InvoiceImpl;
 
   factory _Invoice.fromJson(Map<String, dynamic> json) = _$InvoiceImpl.fromJson;
@@ -2043,6 +2063,8 @@ abstract class _Invoice implements Invoice {
   RatesSnapshot get ratesSnapshot;
   @override
   DateTime? get deletedAt;
+  @override
+  String? get pdfBase64;
 
   /// Create a copy of Invoice
   /// with the given fields replaced by the non-null parameter values.

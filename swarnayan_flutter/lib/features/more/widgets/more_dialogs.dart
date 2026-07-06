@@ -587,15 +587,15 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
 
   String _couponStatus(model_coupon.Coupon coupon) {
     final now = DateTime.now();
+    if (!coupon.isActive) {
+      return 'INACTIVE';
+    }
     final startsAt = coupon.startsAt;
     if (startsAt != null && startsAt.isAfter(now)) {
       return 'UPCOMING';
     }
-    if (!coupon.isActive) {
-      return 'INACTIVE';
-    }
     if (!coupon.expiryDate.isAfter(now)) {
-      return 'INACTIVE';
+      return 'EXPIRED';
     }
     return 'ACTIVE';
   }
@@ -655,6 +655,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
       );
 
       final coupon = model_coupon.Coupon(
+        id: _editingCoupon?.id,
         code: _codeController.text.trim().toUpperCase(),
         discountType: _discountType,
         discountValue: double.tryParse(_valueController.text) ?? 0.0,
@@ -926,112 +927,111 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                            Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    Text(
-                                      item.code,
-                                      style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: status == 'ACTIVE'
-                                            ? AppColors.success.withValues(alpha: 0.12)
-                                            : status == 'UPCOMING'
-                                                ? AppColors.warning.withValues(alpha: 0.12)
-                                                : AppColors.error.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        status,
-                                        style: AppTextStyles.labelSm.copyWith(
-                                          color: status == 'ACTIVE'
-                                              ? AppColors.success
-                                              : status == 'UPCOMING'
-                                                  ? AppColors.warning
-                                                  : AppColors.error,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              Text(
+                                item.code,
+                                style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon:  Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
-                                    onPressed: () => setState(() => _beginEdit(item)),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: status == 'ACTIVE'
+                                      ? AppColors.success.withValues(alpha: 0.12)
+                                      : status == 'UPCOMING'
+                                          ? AppColors.warning.withValues(alpha: 0.12)
+                                          : AppColors.error.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  status,
+                                  style: AppTextStyles.labelSm.copyWith(
+                                    color: status == 'ACTIVE'
+                                        ? AppColors.success
+                                        : status == 'UPCOMING'
+                                            ? AppColors.warning
+                                            : AppColors.error,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon:  Icon(
-                                      item.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                                      size: 22,
-                                      color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
-                                    ),
-                                    onPressed: () async {
-                                      if (item.isActive) {
-                                        await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
-                                      } else {
-                                        await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
-                                      }
-                                    },
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon:  Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        useRootNavigator: false,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: AppColors.surfaceContainer,
-                                          title: Text('Delete Coupon', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
-                                          content: Text('Are you sure you want to permanently delete coupon "${item.code}"?', style: AppTextStyles.bodyMd),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(ctx, false),
-                                              child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(ctx, true),
-                                              child: Text('Delete', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        await ref.read(couponsProvider.notifier).deleteCoupon(item.id!);
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Coupon deleted successfully'), duration: Duration(seconds: 1)),
-                                          );
-                                        }
-                                      }
-                                    },
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           _couponDetail('Discount', item.discountType == 'FIXED' ? '₹${item.discountValue}' : '${item.discountValue}%'),
                           _couponDetail('Min Purchase', '₹${item.minBillAmount}'),
                           _couponDetail('Max Discount', '₹${item.maxDiscount}'),
                           _couponDetail('Limit / Used', '${item.usageLimit == 0 ? 'Unlimited' : item.usageLimit} / ${item.usedCount}'),
                           _couponDetail('Starts At', item.startsAt == null ? 'Immediate' : DateFormat('dd MMM yyyy').format(item.startsAt!)),
                           _couponDetail('Expiry', DateFormat('dd MMM yyyy').format(item.expiryDate)),
+                          const SizedBox(height: 8),
+                          const Divider(height: 1),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                                onPressed: () => setState(() => _beginEdit(item)),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                              const SizedBox(width: 16),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    useRootNavigator: false,
+                                    builder: (ctx) => AlertDialog(
+                                      backgroundColor: AppColors.surfaceContainer,
+                                      title: Text('Delete Coupon', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
+                                      content: Text('Are you sure you want to permanently delete coupon "${item.code}"?', style: AppTextStyles.bodyMd),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          child: Text('Delete', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await ref.read(couponsProvider.notifier).deleteCoupon(item.id!);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Coupon deleted successfully'), duration: Duration(seconds: 1)),
+                                      );
+                                    }
+                                  }
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                              const Spacer(),
+                              Text(
+                                item.isActive ? 'Active' : 'Inactive',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Switch(
+                                value: item.isActive,
+                                activeColor: AppColors.success,
+                                onChanged: (val) async {
+                                  if (item.isActive) {
+                                    await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
+                                  } else {
+                                    await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     );
@@ -1266,39 +1266,16 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _showAddForm ? (_editingUser != null ? 'Edit Staff Member' : 'Add Staff Member') : 'All Staff Members',
-                style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
-              ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (!_showAddForm) ...[
-                    SecondaryButton(
-                      label: 'Role Access',
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          useRootNavigator: false,
-                          builder: (ctx) => const RoleAccessDialog(),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    SecondaryButton(
-                      label: 'Edit Access',
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          useRootNavigator: false,
-                          builder: (ctx) => const BulkAccessDialog(),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+                  Text(
+                    _showAddForm ? (_editingUser != null ? 'Edit Staff Member' : 'Add Staff Member') : 'All Staff Members',
+                    style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
+                  ),
                   SecondaryButton(
                     label: _showAddForm ? 'View List' : '+ Add Staff',
                     onPressed: () {
@@ -1317,6 +1294,38 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                   ),
                 ],
               ),
+              if (!_showAddForm) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SecondaryButton(
+                        label: 'Role Access',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            useRootNavigator: false,
+                            builder: (ctx) => const RoleAccessDialog(),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SecondaryButton(
+                        label: 'Edit Access',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            useRootNavigator: false,
+                            builder: (ctx) => const BulkAccessDialog(),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 20),
@@ -1424,32 +1433,55 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     return GlassCard(
                       animationIndex: index,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(item.name, style: AppTextStyles.cardTitle),
-                                const SizedBox(height: 2),
-                                Text('${item.email} • ${item.role}', style: AppTextStyles.cardSubtitle),
-                              ],
-                            ),
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                                child: Text(
+                                  item.name.isNotEmpty ? item.name.substring(0, 1).toUpperCase() : 'S',
+                                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.name, style: AppTextStyles.cardTitle),
+                                    const SizedBox(height: 2),
+                                    Text('${item.email} • ${item.role}', style: AppTextStyles.cardSubtitle),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: item.isActive,
+                                activeColor: AppColors.primary,
+                                onChanged: (val) async {
+                                  await ref.read(staffProvider.notifier).toggleUserStatus(item);
+                                },
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
-                            onPressed: () => _beginEdit(item),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
-                            onPressed: () => _confirmDelete(item),
-                          ),
-                          Switch(
-                            value: item.isActive,
-                            activeColor: AppColors.primary,
-                            onChanged: (val) async {
-                              await ref.read(staffProvider.notifier).toggleUserStatus(item);
-                            },
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                icon: Icon(Icons.edit_rounded, size: 16, color: AppColors.primary),
+                                label: Text('Edit', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                                onPressed: () => _beginEdit(item),
+                              ),
+                              const SizedBox(width: 12),
+                              TextButton.icon(
+                                icon: Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.error),
+                                label: Text('Delete', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                                onPressed: () => _confirmDelete(item),
+                              ),
+                            ],
                           ),
                         ],
                       ),

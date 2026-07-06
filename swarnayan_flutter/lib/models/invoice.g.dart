@@ -139,6 +139,7 @@ _$InvoiceImpl _$$InvoiceImplFromJson(Map<String, dynamic> json) =>
       deletedAt: json['deletedAt'] == null
           ? null
           : DateTime.parse(json['deletedAt'] as String),
+      pdfBase64: json['pdfBase64'] as String?,
     );
 
 Map<String, dynamic> _$$InvoiceImplToJson(_$InvoiceImpl instance) =>
@@ -171,4 +172,5 @@ Map<String, dynamic> _$$InvoiceImplToJson(_$InvoiceImpl instance) =>
       'status': instance.status,
       'ratesSnapshot': instance.ratesSnapshot,
       'deletedAt': instance.deletedAt?.toIso8601String(),
+      'pdfBase64': instance.pdfBase64,
     };

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -27,6 +28,7 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _prompted = false;
+  DateTime? _lastBackPressTime;
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
@@ -78,6 +80,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   void _onTap(BuildContext context, int index) async {
+    HapticFeedback.lightImpact();
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing') && index != 1) {
       final billingState = ref.read(billingProvider);
@@ -130,6 +133,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   void _onBottomBarTap(BuildContext context, int index) async {
+    HapticFeedback.lightImpact();
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing') && index != 1) {
       final billingState = ref.read(billingProvider);
@@ -248,8 +252,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isWide = MediaQuery.of(context).size.width >= 850;
 
+    final Widget mainContent;
     if (isWide) {
-      return Scaffold(
+      mainContent = Scaffold(
         backgroundColor: AppColors.background,
         body: Row(
           children: [
@@ -260,54 +265,114 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       );
-    }
+    } else {
+      mainContent = Scaffold(
+        backgroundColor: AppColors.background,
+        body: widget.child,
+        extendBody: true,
+        bottomNavigationBar: Builder(
+          builder: (context) {
+            final user = ref.watch(authProvider).user;
+            final isSuperAdmin = user?.isSuperAdmin ?? false;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            int selectedTab = -1;
+            if (bottomIndex == 0) selectedTab = 0;
+            if (bottomIndex == 4) selectedTab = 1;
+            final isBillingActive = bottomIndex == 1;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: widget.child,
-      extendBody: true,
-      bottomNavigationBar: Builder(
-        builder: (context) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          int selectedTab = -1;
-          if (bottomIndex == 0) selectedTab = 0;
-          if (bottomIndex == 4) selectedTab = 1;
-          final isBillingActive = bottomIndex == 1;
+            Widget buildCapsuleContent() {
+              if (isBillingActive) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _onBottomBarTap(context, 0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(
+                          Icons.home_outlined, 
+                          color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.5), 
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _onBottomBarTap(context, 4),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(
+                          Icons.menu_rounded, 
+                          color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.5), 
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
 
-          Widget buildCapsuleContent() {
-            if (isBillingActive) {
+              if (selectedTab == 0) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 42,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(21),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.home_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              isSuperAdmin ? 'Admin' : 'Dashboard',
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => _onBottomBarTap(context, 4),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Icon(
+                          isSuperAdmin ? Icons.analytics_rounded : Icons.menu_rounded, 
+                          color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4), 
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
               return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   GestureDetector(
                     onTap: () => _onBottomBarTap(context, 0),
                     child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Icon(
                         Icons.home_outlined, 
-                        color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.5), 
+                        color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4), 
                         size: 22,
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => _onBottomBarTap(context, 4),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Icon(
-                        Icons.menu_rounded, 
-                        color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black.withValues(alpha: 0.5), 
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            if (selectedTab == 0) {
-              return Row(
-                children: [
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Container(
                       height: 42,
@@ -323,10 +388,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.home_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+                          Icon(isSuperAdmin ? Icons.analytics_rounded : Icons.menu_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Dashboard',
+                            isSuperAdmin ? 'Admin Reports' : 'More',
                             style: TextStyle(
                               color: isDark ? Colors.white : Colors.black,
                               fontWeight: FontWeight.bold,
@@ -337,204 +402,178 @@ class _AppShellState extends ConsumerState<AppShell> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => _onBottomBarTap(context, 4),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Icon(
-                        Icons.menu_rounded, 
-                        color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4), 
-                        size: 22,
-                      ),
-                    ),
-                  ),
                 ],
               );
             }
 
-            return Row(
-              children: [
-                GestureDetector(
-                  onTap: () => _onBottomBarTap(context, 0),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Icon(
-                      Icons.home_outlined, 
-                      color: isDark ? Colors.white.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.4), 
-                      size: 22,
-                    ),
+            Widget buildAddButton() {
+              final buttonWidget = Container(
+                height: 58,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: AppColors.primaryGradient,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Container(
-                    height: 42,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(21),
-                      border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
-                        width: 1,
-                      ),
+                  borderRadius: BorderRadius.circular(29),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryGlow,
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.menu_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'More',
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                  ],
+                ),
+                child: Center(
+                  child: isBillingActive
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_rounded, color: Colors.white, size: 24),
+                            SizedBox(width: 8),
+                            Text(
+                              'Invoice',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                ),
+              );
+
+              final buttonGesture = GestureDetector(
+                onTap: () => _onBottomBarTap(context, 1),
+                child: buttonWidget,
+              );
+
+              return isBillingActive
+                  ? Expanded(child: buttonGesture)
+                  : SizedBox(width: 75, child: buttonGesture);
+            }
+
+            return Container(
+              margin: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: bottomPadding + 12,
+              ),
+              child: Row(
+                children: [
+                  if (isBillingActive)
+                    SizedBox(
+                      width: 110,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        clipBehavior: Clip.antiAlias,
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            height: 58,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.white.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: isDark 
+                                    ? Colors.white.withValues(alpha: 0.12) 
+                                    : Colors.white.withValues(alpha: 0.45),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: buildCapsuleContent(),
                           ),
                         ),
-                      ],
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        clipBehavior: Clip.antiAlias,
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            height: 58,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.white.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: isDark 
+                                    ? Colors.white.withValues(alpha: 0.12) 
+                                    : Colors.white.withValues(alpha: 0.45),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: buildCapsuleContent(),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            );
-          }
-
-          Widget buildAddButton() {
-            final buttonWidget = Container(
-              height: 58,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: AppColors.primaryGradient,
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(29),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryGlow,
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
+                  if (!isSuperAdmin) ...[
+                    const SizedBox(width: 12),
+                    buildAddButton(),
+                  ],
                 ],
               ),
-              child: Center(
-                child: isBillingActive
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_rounded, color: Colors.white, size: 24),
-                          SizedBox(width: 8),
-                          Text(
-                            'Invoice',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      )
-                    : const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-              ),
             );
+          },
+        ),
+      );
+    }
 
-            final buttonGesture = GestureDetector(
-              onTap: () => _onBottomBarTap(context, 1),
-              child: buttonWidget,
-            );
-
-            return isBillingActive
-                ? Expanded(child: buttonGesture)
-                : SizedBox(width: 75, child: buttonGesture);
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final location = GoRouterState.of(context).uri.toString();
+          if (location != '/' && location != '/login' && location != '/pending') {
+            context.go('/');
+          } else {
+            final now = DateTime.now();
+            if (_lastBackPressTime == null ||
+                now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+              _lastBackPressTime = now;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Press back again to exit PayPulse'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              await SystemNavigator.pop();
+            }
           }
-
-          return Container(
-            margin: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: bottomPadding + 12,
-            ),
-            child: Row(
-              children: [
-                if (isBillingActive)
-                  SizedBox(
-                    width: 110,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      clipBehavior: Clip.antiAlias,
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(
-                          height: 58,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.white.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: isDark 
-                                  ? Colors.white.withValues(alpha: 0.12) 
-                                  : Colors.white.withValues(alpha: 0.45),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: buildCapsuleContent(),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      clipBehavior: Clip.antiAlias,
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(
-                          height: 58,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.white.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: isDark 
-                                  ? Colors.white.withValues(alpha: 0.12) 
-                                  : Colors.white.withValues(alpha: 0.45),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: buildCapsuleContent(),
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: 12),
-                buildAddButton(),
-              ],
-            ),
-          );
         },
+        child: mainContent,
       ),
     );
   }
@@ -582,63 +621,79 @@ class _AppShellState extends ConsumerState<AppShell> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
               children: [
-                _buildSidebarHeader('MENU'),
-                if (user?.hasAccess('dashboard', rolePermissions) ?? true)
+                if (user?.isSuperAdmin ?? false) ...[
+                  _buildSidebarHeader('ADMIN PANEL'),
                   _buildSidebarItem(
-                    icon: Icons.dashboard_rounded,
-                    label: 'Dashboard',
+                    icon: Icons.admin_panel_settings_rounded,
+                    label: 'Admin Dashboard',
                     isActive: currentIndex == 0,
                     onTap: () => _onTap(context, 0),
                   ),
-                if (user?.hasAccess('invoices', rolePermissions) ?? true)
-                  _buildSidebarItem(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Invoice',
-                    isActive: currentIndex == 1,
-                    onTap: () => _onTap(context, 1),
-                  ),
-                if (user?.hasAccess('rates', rolePermissions) ?? true)
-                  _buildSidebarItem(
-                    icon: Icons.trending_up_rounded,
-                    label: 'Rate Management',
-                    isActive: currentIndex == 7,
-                    onTap: () => _onTap(context, 7),
-                  ),
-                if (user?.hasAccess('customers', rolePermissions) ?? true)
-                  _buildSidebarItem(
-                    icon: Icons.people_alt_rounded,
-                    label: 'Customers',
-                    isActive: currentIndex == 2,
-                    onTap: () => _onTap(context, 2),
-                  ),
-                if (user?.hasAccess('inventory', rolePermissions) ?? true)
-                  _buildSidebarItem(
-                    icon: Icons.diamond_rounded,
-                    label: 'Products',
-                    isActive: currentIndex == 3,
-                    onTap: () => _onTap(context, 3),
-                  ),
-                if (canManage && (user?.hasAccess('reports', rolePermissions) ?? true))
                   _buildSidebarItem(
                     icon: Icons.analytics_rounded,
-                    label: 'Reports',
+                    label: 'Admin Reports',
                     isActive: currentIndex == 4,
                     onTap: () => _onTap(context, 4),
                   ),
-                if (user?.hasAccess('records', rolePermissions) ?? true)
-                  _buildSidebarItem(
-                    icon: Icons.book_rounded,
-                    label: 'Record Book',
-                    isActive: currentIndex == 5,
-                    onTap: () => _onTap(context, 5),
-                  ),
-                if (user?.hasAccess('staff', rolePermissions) ?? true)
-                  _buildSidebarItem(
-                    icon: Icons.folder_shared_rounded,
-                    label: 'Managements',
-                    isActive: currentIndex == 6,
-                    onTap: () => _onTap(context, 6),
-                  ),
+                ] else ...[
+                  _buildSidebarHeader('MENU'),
+                  if (user?.hasAccess('dashboard', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.dashboard_rounded,
+                      label: 'Dashboard',
+                      isActive: currentIndex == 0,
+                      onTap: () => _onTap(context, 0),
+                    ),
+                  if (user?.hasAccess('invoices', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.receipt_long_rounded,
+                      label: 'Invoice',
+                      isActive: currentIndex == 1,
+                      onTap: () => _onTap(context, 1),
+                    ),
+                  if (user?.hasAccess('rates', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.trending_up_rounded,
+                      label: 'Rate Management',
+                      isActive: currentIndex == 7,
+                      onTap: () => _onTap(context, 7),
+                    ),
+                  if (user?.hasAccess('customers', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.people_alt_rounded,
+                      label: 'Customers',
+                      isActive: currentIndex == 2,
+                      onTap: () => _onTap(context, 2),
+                    ),
+                  if (user?.hasAccess('inventory', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.diamond_rounded,
+                      label: 'Products',
+                      isActive: currentIndex == 3,
+                      onTap: () => _onTap(context, 3),
+                    ),
+                  if (canManage && (user?.hasAccess('reports', rolePermissions) ?? true))
+                    _buildSidebarItem(
+                      icon: Icons.analytics_rounded,
+                      label: 'Reports',
+                      isActive: currentIndex == 4,
+                      onTap: () => _onTap(context, 4),
+                    ),
+                  if (user?.hasAccess('records', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.book_rounded,
+                      label: 'Record Book',
+                      isActive: currentIndex == 5,
+                      onTap: () => _onTap(context, 5),
+                    ),
+                  if (user?.hasAccess('staff', rolePermissions) ?? true)
+                    _buildSidebarItem(
+                      icon: Icons.folder_shared_rounded,
+                      label: 'Managements',
+                      isActive: currentIndex == 6,
+                      onTap: () => _onTap(context, 6),
+                    ),
+                ],
                 const SizedBox(height: 16),
                 _buildSidebarHeader('GENERAL'),
                 _buildSidebarItem(

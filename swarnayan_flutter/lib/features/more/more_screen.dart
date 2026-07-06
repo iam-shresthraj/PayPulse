@@ -278,7 +278,7 @@ class MoreScreen extends ConsumerWidget {
                   label: 'Rate Management',
                   subtitle: 'Daily gold & silver rates',
                   index: 2,
-                  onTap: () => context.go('/more/rates'),
+                  onTap: () => context.push('/more/rates'),
                 ),
               if (showRecords)
                 _buildMenuItem(
@@ -286,7 +286,7 @@ class MoreScreen extends ConsumerWidget {
                   label: 'Record Book',
                   subtitle: 'Income & expense tracking',
                   index: 3,
-                  onTap: () => context.go('/more/records'),
+                  onTap: () => context.push('/more/records'),
                 ),
               if (showCoupons)
                 _buildMenuItem(

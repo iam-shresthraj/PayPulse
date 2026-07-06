@@ -302,7 +302,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 72),
         child: FloatingActionButton(
-          onPressed: () => context.go('/products/add'),
+          onPressed: () => context.push('/products/add'),
           backgroundColor: AppColors.primary,
           child: const Icon(Icons.add_rounded, color: Colors.black),
         ).animate().scale(

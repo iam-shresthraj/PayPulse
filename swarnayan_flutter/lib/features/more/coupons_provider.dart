@@ -129,6 +129,30 @@ class CouponsNotifier extends StateNotifier<AsyncValue<List<Coupon>>> {
     }
   }
 
+  Future<void> activateCoupon(String id) async {
+    try {
+      final data = await _client
+          .from('coupons')
+          .update({'is_active': true})
+          .eq('id', id)
+          .select()
+          .single();
+      final updatedCoupon = _mapCoupon(data);
+      final list = state.value ?? [];
+      final index = list.indexWhere((c) => c.id == id);
+      if (index != -1) {
+        final updated = List<Coupon>.from(list);
+        updated[index] = updatedCoupon;
+        state = AsyncValue.data(updated);
+      } else {
+        await loadCoupons();
+      }
+    } catch (e) {
+      await loadCoupons();
+      rethrow;
+    }
+  }
+
   Future<void> deleteCoupon(String id) async {
     try {
       await _client.from('coupons').delete().eq('id', id);

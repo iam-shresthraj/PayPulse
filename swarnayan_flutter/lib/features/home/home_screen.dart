@@ -163,7 +163,7 @@ class HomeScreen extends ConsumerWidget {
                   SectionHeader(
                     title: 'Recent Invoices',
                     actionText: 'View All',
-                    onAction: () => context.go('/more/records'),
+                    onAction: () => context.push('/more/records'),
                   ),
                   const SizedBox(height: 12),
                   customersState.when(
@@ -462,7 +462,7 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ),
                           TextButton(
-                            onPressed: () => context.go('/more/records'),
+                            onPressed: () => context.push('/more/records'),
                             child: Text(
                               'View All',
                               style: TextStyle(
@@ -793,7 +793,7 @@ class HomeScreen extends ConsumerWidget {
     if (isMobile) {
       final actions = [
         _QuickAction(Icons.add_circle_outline_rounded, 'New Sale', 0, () => context.go('/billing')),
-        _QuickAction(Icons.payments_outlined, 'Record Book', 1, () => context.go('/more/records')),
+        _QuickAction(Icons.payments_outlined, 'Record Book', 1, () => context.push('/more/records')),
       ];
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),

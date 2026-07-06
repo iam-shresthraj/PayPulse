@@ -46,7 +46,7 @@ class GlassDialogWrapper extends StatelessWidget {
         child: Container(
           width: 500,
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxHeight: (MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom) * 0.85,
           ),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer.withValues(alpha: 0.9),
@@ -959,52 +959,72 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Text(
-                                  item.code,
-                                  style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                      item.code,
+                                      style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: status == 'ACTIVE'
+                                            ? AppColors.success.withValues(alpha: 0.12)
+                                            : status == 'UPCOMING'
+                                                ? AppColors.warning.withValues(alpha: 0.12)
+                                                : AppColors.error.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        status,
+                                        style: AppTextStyles.labelSm.copyWith(
+                                          color: status == 'ACTIVE'
+                                              ? AppColors.success
+                                              : status == 'UPCOMING'
+                                                  ? AppColors.warning
+                                                  : AppColors.error,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: status == 'ACTIVE'
-                                          ? AppColors.success.withValues(alpha: 0.12)
-                                          : status == 'UPCOMING'
-                                              ? AppColors.warning.withValues(alpha: 0.12)
-                                              : AppColors.error.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      status,
-                                      style: AppTextStyles.labelSm.copyWith(
-                                        color: status == 'ACTIVE'
-                                            ? AppColors.success
-                                            : status == 'UPCOMING'
-                                                ? AppColors.warning
-                                                : AppColors.error,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
                                   IconButton(
                                     icon:  Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
                                     onPressed: () => setState(() => _beginEdit(item)),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
                                   ),
+                                  const SizedBox(width: 8),
                                   IconButton(
-                                    icon:  Icon(Icons.toggle_off_rounded, size: 18, color: AppColors.error),
-                                    onPressed: item.isActive
-                                        ? () async {
-                                            await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
-                                          }
-                                        : null,
+                                    icon:  Icon(
+                                      item.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                                      size: 22,
+                                      color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
+                                    ),
+                                    onPressed: () async {
+                                      if (item.isActive) {
+                                        await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
+                                      } else {
+                                        await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
+                                      }
+                                    },
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
                                   ),
+                                  const SizedBox(width: 8),
                                   IconButton(
                                     icon:  Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
                                     onPressed: () async {

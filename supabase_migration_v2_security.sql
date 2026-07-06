@@ -428,6 +428,21 @@ CREATE POLICY invoices_delete ON public.invoices
     AND public.current_role_pp() IS NOT NULL
   );
 
+-- DELETE other business tables: manager/owner (coupons, customers, products, daily_rates, record_book)
+DO $$
+DECLARE
+  t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['coupons','customers','products','daily_rates','record_book'] LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name = t) THEN
+      EXECUTE format('DROP POLICY IF EXISTS %I_delete ON public.%I', t, t);
+      EXECUTE format(
+        'CREATE POLICY %I_delete ON public.%I FOR DELETE USING (company_id = public.current_company_id() AND public.current_role_pp() IN (''MANAGER'', ''OWNER''))',
+        t, t);
+    END IF;
+  END LOOP;
+END $$;
+
 -- ----------------------------------------------------------------------------
 -- 10. Avatars storage bucket (profile photos)
 -- ----------------------------------------------------------------------------

@@ -20,7 +20,7 @@ import '../coupons_provider.dart';
 import '../staff_provider.dart';
 import '../role_permissions_provider.dart';
 import '../../auth/auth_provider.dart';
-import 'package:image_picker/image_picker.dart';
+
 
 // -----------------------------------------------------------
 // Base Glass Dialog Wrapper
@@ -177,40 +177,12 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
     }
   }
 
-  Future<void> _pickAndUploadPhoto() async {
-    final picker = ImagePicker();
-    try {
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 400,
-        maxHeight: 400,
-      );
-      if (image != null) {
-        setState(() => _isLoading = true);
-        final bytes = await image.readAsBytes();
-        final ext = image.name.split('.').last;
-        await ref.read(authProvider.notifier).uploadProfilePhoto(bytes, ext);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Profile photo uploaded successfully!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to upload photo: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  /// Returns initials from a full name (e.g. "Raj Shrestha" → "RS")
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 
   @override
@@ -238,53 +210,38 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Stack(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      border: Border.all(color: AppColors.primary, width: 2),
-                    ),
-                    child: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
-                        ? Image.network(
-                            user.avatarUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.person,
-                              color: AppColors.primary,
-                              size: 40,
-                            ),
-                          )
-                        : Icon(
-                            Icons.person,
-                            color: AppColors.primary,
-                            size: 40,
-                          ),
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withValues(alpha: 0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _pickAndUploadPhoto,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                      ),
+                  border: Border.all(color: AppColors.primary, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    _getInitials(user?.name ?? _nameController.text),
+                    style: AppTextStyles.titleLg.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
                     ),
                   ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 24),

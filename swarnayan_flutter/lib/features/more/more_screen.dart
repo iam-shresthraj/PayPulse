@@ -35,6 +35,13 @@ class MoreScreen extends ConsumerWidget {
     }
   }
 
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final topPadding = MediaQuery.of(context).padding.top;
@@ -139,28 +146,35 @@ class MoreScreen extends ConsumerWidget {
                     Container(
                       width: 56,
                       height: 56,
-                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.primary.withValues(alpha: 0.15),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withValues(alpha: 0.7),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         border: Border.all(color: AppColors.primary, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: (user?.avatarUrl != null &&
-                              user!.avatarUrl!.isNotEmpty)
-                          ? Image.network(
-                              user.avatarUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(
-                                Icons.person,
-                                color: AppColors.primary,
-                                size: 28,
-                              ),
-                            )
-                          : Icon(
-                              Icons.person,
-                              color: AppColors.primary,
-                              size: 28,
-                            ),
+                      child: Center(
+                        child: Text(
+                          _getInitials(user?.name),
+                          style: AppTextStyles.titleSm.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(

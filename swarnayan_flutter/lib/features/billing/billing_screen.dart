@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/theme/app_spacing.dart';
@@ -2703,42 +2703,14 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
     super.dispose();
   }
 
-  Future<void> _scanBarcodeWithCamera() async {
-    final picker = ImagePicker();
-    try {
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 800,
-      );
-      if (image != null && mounted) {
-        final products = ref.read(productsProvider).value ?? [];
-        if (products.isNotEmpty) {
-          final matchedProduct = products.firstWhere(
-            (p) => p.huidNumber != null && p.huidNumber!.isNotEmpty,
-            orElse: () => products.first,
-          );
-          final demoHuid = matchedProduct.huidNumber ?? matchedProduct.id ?? 'HUID000001';
-          _controller.text = demoHuid;
-          _onSubmitted(demoHuid);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No products in inventory to match.'),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Camera error: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
+  void _scanBarcodeWithCamera() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Use a physical barcode scanner or type the HUID / Product ID manually.'),
+        backgroundColor: AppColors.surfaceContainer,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _onSubmitted(String value) {

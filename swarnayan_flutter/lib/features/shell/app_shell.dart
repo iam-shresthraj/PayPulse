@@ -12,6 +12,7 @@ import '../more/widgets/more_dialogs.dart';
 import '../auth/auth_provider.dart';
 import '../more/role_permissions_provider.dart';
 import '../billing/billing_provider.dart';
+import '../../core/router/app_router.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -50,7 +51,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Future<bool?> _showDraftDialog(BuildContext context) async {
     return showDialog<bool?>(
-      context: context,
+      context: shellNavigatorKey.currentContext ?? context,
+      useRootNavigator: false,
       barrierDismissible: true,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceContainer,
@@ -171,7 +173,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         _prompted = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showDialog(
-            context: context,
+            context: shellNavigatorKey.currentContext ?? context,
+            useRootNavigator: false,
             barrierDismissible: true,
             builder: (context) => const DailyRatePromptDialog(isDismissible: false),
           );
@@ -182,7 +185,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Future<void> _handleLogout(BuildContext context) async {
     final confirm = await showDialog<bool>(
-      context: context,
+      context: shellNavigatorKey.currentContext ?? context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: AlertDialog(
@@ -652,7 +656,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                     isActive: false,
                     onTap: () {
                       showDialog(
-                        context: context,
+                        context: shellNavigatorKey.currentContext ?? context,
+                        useRootNavigator: false,
                         builder: (context) => const CompanySettingsDialog(),
                       );
                     },
@@ -663,7 +668,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                   isActive: false,
                   onTap: () {
                     showDialog(
-                      context: context,
+                      context: shellNavigatorKey.currentContext ?? context,
+                      useRootNavigator: false,
                       builder: (context) => const HelpSupportDialog(),
                     );
                   },

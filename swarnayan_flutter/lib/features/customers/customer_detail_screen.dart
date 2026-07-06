@@ -367,6 +367,7 @@ class CustomerDetailScreen extends ConsumerWidget {
   void _confirmDelete(BuildContext context, WidgetRef ref, String name) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
@@ -457,6 +458,7 @@ class CustomerDetailScreen extends ConsumerWidget {
 
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Dialog(

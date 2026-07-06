@@ -280,9 +280,9 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(width: 20),
               Expanded(
                 child: _buildMetricCard(
-                  title: "Monthly Revenue",
-                  value: _formatCompact(monthRevenue),
-                  subtext: "$invoicesCount Invoices this month",
+                  title: "Monthly Bills",
+                  value: "$invoicesCount",
+                  subtext: "Bills created this month",
                   icon: Icons.receipt_long_rounded,
                   color: Colors.blue,
                 ),
@@ -1093,6 +1093,7 @@ class HomeScreen extends ConsumerWidget {
 
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Dialog(
@@ -1334,6 +1335,7 @@ class HomeScreen extends ConsumerWidget {
                   onPressed: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const PendingApprovalsDialog(),
                     ).then((_) => ref.invalidate(pendingMembersProvider));
                   },

@@ -363,6 +363,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   void _confirmDeleteProduct(BuildContext context, WidgetRef ref, Product product) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
@@ -402,6 +403,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   void _showProductDetails(BuildContext context, Product p) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Dialog(

@@ -63,6 +63,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
   void _cancelInvoice(Invoice invoice) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
@@ -102,6 +103,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
   void _confirmDeleteInvoice(Invoice invoice) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
@@ -179,6 +181,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
   void _confirmRestoreInvoice(Invoice invoice) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
@@ -422,10 +425,19 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                           'TOTAL: ₹${Formatters.formatCurrency(inv.finalPayable).replaceFirst('₹', '')}',
                                           style: AppTextStyles.amountSm.copyWith(color: AppColors.primary),
                                         ),
-                                        IconButton(
-                                          icon:  Icon(Icons.restore_rounded, color: AppColors.success, size: 22),
-                                          onPressed: () => _confirmRestoreInvoice(inv),
-                                          tooltip: 'Restore',
+                                        Row(
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(Icons.restore_rounded, color: AppColors.success, size: 22),
+                                              onPressed: () => _confirmRestoreInvoice(inv),
+                                              tooltip: 'Restore Invoice',
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.delete_forever_rounded, color: AppColors.error, size: 22),
+                                              onPressed: () => _confirmDeleteInvoice(inv),
+                                              tooltip: 'Delete Permanently',
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -633,7 +645,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
   }
 
   Widget _buildFilterChips() {
-    final filters = ['ALL', 'PAID', 'PARTIAL'];
+    final filters = ['ALL', 'PAID', 'PARTIAL', 'DELETED'];
     return SizedBox(
       height: 32,
       child: ListView.separated(

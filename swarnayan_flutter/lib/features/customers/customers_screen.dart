@@ -6,7 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/search_bar_widget.dart';
-import '../../core/widgets/app_header.dart';
+
 import 'customers_provider.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
@@ -40,7 +40,38 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           SizedBox(height: topPadding + 8),
 
           // ── Top Bar ──
-          const AppHeader(showBackButton: true),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      context.go('/more');
+                    }
+                  },
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.glassBorder),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.onSurface,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text('Customers', style: AppTextStyles.titleMd),
+              ],
+            ),
+          ).animate().fadeIn(duration: 300.ms),
 
           const SizedBox(height: 16),
 

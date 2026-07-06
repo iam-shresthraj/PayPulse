@@ -138,6 +138,7 @@ class MoreScreen extends ConsumerWidget {
                 onTap: () {
                   showDialog(
                     context: context,
+                    useRootNavigator: false,
                     builder: (_) => const EditProfileDialog(),
                   );
                 },
@@ -252,6 +253,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const CompanySettingsDialog(),
                     );
                   },
@@ -281,6 +283,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const CouponsManagementDialog(),
                     );
                   },
@@ -301,6 +304,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const StaffManagementDialog(),
                     );
                   },
@@ -317,6 +321,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const PendingApprovalsDialog(),
                     ).then((_) => ref.invalidate(pendingMembersProvider));
                   },
@@ -332,6 +337,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const CompanyCodesDialog(),
                     );
                   },
@@ -345,6 +351,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog(
                       context: context,
+                      useRootNavigator: false,
                       builder: (_) => const ChangePasswordDialog(),
                     );
                   },
@@ -374,6 +381,7 @@ class MoreScreen extends ConsumerWidget {
               onTap: () {
                 showDialog(
                   context: context,
+                  useRootNavigator: false,
                   builder: (_) => const AboutDetailsDialog(),
                 );
               },
@@ -387,6 +395,7 @@ class MoreScreen extends ConsumerWidget {
                 onTap: () {
                   showDialog(
                     context: context,
+                    useRootNavigator: false,
                     builder: (_) => const HelpSupportDialog(),
                   );
                 },
@@ -405,6 +414,7 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () async {
                     final confirm = await showDialog<bool>(
                       context: context,
+                      useRootNavigator: false,
                       builder: (context) => BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                         child: AlertDialog(

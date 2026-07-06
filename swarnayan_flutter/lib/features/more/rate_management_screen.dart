@@ -140,6 +140,7 @@ class RateManagementScreen extends ConsumerWidget {
                                       onPressed: () {
                                         showDialog(
                                           context: context,
+                                          useRootNavigator: false,
                                           barrierDismissible: true,
                                           builder: (context) => DailyRatePromptDialog(
                                             isDismissible: true,
@@ -211,6 +212,7 @@ class RateManagementScreen extends ConsumerWidget {
   void _showAddRateDialog(BuildContext context) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       barrierDismissible: true,
       builder: (context) => const DailyRatePromptDialog(isDismissible: true),
     );

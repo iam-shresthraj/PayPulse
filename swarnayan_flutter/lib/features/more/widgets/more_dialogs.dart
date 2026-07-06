@@ -994,6 +994,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                                     onPressed: () async {
                                       final confirm = await showDialog<bool>(
                                         context: context,
+                                        useRootNavigator: false,
                                         builder: (ctx) => AlertDialog(
                                           backgroundColor: AppColors.surfaceContainer,
                                           title: Text('Delete Coupon', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
@@ -1128,6 +1129,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
   Future<void> _confirmDelete(model_user.User user) async {
     final confirm = await showDialog<bool>(
       context: context,
+      useRootNavigator: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceContainer,
         title: Text('Delete Account', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
@@ -1279,6 +1281,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                       onPressed: () {
                         showDialog(
                           context: context,
+                          useRootNavigator: false,
                           builder: (ctx) => const RoleAccessDialog(),
                         );
                       },
@@ -1289,6 +1292,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                       onPressed: () {
                         showDialog(
                           context: context,
+                          useRootNavigator: false,
                           builder: (ctx) => const BulkAccessDialog(),
                         );
                       },

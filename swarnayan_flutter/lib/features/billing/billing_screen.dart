@@ -440,6 +440,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       if (mounted) {
         showDialog(
           context: context,
+          useRootNavigator: false,
           builder: (context) => BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: AlertDialog(
@@ -557,6 +558,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   Future<bool?> _showDraftDialog(BuildContext context) async {
     return showDialog<bool?>(
       context: context,
+      useRootNavigator: false,
       barrierDismissible: true,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceContainer,
@@ -1958,6 +1960,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
@@ -2628,6 +2631,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   void _showBarcodeDialog(BuildContext context) {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) => const BarcodeScannerDialog(),
     );
   }

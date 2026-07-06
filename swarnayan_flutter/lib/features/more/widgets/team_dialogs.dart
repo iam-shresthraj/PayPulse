@@ -135,7 +135,7 @@ class _CodeTile extends StatelessWidget {
                     code,
                     style: AppTextStyles.amountMd.copyWith(
                       color: AppColors.primary,
-                      letterSpacing: 3,
+                      letterSpacing: 1.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -146,6 +146,8 @@ class _CodeTile extends StatelessWidget {
               icon: Icon(Icons.copy_rounded,
                   color: AppColors.onSurfaceMuted, size: 18),
               tooltip: 'Copy code',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: code));
                 if (context.mounted) {

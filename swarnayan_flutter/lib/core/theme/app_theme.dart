@@ -134,10 +134,14 @@ class AppTheme {
 
       // ── Snackbar ──
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceContainer,
+        backgroundColor: const Color(0xFF1A1A1A),
+        contentTextStyle: AppTextStyles.bodyMd.copyWith(color: Colors.white),
+        actionTextColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
         ),
       ),
 
@@ -286,10 +290,14 @@ class AppTheme {
 
       // ── Snackbar ──
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surfaceContainer,
+        backgroundColor: const Color(0xFF1A1A1A),
+        contentTextStyle: AppTextStyles.bodyMd.copyWith(color: Colors.white),
+        actionTextColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
         ),
       ),
 

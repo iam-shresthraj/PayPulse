@@ -73,6 +73,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   String? _couponError;
   bool _receivedFullAmount = false;
   bool _registerNewCustomer = false;
+  bool _isPopping = false;
 
   // Inline Product Search / Details
   final _qtyController = TextEditingController(text: '1');
@@ -544,6 +545,42 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     );
   }
 
+  bool _hasUnsavedChanges(BillingState billing) {
+    if (billing.products.isNotEmpty) return true;
+    if (billing.customerPhone != null && billing.customerPhone!.isNotEmpty) return true;
+    if (billing.customerName != null && billing.customerName!.isNotEmpty) return true;
+    if (billing.editingInvoice != null) return true;
+    if (billing.cashAmount > 0 || billing.upiAmount > 0 || billing.cardAmount > 0) return true;
+    return false;
+  }
+
+  Future<bool?> _showDraftDialog(BuildContext context) async {
+    return showDialog<bool?>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        title: const Text('Unsaved Invoice Draft'),
+        content: const Text('Do you want to save this invoice as a draft or discard it?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null), // Cancel
+            child: Text('Cancel', style: TextStyle(color: AppColors.onSurfaceDim)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // Discard
+            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.pop(context, true), // Save Draft
+            child: const Text('Save Draft', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final billing = ref.watch(billingProvider);
@@ -645,50 +682,67 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: topPadding + 8),
+    return PopScope(
+      canPop: _isPopping || !_hasUnsavedChanges(billing),
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final res = await _showDraftDialog(context);
+        if (res == null) return;
+        if (res == false) {
+          ref.read(billingProvider.notifier).reset();
+        }
+        setState(() {
+          _isPopping = true;
+        });
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: topPadding + 8),
 
-            // ── Top Bar ──
-            const AppHeader(),
+              // ── Top Bar ──
+              const AppHeader(),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // ── Invoice Meta (Date & Next Invoice Number) ──
-            _buildInvoiceMetaSection(billing),
+              // ── Invoice Meta (Date & Next Invoice Number) ──
+              _buildInvoiceMetaSection(billing),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Customer Details ──
-            _buildCustomerSection(billing),
+              // ── Customer Details ──
+              _buildCustomerSection(billing),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Products Section ──
-            _buildProductsSection(billing, context),
+              // ── Products Section ──
+              _buildProductsSection(billing, context),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Coupons & Offers Section ──
-            _buildCouponSection(billing),
+              // ── Coupons & Offers Section ──
+              _buildCouponSection(billing),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Payment Split ──
-            _buildPaymentSplit(billing),
+              // ── Payment Split ──
+              _buildPaymentSplit(billing),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Grand Total & Generate Invoice (Inline Bottom) ──
-            _buildBottomBar(billing),
+              // ── Grand Total & Generate Invoice (Inline Bottom) ──
+              _buildBottomBar(billing),
 
-            const SizedBox(height: 48),
-          ],
+              const SizedBox(height: 110),
+            ],
+          ),
         ),
       ),
     );
@@ -999,7 +1053,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ],
           ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Collapsed list of already added products
           if (billing.products.isNotEmpty) ...[
@@ -1043,9 +1097,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
               );
             }),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             const Divider(height: 1),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
           ],
 
           // Inline Active Form for Product Selection / Creation
@@ -1427,7 +1481,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ),
         const SizedBox(height: 12),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: GlassInput(
@@ -1437,57 +1490,65 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '0.000',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
-                onFieldSubmitted: (_) => _makingChargeFocusNode.requestFocus(),
+                onFieldSubmitted: (_) => _discountFocusNode.requestFocus(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: GlassInput(
-                      focusNode: _makingChargeFocusNode,
-                      controller: _makingChargeController,
-                      label: 'Making Charge',
-                      hint: '0',
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      onFieldSubmitted: (_) => _unitFocusNode.requestFocus(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 85,
-                    child: GlassDropdown<String>(
-                      focusNode: _unitFocusNode,
-                      label: 'Unit',
-                      value: _makingChargeType == 'PER_GRAM'
-                          ? '/gm'
-                          : (_makingChargeType == 'FIXED' ? '/pcs' : '%'),
-                      items: const [
-                        DropdownMenuItem(value: '/gm', child: Text('/gm')),
-                        DropdownMenuItem(value: '/pcs', child: Text('/pcs')),
-                        DropdownMenuItem(value: '%', child: Text('%')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() {
-                            if (val == '/gm') {
-                              _makingChargeType = 'PER_GRAM';
-                            } else if (val == '/pcs') {
-                              _makingChargeType = 'FIXED';
-                            } else {
-                              _makingChargeType = 'PERCENTAGE';
-                            }
-                          });
-                          _stoneWeightFocusNode.requestFocus();
-                        }
-                      },
-                    ),
-                  ),
+              child: GlassInput(
+                focusNode: _discountFocusNode,
+                controller: _discountController,
+                label: 'Product Discount (₹)',
+                hint: '0',
+                keyboardType: TextInputType.number,
+                onFieldSubmitted: (_) => _makingChargeFocusNode.requestFocus(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: GlassInput(
+                focusNode: _makingChargeFocusNode,
+                controller: _makingChargeController,
+                label: 'Making Charge',
+                hint: '0',
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                onFieldSubmitted: (_) => _stoneWeightFocusNode.requestFocus(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 90,
+              child: GlassDropdown<String>(
+                focusNode: _unitFocusNode,
+                label: 'Unit',
+                value: _makingChargeType == 'PER_GRAM'
+                    ? '/gm'
+                    : (_makingChargeType == 'FIXED' ? '/pcs' : '%'),
+                items: const [
+                  DropdownMenuItem(value: '/gm', child: Text('/gm')),
+                  DropdownMenuItem(value: '/pcs', child: Text('/pcs')),
+                  DropdownMenuItem(value: '%', child: Text('%')),
                 ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      if (val == '/gm') {
+                        _makingChargeType = 'PER_GRAM';
+                      } else if (val == '/pcs') {
+                        _makingChargeType = 'FIXED';
+                      } else {
+                        _makingChargeType = 'PERCENTAGE';
+                      }
+                    });
+                    _stoneWeightFocusNode.requestFocus();
+                  }
+                },
               ),
             ),
           ],
@@ -1515,19 +1576,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '0',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
-                onFieldSubmitted: (_) => _discountFocusNode.requestFocus(),
+                onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        GlassInput(
-          focusNode: _discountFocusNode,
-          controller: _discountController,
-          label: 'Product Discount (₹)',
-          hint: '0',
-          keyboardType: TextInputType.number,
-          onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
         ),
       ],
     );
@@ -1746,8 +1798,11 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 10,
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           GestureDetector(
             onTap: isEditing ? null : () => _showEditInvoiceNumberDialog(context, billing),
@@ -1761,7 +1816,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
+                  Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     invoiceTag,
@@ -1772,7 +1827,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   ),
                   if (!isEditing) ...[
                     const SizedBox(width: 6),
-                     Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
+                    Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
                   ],
                 ],
               ),
@@ -1791,7 +1846,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     builder: (context, child) {
                       return Theme(
                         data: ThemeData.dark().copyWith(
-                          colorScheme:  ColorScheme.dark(
+                          colorScheme: ColorScheme.dark(
                             primary: AppColors.primary,
                             onPrimary: AppColors.onBackground,
                             surface: AppColors.background,
@@ -1817,7 +1872,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                       Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
+                      Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 16),
                       const SizedBox(width: 8),
                       Text(
                         DateFormat('dd MMM yyyy').format(billing.invoiceDate),
@@ -1832,7 +1887,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                icon:  Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(8),
+                icon: Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
                 tooltip: 'Refresh Billing Session',
                 onPressed: () {
                   ref.read(billingProvider.notifier).reset();
@@ -2814,12 +2871,15 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = screenWidth > 500 ? 400.0 : (screenWidth * 0.92);
+
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
       child: Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          width: 450,
+          width: dialogWidth,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer.withValues(alpha: 0.85),
@@ -2850,6 +2910,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                     _onSubmitted(val.trim());
                   }
                 },
+                onFieldSubmitted: (val) => _onSubmitted(val.trim()),
                 suffixIcon: IconButton(
                   icon: Icon(Icons.camera_alt_rounded, color: AppColors.primary),
                   onPressed: _scanBarcodeWithCamera,

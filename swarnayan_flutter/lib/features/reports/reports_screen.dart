@@ -335,46 +335,60 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildSearchFieldDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedSearchField,
-      dropdownColor: AppColors.surface,
-      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
-      decoration: InputDecoration(
-        labelText: 'Search Column',
-        labelStyle: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'SEARCH COLUMN',
+          style: AppTextStyles.labelMd.copyWith(
+            color: AppColors.onSurfaceMuted,
+            letterSpacing: 1.0,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: _selectedSearchField,
+          dropdownColor: AppColors.surface,
+          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            filled: true,
+            fillColor: AppColors.surfaceContainer.withValues(alpha: 0.4),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+              borderSide: BorderSide(color: AppColors.glassBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+              borderSide: BorderSide(color: AppColors.glassBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'ALL', child: Text('All Columns')),
+            DropdownMenuItem(value: 'invoiceNumber', child: Text('Invoice No')),
+            DropdownMenuItem(value: 'customerName', child: Text('Customer')),
+            DropdownMenuItem(value: 'productDetails', child: Text('Products')),
+            DropdownMenuItem(value: 'grossAmount', child: Text('Gross Amount')),
+            DropdownMenuItem(value: 'couponDiscount', child: Text('Discount')),
+            DropdownMenuItem(value: 'taxableAmount', child: Text('Taxable Amount')),
+            DropdownMenuItem(value: 'totalTax', child: Text('Total Tax')),
+            DropdownMenuItem(value: 'netAmount', child: Text('Net Amount')),
+          ],
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedSearchField = val;
+              });
+              _performSearch();
+            }
+          },
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-      ),
-      items: const [
-        DropdownMenuItem(value: 'ALL', child: Text('All Columns')),
-        DropdownMenuItem(value: 'invoiceNumber', child: Text('Invoice No')),
-        DropdownMenuItem(value: 'customerName', child: Text('Customer')),
-        DropdownMenuItem(value: 'productDetails', child: Text('Products')),
-        DropdownMenuItem(value: 'grossAmount', child: Text('Gross Amount')),
-        DropdownMenuItem(value: 'couponDiscount', child: Text('Discount')),
-        DropdownMenuItem(value: 'taxableAmount', child: Text('Taxable Amount')),
-        DropdownMenuItem(value: 'totalTax', child: Text('Total Tax')),
-        DropdownMenuItem(value: 'netAmount', child: Text('Net Amount')),
       ],
-      onChanged: (val) {
-        if (val != null) {
-          setState(() {
-            _selectedSearchField = val;
-          });
-          _performSearch();
-        }
-      },
     );
   }
 
@@ -418,298 +432,344 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text('Reports & Export', style: AppTextStyles.titleMd),
+                Text('Reports', style: AppTextStyles.titleMd),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
-          // Unified Filters Card
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: GlassCard(
-              animationIndex: 0,
-              padding: const EdgeInsets.all(20),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isMobile = constraints.maxWidth < 900;
-
-                      final startWidget = InkWell(
-                        onTap: () => _selectDate(context, true),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceDim,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Start Date',
-                                style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                DateFormat('dd MMM yyyy').format(_startDate),
-                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-
-                      final endWidget = InkWell(
-                        onTap: () => _selectDate(context, false),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceDim,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'End Date',
-                                style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                DateFormat('dd MMM yyyy').format(_endDate),
-                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurface, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-
-                      final dropdownWidget = _buildSearchFieldDropdown();
-
-                      final inputWidget = GlassInput(
-                        controller: _searchQueryController,
-                        label: 'Search Query',
-                        hint: 'Type search text...',
-                        prefixIcon: Icon(Icons.search, color: AppColors.primary, size: 20),
-                        onChanged: (_) => _performSearch(),
-                      );
-
-                      if (isMobile) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(child: startWidget),
-                                const SizedBox(width: 12),
-                                Expanded(child: endWidget),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            dropdownWidget,
-                            const SizedBox(height: 12),
-                            inputWidget,
-                          ],
-                        );
-                      }
-
-                      return Row(
+                  // Unified Filters Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: GlassCard(
+                      animationIndex: 0,
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(flex: 2, child: startWidget),
-                          const SizedBox(width: 12),
-                          Expanded(flex: 2, child: endWidget),
-                          const SizedBox(width: 12),
-                          Expanded(flex: 2, child: dropdownWidget),
-                          const SizedBox(width: 12),
-                          Expanded(flex: 3, child: inputWidget),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: Row(
-                            children: ['ALL', 'PAID', 'PARTIAL', 'CANCELLED'].map((filter) {
-                              final isSelected = _selectedStatusFilter == filter;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ChoiceChip(
-                                  label: Text(
-                                    filter,
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isMobile = constraints.maxWidth < 900;
+
+                              final startWidget = Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'START DATE',
                                     style: AppTextStyles.labelMd.copyWith(
-                                      color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
-                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.onSurfaceMuted,
+                                      letterSpacing: 1.0,
                                     ),
                                   ),
-                                  selected: isSelected,
-                                  selectedColor: AppColors.primary,
-                                  backgroundColor: AppColors.surfaceContainer,
-                                  onSelected: (selected) {
-                                    if (selected) {
-                                      setState(() {
-                                        _selectedStatusFilter = filter;
-                                      });
-                                      _performSearch();
-                                    }
-                                  },
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: _performSearch,
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: Text(
-                          'Update',
-                          style: AppTextStyles.titleSm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Action Toolbar (Export Buttons)
-          if (_hasSearched && _filteredInvoices.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () => _exportToExcel(companyName),
-                    icon: const Icon(Icons.grid_on_rounded, size: 18),
-                    label: const Text('Export XLSX'),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () => _exportToPdf(companyName),
-                    icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                    label: const Text('Export PDF'),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 12),
-
-          // Results Grid / Table
-          Expanded(
-            child: _hasSearched
-                ? (_filteredInvoices.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No invoices found in selected date range.',
-                          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                        ),
-                      )
-                    : Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(AppColors.surfaceContainerHigh),
-                                dataRowColor: WidgetStateProperty.all(AppColors.surface),
-                                dividerThickness: 0.5,
-                                columns: [
-                                  DataColumn(label: Text('Invoice No', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Date', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Customer', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Products', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Making Chg (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Gross (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Discount (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Taxable (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('CGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('SGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Total Tax (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Net Amt (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                ],
-                                rows: _filteredInvoices.map((inv) {
-                                  final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(Text(inv.invoiceNumber ?? inv.id ?? '', style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(DateFormat('dd/MM/yyyy').format(inv.invoiceDate), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(_getCustomerName(inv), style: AppTextStyles.bodyMd)),
-                                      DataCell(
-                                        Container(
-                                          constraints: const BoxConstraints(maxWidth: 300),
-                                          child: Text(
-                                            _getProductDetails(inv),
-                                            style: AppTextStyles.bodyMd,
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 2,
-                                          ),
-                                        ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: () => _selectDate(context, true),
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                                        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                        border: Border.all(color: AppColors.glassBorder),
                                       ),
-                                      DataCell(Text(makingChargeSum.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.grossAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.couponDiscount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.taxableAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.cgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.sgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.totalTax.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                      DataCell(Text(inv.netAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold))),
-                                    ],
-                                  );
-                                }).toList(),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            DateFormat('dd MMM yyyy').format(_startDate),
+                                            style: AppTextStyles.bodyLg.copyWith(
+                                              color: AppColors.onSurface,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Icon(
+                                            Icons.calendar_today_rounded,
+                                            color: AppColors.primary,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+
+                              final endWidget = Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'END DATE',
+                                    style: AppTextStyles.labelMd.copyWith(
+                                      color: AppColors.onSurfaceMuted,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    onTap: () => _selectDate(context, false),
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                                        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                        border: Border.all(color: AppColors.glassBorder),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            DateFormat('dd MMM yyyy').format(_endDate),
+                                            style: AppTextStyles.bodyLg.copyWith(
+                                              color: AppColors.onSurface,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Icon(
+                                            Icons.calendar_today_rounded,
+                                            color: AppColors.primary,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+
+                              final dropdownWidget = _buildSearchFieldDropdown();
+
+                              final inputWidget = GlassInput(
+                                controller: _searchQueryController,
+                                label: 'Search Query',
+                                hint: 'Type search text...',
+                                prefixIcon: Icon(Icons.search, color: AppColors.primary, size: 20),
+                                onChanged: (_) => _performSearch(),
+                              );
+
+                              if (isMobile) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(child: startWidget),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: endWidget),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    dropdownWidget,
+                                    const SizedBox(height: 12),
+                                    inputWidget,
+                                  ],
+                                );
+                              }
+
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 2, child: startWidget),
+                                  const SizedBox(width: 12),
+                                  Expanded(flex: 2, child: endWidget),
+                                  const SizedBox(width: 12),
+                                  Expanded(flex: 2, child: dropdownWidget),
+                                  const SizedBox(width: 12),
+                                  Expanded(flex: 3, child: inputWidget),
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Row(
+                                    children: ['ALL', 'PAID', 'PARTIAL', 'CANCELLED'].map((filter) {
+                                      final isSelected = _selectedStatusFilter == filter;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 8),
+                                        child: ChoiceChip(
+                                          label: Text(
+                                            filter,
+                                            style: AppTextStyles.labelMd.copyWith(
+                                              color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          selected: isSelected,
+                                          selectedColor: AppColors.primary,
+                                          backgroundColor: AppColors.surfaceContainer,
+                                          onSelected: (selected) {
+                                            if (selected) {
+                                              setState(() {
+                                                _selectedStatusFilter = filter;
+                                              });
+                                              _performSearch();
+                                            }
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                               ),
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: _performSearch,
+                                icon: const Icon(Icons.search_rounded),
+                                label: Text(
+                                  'Search',
+                                  style: AppTextStyles.titleSm.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Action Toolbar (Export Buttons)
+                  if (_hasSearched && _filteredInvoices.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(color: AppColors.primary),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => _exportToExcel(companyName),
+                            icon: const Icon(Icons.grid_on_rounded, size: 18),
+                            label: const Text('Export XLSX'),
+                          ),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => _exportToPdf(companyName),
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                            label: const Text('Export PDF'),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 12),
+
+                  // Results Grid / Table
+                  _hasSearched
+                      ? (_filteredInvoices.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Center(
+                                child: Text(
+                                  'No invoices found in selected date range.',
+                                  style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                ),
+                              ),
+                            )
+                          : Card(
+                              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    headingRowColor: WidgetStateProperty.all(AppColors.surfaceContainerHigh),
+                                    dataRowColor: WidgetStateProperty.all(AppColors.surface),
+                                    dividerThickness: 0.5,
+                                    columns: [
+                                      DataColumn(label: Text('Invoice No', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Date', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Customer', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Products', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Making Chg (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Gross (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Discount (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Taxable (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('CGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('SGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Total Tax (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Net Amt (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                    ],
+                                    rows: _filteredInvoices.map((inv) {
+                                      final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
+                                      return DataRow(
+                                        cells: [
+                                          DataCell(Text(inv.invoiceNumber ?? inv.id ?? '', style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(DateFormat('dd/MM/yyyy').format(inv.invoiceDate), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(_getCustomerName(inv), style: AppTextStyles.bodyMd)),
+                                          DataCell(
+                                            Container(
+                                              constraints: const BoxConstraints(maxWidth: 300),
+                                              child: Text(
+                                                _getProductDetails(inv),
+                                                style: AppTextStyles.bodyMd,
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 2,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(Text(makingChargeSum.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.grossAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.couponDiscount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.taxableAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.cgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.sgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.totalTax.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                          DataCell(Text(inv.netAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold))),
+                                        ],
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ))
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Text(
+                              'Select a date range and click Search to display reports.',
+                              style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
                             ),
                           ),
                         ),
-                      ))
-                : Center(
-                    child: Text(
-                      'Select a date range and click Search to display reports.',
-                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                    ),
-                  ),
+                  const SizedBox(height: 100), // Space to clear bottom navigation bar
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );

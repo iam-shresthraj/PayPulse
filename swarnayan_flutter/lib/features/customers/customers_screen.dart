@@ -40,7 +40,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           SizedBox(height: topPadding + 8),
 
           // ── Top Bar ──
-          const AppHeader(),
+          const AppHeader(showBackButton: true),
 
           const SizedBox(height: 16),
 
@@ -155,16 +155,46 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(customer.name, style: AppTextStyles.cardTitle),
-                                  const SizedBox(height: 2),
                                   Text(
-                                    customer.mobile,
-                                    style: AppTextStyles.cardSubtitle,
+                                    customer.name,
+                                    style: AppTextStyles.cardTitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Wrap(
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    spacing: 6,
+                                    runSpacing: 2,
+                                    children: [
+                                      Text(
+                                        customer.mobile,
+                                        style: AppTextStyles.cardSubtitle,
+                                      ),
+                                      Container(
+                                        width: 3,
+                                        height: 3,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.onSurfaceMuted.withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      Text(
+                                        _getMemberDurationTag(customer.createdAt),
+                                        style: AppTextStyles.labelSm.copyWith(
+                                          color: _getDurationColor(customer.createdAt),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 12),
                             Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
@@ -173,19 +203,10 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                                     color: AppColors.primary,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                 Text(
-                                   _getMemberDurationTag(customer.createdAt),
-                                   style: AppTextStyles.labelSm.copyWith(
-                                     color: _getDurationColor(customer.createdAt),
-                                     fontSize: 9,
-                                     fontWeight: FontWeight.bold,
-                                   ),
-                                 ),
                               ],
                             ),
                             const SizedBox(width: 8),
-                             Icon(
+                            Icon(
                               Icons.chevron_right_rounded,
                               color: AppColors.onSurfaceDim,
                               size: 20,

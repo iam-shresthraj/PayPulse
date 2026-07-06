@@ -2,12 +2,17 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/utils/formatters.dart';
+import '../../models/customer.dart';
+import '../../models/invoice.dart';
+import '../billing/billing_provider.dart';
+import '../auth/auth_provider.dart';
 import 'customers_provider.dart';
 import '../billing/invoices_provider.dart';
 import '../more/company_provider.dart';
@@ -282,6 +287,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                           ),
                           child: GlassCard(
                             animationIndex: 4 + i,
+                            onTap: () => _showInvoiceDetails(context, ref, inv, customer),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             child: Row(
                               children: [
@@ -444,6 +450,191 @@ class CustomerDetailScreen extends ConsumerWidget {
     }
     return amount.toStringAsFixed(0);
   }
+
+  void _showInvoiceDetails(BuildContext context, WidgetRef ref, Invoice inv, Customer customer) {
+    final user = ref.read(authProvider).user;
+    final canManage = user?.canManage ?? false;
+
+    showDialog(
+      context: context,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            inv.invoiceNumber ?? 'Invoice Details',
+                            style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            DateFormat('dd MMM yyyy, hh:mm a').format(inv.invoiceDate),
+                            style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceDim),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                Divider(color: AppColors.border, height: 24),
+                Text(
+                  'CUSTOMER DETAILS',
+                  style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, letterSpacing: 1.0),
+                ),
+                const SizedBox(height: 6),
+                Text(customer.name, style: AppTextStyles.cardTitle),
+                Text(customer.mobile, style: AppTextStyles.cardSubtitle),
+                const SizedBox(height: 16),
+                Text(
+                  'ITEMS',
+                  style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, letterSpacing: 1.0),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: inv.items.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.productName, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.w500)),
+                                    Text(
+                                      '${item.category} • ${item.purity} • ${item.grossWeight}g @ ₹${item.rate.toStringAsFixed(0)}',
+                                      style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '₹${item.itemTotal.toStringAsFixed(0)}',
+                                style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+                Divider(color: AppColors.border, height: 24),
+                _summaryRow('Subtotal', '₹${inv.grossAmount.toStringAsFixed(0)}'),
+                if (inv.couponDiscount > 0)
+                  _summaryRow('Discount', '-₹${inv.couponDiscount.toStringAsFixed(0)}', isDiscount: true),
+                _summaryRow('Taxable Value', '₹${inv.taxableAmount.toStringAsFixed(0)}'),
+                _summaryRow('CGST (1.5%)', '₹${inv.cgst.toStringAsFixed(0)}'),
+                _summaryRow('SGST (1.5%)', '₹${inv.sgst.toStringAsFixed(0)}'),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Grand Total', style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      '₹${inv.finalPayable.toStringAsFixed(0)}',
+                      style: AppTextStyles.titleMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    if (canManage) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.edit_rounded, size: 18),
+                          label: const Text('EDIT BILL'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
+                            Navigator.pop(context);
+                            context.go('/billing');
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.print_rounded, size: 18),
+                        label: const Text('PRINT'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          final company = ref.read(companyProvider).value;
+                          PdfHelper.generateAndPrintInvoice(
+                            invoice: inv,
+                            customer: customer,
+                            company: company,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value, {bool isDiscount = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+          Text(
+            value,
+            style: AppTextStyles.bodySm.copyWith(
+              color: isDiscount ? AppColors.error : AppColors.onBackground,
+              fontWeight: isDiscount ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StatTile extends StatelessWidget {
@@ -458,18 +649,20 @@ class _StatTile extends StatelessWidget {
     return Expanded(
       child: GlassCard(
         animationIndex: animIndex,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         child: Column(
           children: [
-            Text(
-              value,
-              style: AppTextStyles.amountMd.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: AppTextStyles.amountMd.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+                maxLines: 1,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(

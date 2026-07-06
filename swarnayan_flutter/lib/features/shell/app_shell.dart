@@ -11,6 +11,7 @@ import '../more/daily_rate_prompt_dialog.dart';
 import '../more/widgets/more_dialogs.dart';
 import '../auth/auth_provider.dart';
 import '../more/role_permissions_provider.dart';
+import '../billing/billing_provider.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -38,7 +39,57 @@ class _AppShellState extends ConsumerState<AppShell> {
     return 0;
   }
 
-  void _onTap(BuildContext context, int index) {
+  bool _hasUnsavedChanges(BillingState billing) {
+    if (billing.products.isNotEmpty) return true;
+    if (billing.customerPhone != null && billing.customerPhone!.isNotEmpty) return true;
+    if (billing.customerName != null && billing.customerName!.isNotEmpty) return true;
+    if (billing.editingInvoice != null) return true;
+    if (billing.cashAmount > 0 || billing.upiAmount > 0 || billing.cardAmount > 0) return true;
+    return false;
+  }
+
+  Future<bool?> _showDraftDialog(BuildContext context) async {
+    return showDialog<bool?>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        title: const Text('Unsaved Invoice Draft'),
+        content: const Text('Do you want to save this invoice as a draft or discard it?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null), // Cancel
+            child: Text('Cancel', style: TextStyle(color: AppColors.onSurfaceDim)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // Discard
+            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.pop(context, true), // Save Draft
+            child: const Text('Save Draft', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onTap(BuildContext context, int index) async {
+    final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/billing') && index != 1) {
+      final billingState = ref.read(billingProvider);
+      if (_hasUnsavedChanges(billingState)) {
+        final result = await _showDraftDialog(context);
+        if (result == null) return;
+        if (result == false) {
+          ref.read(billingProvider.notifier).reset();
+        }
+      }
+    }
+
+    if (!context.mounted) return;
+
     switch (index) {
       case 0:
         context.go('/');
@@ -76,7 +127,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     return 0;
   }
 
-  void _onBottomBarTap(BuildContext context, int index) {
+  void _onBottomBarTap(BuildContext context, int index) async {
+    final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/billing') && index != 1) {
+      final billingState = ref.read(billingProvider);
+      if (_hasUnsavedChanges(billingState)) {
+        final result = await _showDraftDialog(context);
+        if (result == null) return;
+        if (result == false) {
+          ref.read(billingProvider.notifier).reset();
+        }
+      }
+    }
+
+    if (!context.mounted) return;
+
     switch (index) {
       case 0:
         context.go('/');

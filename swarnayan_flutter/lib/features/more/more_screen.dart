@@ -136,51 +136,31 @@ class MoreScreen extends ConsumerWidget {
                 },
                 child: Row(
                   children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            border: Border.all(color: AppColors.primary, width: 2),
-                          ),
-                          child: (user?.avatarUrl != null &&
-                                  user!.avatarUrl!.isNotEmpty)
-                              ? Image.network(
-                                  user.avatarUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Icon(
-                                    Icons.person,
-                                    color: AppColors.primary,
-                                    size: 28,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.person,
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
+                    Container(
+                      width: 56,
+                      height: 56,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        border: Border.all(color: AppColors.primary, width: 2),
+                      ),
+                      child: (user?.avatarUrl != null &&
+                              user!.avatarUrl!.isNotEmpty)
+                          ? Image.network(
+                              user.avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(
+                                Icons.person,
+                                color: AppColors.primary,
+                                size: 28,
+                              ),
+                            )
+                          : Icon(
+                              Icons.person,
                               color: AppColors.primary,
-                              shape: BoxShape.circle,
+                              size: 28,
                             ),
-                            child: const Icon(
-                              Icons.camera_alt_rounded,
-                              color: Colors.white,
-                              size: 10,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -193,29 +173,19 @@ class MoreScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_formatRole(user?.role ?? 'STAFF')} • $companyName',
+                            _formatRole(user?.role ?? 'STAFF'),
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            companyName,
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.onSurfaceMuted,
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'PRO',
-                        style: AppTextStyles.labelSm.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
                       ),
                     ),
                   ],

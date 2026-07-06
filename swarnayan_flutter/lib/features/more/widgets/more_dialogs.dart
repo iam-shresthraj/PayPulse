@@ -29,22 +29,28 @@ class GlassDialogWrapper extends StatelessWidget {
   final String title;
   final Widget child;
   final List<Widget>? actions;
+  final bool? showCloseIcon;
 
   const GlassDialogWrapper({
     super.key,
     required this.title,
     required this.child,
     this.actions,
+    this.showCloseIcon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = screenWidth > 680 ? 600.0 : (screenWidth * 0.94);
+    final shouldShowClose = showCloseIcon ?? (actions == null);
+
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
       child: Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          width: 500,
+          width: dialogWidth,
           constraints: BoxConstraints(
             maxHeight: (MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom) * 0.85,
           ),
@@ -69,14 +75,15 @@ class GlassDialogWrapper extends StatelessWidget {
                         title,
                         style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
                       ),
-                      IconButton(
-                        icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+                      if (shouldShowClose)
+                        IconButton(
+                          icon: Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                     ],
                   ),
                 ),
-                 Divider(color: AppColors.border, height: 1),
+                Divider(color: AppColors.border, height: 1),
                 // Scrollable Content
                 Flexible(
                   child: SingleChildScrollView(
@@ -86,7 +93,7 @@ class GlassDialogWrapper extends StatelessWidget {
                   ),
                 ),
                 if (actions != null) ...[
-                   Divider(color: AppColors.border, height: 1),
+                  Divider(color: AppColors.border, height: 1),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     child: Row(

@@ -172,7 +172,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showDialog(
             context: context,
-            barrierDismissible: false, // Force them to set rates on startup
+            barrierDismissible: true,
             builder: (context) => const DailyRatePromptDialog(isDismissible: false),
           );
         });

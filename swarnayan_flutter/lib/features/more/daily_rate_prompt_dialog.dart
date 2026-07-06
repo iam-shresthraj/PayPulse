@@ -187,11 +187,10 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                         'Daily Metal Rates',
                         style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
                       ),
-                      if (widget.isDismissible)
-                        IconButton(
-                          icon:  Icon(Icons.close_rounded, color: AppColors.onSurfaceDim),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
+                      IconButton(
+                        icon: Icon(Icons.close_rounded, color: AppColors.onSurfaceDim),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -270,6 +269,18 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                     icon: Icons.check_rounded,
                     isLoading: _isSaving,
                     onPressed: _submit,
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        widget.isDismissible ? 'Cancel' : 'Skip for now',
+                        style: AppTextStyles.bodyMd.copyWith(
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

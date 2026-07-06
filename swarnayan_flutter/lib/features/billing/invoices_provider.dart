@@ -138,7 +138,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
     }
   }
 
-  Future<void> addInvoice(Invoice invoice) async {
+  Future<Invoice> addInvoice(Invoice invoice) async {
     try {
       final String invoiceNum;
       if (invoice.invoiceNumber != null &&
@@ -195,6 +195,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
 
       final list = state.value ?? [];
       state = AsyncValue.data([savedInvoice, ...list]);
+      return savedInvoice;
     } catch (e) {
       await loadInvoices();
       rethrow;

@@ -409,8 +409,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       if (isEditing) {
         savedInvoice = await ref.read(invoicesProvider.notifier).updateInvoice(invoiceId, invoice);
       } else {
-        await ref.read(invoicesProvider.notifier).addInvoice(invoice);
-        savedInvoice = invoice;
+        savedInvoice = await ref.read(invoicesProvider.notifier).addInvoice(invoice);
       }
 
       // Reset form
@@ -548,6 +547,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   @override
   Widget build(BuildContext context) {
     final billing = ref.watch(billingProvider);
+    final companyState = ref.watch(companyProvider);
     final topPadding = MediaQuery.of(context).padding.top;
 
     // Listen to billing updates to keep text fields in sync

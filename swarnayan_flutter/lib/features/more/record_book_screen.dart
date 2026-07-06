@@ -39,18 +39,25 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
   void _printInvoice(Invoice invoice) {
     final customers = ref.read(customersProvider).value ?? [];
     final customerIndex = customers.indexWhere((c) => c.id == invoice.customerId);
+    final Customer customer;
     if (customerIndex != -1) {
-      final company = ref.read(companyProvider).value;
-      PdfHelper.generateAndPrintInvoice(
-        invoice: invoice,
-        customer: customers[customerIndex],
-        company: company,
-      );
+      customer = customers[customerIndex];
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Customer info not found for printing.')),
+      customer = Customer(
+        id: '',
+        name: invoice.tempCustomerName ?? 'Customer',
+        mobile: invoice.tempCustomerMobile ?? '',
+        address: invoice.tempCustomerAddress ?? '',
+        totalPurchaseAmount: 0.0,
+        totalInvoices: 0,
       );
     }
+    final company = ref.read(companyProvider).value;
+    PdfHelper.generateAndPrintInvoice(
+      invoice: invoice,
+      customer: customer,
+      company: company,
+    );
   }
 
   void _cancelInvoice(Invoice invoice) {

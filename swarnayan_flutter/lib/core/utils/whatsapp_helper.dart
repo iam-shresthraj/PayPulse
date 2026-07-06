@@ -20,9 +20,9 @@ class WhatsAppHelper {
       phone = '91$phone';
     }
 
-    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PAYPULSE';
-    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';
-    final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Offering Gold, Silver & Diamond Collections.';
+    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
+    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';
+    final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     
     String cAddressLine = '';
     if (company != null) {
@@ -59,10 +59,14 @@ Phone: $cPhone
     final encodedMessage = Uri.encodeComponent(message);
     final url = Uri.parse('https://api.whatsapp.com/send?phone=$phone&text=$encodedMessage');
     
-    if (await canLaunchUrl(url)) {
+    try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Could not launch WhatsApp link';
+    } catch (_) {
+      try {
+        await launchUrl(url, mode: LaunchMode.platformDefault);
+      } catch (e) {
+        throw 'Could not launch WhatsApp: $e';
+      }
     }
   }
 }

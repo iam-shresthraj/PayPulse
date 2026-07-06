@@ -86,11 +86,11 @@ class PdfHelper {
     final fontItalic = await PdfGoogleFonts.poppinsItalic();
 
     // Dynamically retrieve company details with Patna settings as fallback
-    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PAYPULSE';
+    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cNotes = company?.notes.isNotEmpty == true ? company!.notes : 'Offering Gold, Silver & Diamond Collections';
-    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';
-    final String cEmail = company?.email.isNotEmpty == true ? company!.email : 'support@paypulse.com';
+    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';
+    final String cEmail = company?.email.isNotEmpty == true ? company!.email : 'nayanjewellers@gmail.com';
     
     String cAddressLine = '';
     if (company != null) {

@@ -1,0 +1,53 @@
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../models/company_settings.dart';
+import '../../models/customer.dart';
+import '../../models/invoice.dart';
+
+class WhatsAppHelper {
+  static Future<void> shareInvoice({
+    required Invoice invoice,
+    required Customer customer,
+    CompanySettings? company,
+  }) async {
+    final message = _buildWhatsAppMessage(invoice, customer);
+    final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
+
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not open WhatsApp sharing link.';
+    }
+  }
+
+  static String _buildWhatsAppMessage(Invoice invoice, Customer customer) {
+    final String dateStr = DateFormat('dd/MM/yyyy').format(invoice.invoiceDate);
+    final String invoiceNumber = invoice.invoiceNumber ?? 'N/A';
+    final String totalAmount = invoice.finalPayable.toStringAsFixed(2);
+    final String balanceDue = invoice.balanceDue.toStringAsFixed(2);
+    final String firstName = _toPascalCase(customer.name);
+
+    return '''Hello $firstName,
+
+Thank you for shopping at *Swarnayan Jewellers*! 🙏
+
+Here is your invoice summary:
+- *Invoice No:* $invoiceNumber
+- *Date:* $dateStr
+- *Grand Total:* ₹$totalAmount
+- *Balance Due:* ₹$balanceDue
+
+*Trusted Hallmark Jewellery Destination*
+
+*Please share your feedback* : https://bit.ly/swarnayan-jewellers-feedback
+
+Gulab Bagh Market, Thakurbari Road, Patna, Bihar - 800004
+Phone: 7903111274''';
+  }
+
+  static String _toPascalCase(String name) {
+    if (name.isEmpty) return 'Customer';
+    final firstWord = name.trim().split(' ').first;
+    if (firstWord.isEmpty) return 'Customer';
+    return firstWord[0].toUpperCase() + firstWord.substring(1).toLowerCase();
+  }
+}

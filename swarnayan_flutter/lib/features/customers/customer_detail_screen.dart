@@ -525,7 +525,10 @@ class CustomerDetailScreen extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(item.productName, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.w500)),
+                                    Text(
+                                      '${item.huidNumber != null && item.huidNumber!.isNotEmpty ? "HUID: ${item.huidNumber} - " : ""}${item.productName}',
+                                      style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.w500),
+                                    ),
                                     Text(
                                       '${item.category} • ${item.purity} • ${item.grossWeight}g @ ₹${item.rate.toStringAsFixed(0)}',
                                       style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),

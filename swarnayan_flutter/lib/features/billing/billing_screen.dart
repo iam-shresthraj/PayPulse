@@ -1087,7 +1087,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${product.name}${product.huidNumber != null && product.huidNumber!.isNotEmpty ? " (HUID: ${product.huidNumber})" : ""}',
+                              '${product.huidNumber != null && product.huidNumber!.isNotEmpty ? "HUID: ${product.huidNumber} - " : ""}${product.name}',
                               style: AppTextStyles.cardTitle,
                             ),
                             const SizedBox(height: 2),

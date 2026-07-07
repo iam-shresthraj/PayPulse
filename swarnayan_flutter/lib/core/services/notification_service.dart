@@ -32,6 +32,11 @@ class NotificationService {
     _initialized = true;
   }
 
+  bool _isMissingNotificationsTableError(Object error) {
+    final text = error.toString();
+    return text.contains('PGRST205') || text.contains("Could not find the table 'public.notifications'");
+  }
+
   Future<void> requestPermissions() async {
     if (kIsWeb) return;
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -48,26 +53,34 @@ class NotificationService {
   void subscribe(app_models.User user, Function(Map<String, dynamic>) onMatchedNotification) {
     unsubscribe();
 
-    _channel = _client.channel('public:notifications')
-      .onPostgresChanges(
-        event: PostgresChangeEvent.insert,
-        schema: 'public',
-        table: 'notifications',
-        callback: (payload) {
-          final record = payload.newRecord;
-          final targetRole = record['target_role']?.toString().toUpperCase() ?? 'ALL';
-          final targetCompanyId = record['target_company_id']?.toString();
+    try {
+      _channel = _client.channel('public:notifications')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          callback: (payload) {
+            final record = payload.newRecord;
+            final targetRole = record['target_role']?.toString().toUpperCase() ?? 'ALL';
+            final targetCompanyId = record['target_company_id']?.toString();
 
-          final matchesCompany = targetCompanyId == null || targetCompanyId.isEmpty || targetCompanyId == user.companyId;
-          final matchesRole = targetRole == 'ALL' || targetRole == user.role.toUpperCase();
+            final matchesCompany = targetCompanyId == null || targetCompanyId.isEmpty || targetCompanyId == user.companyId;
+            final matchesRole = targetRole == 'ALL' || targetRole == user.role.toUpperCase();
 
-          if (matchesCompany && matchesRole) {
-            onMatchedNotification(record);
-            _showLocalNotification(record['title'] ?? 'Notification', record['body'] ?? '');
-          }
-        },
-      )
-      .subscribe();
+            if (matchesCompany && matchesRole) {
+              onMatchedNotification(record);
+              _showLocalNotification(record['title'] ?? 'Notification', record['body'] ?? '');
+            }
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      if (_isMissingNotificationsTableError(e)) {
+        _channel = null;
+        return;
+      }
+      rethrow;
+    }
   }
 
   void unsubscribe() {

@@ -4,6 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../more/widgets/more_dialogs.dart';
+import '../../auth/auth_provider.dart';
+import '../../more/role_permissions_provider.dart';
 import '../../../../models/user.dart';
 import '../admin_provider.dart';
 
@@ -64,6 +66,11 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
     if (mounted) {
       setState(() => _submitting = false);
       if (success) {
+        final currentUser = ref.read(authProvider).user;
+        if (currentUser != null && currentUser.id == widget.user.id) {
+          await ref.read(authProvider.notifier).refreshProfile();
+          await ref.read(rolePermissionsProvider.notifier).loadPermissions();
+        }
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -193,87 +200,110 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // User Details Card
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : 'U',
-                    style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.user.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold)),
-                      Text(widget.user.email, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                      Text(
-                        widget.companyName.isNotEmpty ? 'Company: ${widget.companyName}' : 'No Company (Super Admin)',
-                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontSize: 11),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 520;
+              return GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Flex(
+                  direction: isCompact ? Axis.vertical : Axis.horizontal,
+                  crossAxisAlignment: isCompact ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      child: Text(
+                        widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : 'U',
+                        style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: isCompact ? 0 : 16, height: isCompact ? 12 : 0),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.user.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text(widget.user.email, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.companyName.isNotEmpty ? 'Company: ${widget.companyName}' : 'No Company (Super Admin)',
+                            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
           const SizedBox(height: 24),
 
           // Role Selection
           Text('ROLE & STATUS', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  items: roles.map((role) {
-                    return DropdownMenuItem(
-                      value: role,
-                      child: Text(role, style: AppTextStyles.bodyMd),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedRole = val);
-                  },
-                  decoration: InputDecoration(
-                    labelText: 'User Role',
-                    labelStyle: TextStyle(color: AppColors.primary),
-                    filled: true,
-                    fillColor: AppColors.surfaceContainer,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 540;
+              final roleField = DropdownButtonFormField<String>(
+                value: _selectedRole,
+                items: roles.map((role) {
+                  return DropdownMenuItem(
+                    value: role,
+                    child: Text(role, style: AppTextStyles.bodyMd),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedRole = val);
+                },
+                decoration: InputDecoration(
+                  labelText: 'User Role',
+                  labelStyle: TextStyle(color: AppColors.primary),
+                  filled: true,
+                  fillColor: AppColors.surfaceContainer,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedStatus,
-                  items: statuses.map((status) {
-                    return DropdownMenuItem(
-                      value: status,
-                      child: Text(status, style: AppTextStyles.bodyMd),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedStatus = val);
-                  },
-                  decoration: InputDecoration(
-                    labelText: 'Approval Status',
-                    labelStyle: TextStyle(color: AppColors.primary),
-                    filled: true,
-                    fillColor: AppColors.surfaceContainer,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+              );
+
+              final statusField = DropdownButtonFormField<String>(
+                value: _selectedStatus,
+                items: statuses.map((status) {
+                  return DropdownMenuItem(
+                    value: status,
+                    child: Text(status, style: AppTextStyles.bodyMd),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedStatus = val);
+                },
+                decoration: InputDecoration(
+                  labelText: 'Approval Status',
+                  labelStyle: TextStyle(color: AppColors.primary),
+                  filled: true,
+                  fillColor: AppColors.surfaceContainer,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  children: [
+                    roleField,
+                    const SizedBox(height: 16),
+                    statusField,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: roleField),
+                  const SizedBox(width: 16),
+                  Expanded(child: statusField),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
 

@@ -50,6 +50,16 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
         ref.read(unreadNotificationsProvider.notifier).state = 0;
       }
     } catch (e) {
+      final missingTable = e.toString().contains('PGRST205') ||
+          e.toString().contains("Could not find the table 'public.notifications'");
+      if (missingTable && mounted) {
+        setState(() {
+          _notifications = [];
+          _error = null;
+          _loading = false;
+        });
+        return;
+      }
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -63,13 +73,19 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
   Widget build(BuildContext context) {
     return GlassDialogWrapper(
       title: 'Notifications',
-      child: SizedBox(
-        width: 480,
-        height: 400,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
+        child: SizedBox(
+          width: 480,
+          height: 400,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
             : _error != null
-                ? Center(child: Text('Error: $_error', style: TextStyle(color: AppColors.error)))
+                ? Center(
+                    child: Text(
+                      'Notifications are unavailable right now.',
+                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
                 : _notifications.isEmpty
                     ? Center(
                         child: Column(

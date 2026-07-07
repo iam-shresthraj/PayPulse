@@ -299,7 +299,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                                           child: Text(
                                             customer.email!,
                                             style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
-                                            overflow: TextOverflow.ellipsis,
+                                            softWrap: true,
                                           ),
                                         ),
                                       ],

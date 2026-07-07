@@ -134,7 +134,7 @@ class PdfHelper {
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cNotes = company?.notes.isNotEmpty == true ? company!.notes : 'Offering Gold, Silver & Diamond Collections';
     final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';
-    final String cEmail = company?.email.isNotEmpty == true ? company!.email : 'nayanjewellers@gmail.com';
+    final String cEmail = company?.email.isNotEmpty == true ? company!.email : 'swarnayanjewellers@gmail.com';
     
     String cAddressLine = '';
     if (company != null) {
@@ -376,7 +376,7 @@ class PdfHelper {
                     return pw.TableRow(
                       children: [
                         _tableDataCell(
-                          '${item.productName}${item.huidNumber != null && item.huidNumber!.isNotEmpty ? ' (HUID: ${item.huidNumber})' : ''}',
+                          '${item.huidNumber != null && item.huidNumber!.isNotEmpty ? 'HUID: ${item.huidNumber} - ' : ''}${item.productName}',
                           fontData,
                           align: pw.TextAlign.left,
                         ),

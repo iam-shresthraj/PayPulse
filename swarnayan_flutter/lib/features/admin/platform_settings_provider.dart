@@ -51,6 +51,14 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
     loadSettings();
   }
 
+  PlatformSettings _fallbackSettings() {
+    return PlatformSettings(
+      companyName: 'Swarnayan Jewellers',
+      contactEmail: 'contact.shresthraj@gmail.com',
+      workingTime: '10:00 AM - 08:00 PM (Mon - Sat)',
+    );
+  }
+
   Future<void> loadSettings() async {
     try {
       state = const AsyncValue.loading();
@@ -62,15 +70,11 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
       if (data != null) {
         state = AsyncValue.data(PlatformSettings.fromJson(data));
       } else {
-        // Fallback default
-        state = AsyncValue.data(PlatformSettings(
-          companyName: 'Swarnayan Jewellers',
-          contactEmail: 'contact.shresthraj@gmail.com',
-          workingTime: '10:00 AM - 08:00 PM (Mon - Sat)',
-        ));
+        state = AsyncValue.data(_fallbackSettings());
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (_) {
+      // Keep the app usable if the settings table is missing or temporarily unavailable.
+      state = AsyncValue.data(_fallbackSettings());
     }
   }
 

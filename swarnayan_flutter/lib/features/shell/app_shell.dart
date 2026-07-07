@@ -735,9 +735,10 @@ class _AppShellState extends ConsumerState<AppShell> {
             child: Builder(
               builder: (context) {
                 final platformSettingsAsync = ref.watch(platformSettingsProvider);
-                final logoUrl = isLight 
-                    ? platformSettingsAsync.value?.logoLightUrl 
-                    : platformSettingsAsync.value?.logoDarkUrl;
+                final platformSettings = platformSettingsAsync.asData?.value;
+                final logoUrl = isLight
+                    ? platformSettings?.logoLightUrl
+                    : platformSettings?.logoDarkUrl;
                 if (logoUrl != null && logoUrl.isNotEmpty) {
                   return CachedNetworkImage(
                     imageUrl: logoUrl,

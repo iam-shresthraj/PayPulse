@@ -215,3 +215,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.review_member(UUID, BOOLEAN) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 9. Add missing manual_discount and pdf_base64 columns to invoices
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS manual_discount DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS pdf_base64 TEXT;

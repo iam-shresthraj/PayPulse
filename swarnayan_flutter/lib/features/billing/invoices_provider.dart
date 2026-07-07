@@ -428,14 +428,14 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }
       }
 
-      // Check if it's the latest active invoice to rollback the counter
-      await _recalculateCurrentCounter();
-
       // Hard delete in DB
       await _client
           .from('invoices')
           .delete()
           .eq('id', id);
+
+      // Check if it's the latest active invoice to rollback the counter
+      await _recalculateCurrentCounter();
       
       // Reload products, customers, and company settings
       _ref.read(productsProvider.notifier).loadProducts();

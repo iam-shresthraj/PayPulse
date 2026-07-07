@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_header.dart';
@@ -647,9 +648,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       // 3. Coupon sync
       if (!_couponCodeFocusNode.hasFocus) {
         final stateCoupon = next.couponCode ?? '';
-        final prevCoupon = previous?.couponCode ?? '';
-        if (stateCoupon != prevCoupon) {
+        if (stateCoupon.isNotEmpty && _couponController.text != stateCoupon) {
           _couponController.text = stateCoupon;
+        } else if (stateCoupon.isEmpty && (prev?.couponCode?.isNotEmpty ?? false)) {
+          _couponController.text = '';
         }
       }
 

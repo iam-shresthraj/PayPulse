@@ -5,9 +5,13 @@ set -e
 
 echo "=== Starting Flutter Web Build ==="
 
-# 1. Download Flutter SDK if not already present
-if [ ! -d "flutter-sdk" ]; then
-  echo "Cloning Flutter SDK (stable branch)..."
+# Configure git to avoid dubioust ownership errors in CI/CD (Vercel)
+git config --global --add safe.directory "*" || true
+
+# 1. Download Flutter SDK if not already present or if incomplete
+if [ ! -d "flutter-sdk" ] || [ ! -f "flutter-sdk/bin/flutter" ]; then
+  echo "Cloning clean Flutter SDK (stable branch)..."
+  rm -rf flutter-sdk
   git clone https://github.com/flutter/flutter.git -b stable --depth 1 flutter-sdk
 else
   echo "Using existing Flutter SDK..."

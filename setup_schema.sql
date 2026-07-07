@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS public.invoices (
   rates_snapshot_gold_18k DOUBLE PRECISION DEFAULT 0,
   rates_snapshot_silver DOUBLE PRECISION DEFAULT 0,
   items JSONB NOT NULL DEFAULT '[]'::JSONB,
+  manual_discount DOUBLE PRECISION DEFAULT 0,
+  pdf_base64 TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

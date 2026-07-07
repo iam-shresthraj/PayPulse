@@ -18,6 +18,8 @@ import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../billing/billing_provider.dart';
 import 'company_provider.dart';
+import '../../core/widgets/skeleton_widgets.dart';
+
 class RecordBookScreen extends ConsumerStatefulWidget {
   const RecordBookScreen({super.key});
 
@@ -321,7 +323,8 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                 ? ref.watch(deletedInvoicesProvider).when(
                     data: (deletedList) {
                       if (customersState is! AsyncData) {
-                        return  Center(child: CircularProgressIndicator(color: AppColors.primary));
+                        return const SkeletonList(type: SkeletonType.invoice, count: 5, padding: EdgeInsets.zero);
+
                       }
                       final customers = customersState.value!;
 
@@ -449,7 +452,11 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                         ),
                       );
                     },
-                    loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () => const SkeletonList(
+                      type: SkeletonType.invoice,
+                      count: 6,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    ),
                     error: (err, _) => Center(child: Text('Error loading deleted: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
                   )
                 : invoicesState.when(
@@ -636,7 +643,11 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                         ),
                       );
                     },
-                    loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () => const SkeletonList(
+                      type: SkeletonType.invoice,
+                      count: 6,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    ),
                     error: (err, _) => Center(child: Text('Error loading register: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
                   ),
           ),

@@ -24,6 +24,8 @@ import '../auth/auth_provider.dart';
 import '../more/widgets/team_dialogs.dart';
 import '../more/team_provider.dart';
 import '../admin/admin_dashboard_view.dart';
+import '../../core/widgets/skeleton_widgets.dart';
+
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -119,7 +121,7 @@ class HomeScreen extends ConsumerWidget {
                 activeInvoices: activeInvoices,
                 customers: clients,
               ),
-              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () => _buildDashboardSkeleton(),
               error: (err, _) => Center(child: Text('Error: $err', style: TextStyle(color: AppColors.error))),
             );
           }
@@ -175,7 +177,12 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   customersState.when(
                     data: (clients) => _buildRecentInvoices(activeInvoices, clients, context, ref),
-                    loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    loading: () => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: List.generate(3, (_) => const InvoiceListItemSkeleton()),
+                      ),
+                    ),
                     error: (_, __) => const SizedBox(),
                   ),
                 ],
@@ -183,15 +190,48 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () =>  Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
+        loading: () => _buildDashboardSkeleton(),
         error: (err, _) => Center(
           child: Text(
             'Error loading stats: $err',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.error),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardSkeleton() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DashboardHeaderSkeleton(),
+          const SizedBox(height: 20),
+          const ChartSkeleton(),
+          const SizedBox(height: 20),
+          Row(
+            children: const [
+              Expanded(child: StatCardSkeleton()),
+              SizedBox(width: 12),
+              Expanded(child: StatCardSkeleton()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: const [
+              Expanded(child: StatCardSkeleton()),
+              SizedBox(width: 12),
+              Expanded(child: StatCardSkeleton()),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const SkeletonShimmer(child: SkeletonBox(width: 130, height: 14)),
+          const SizedBox(height: 12),
+          ...List.generate(3, (_) => const InvoiceListItemSkeleton()),
+        ],
       ),
     );
   }

@@ -19,6 +19,7 @@ import '../more/company_provider.dart';
 import '../../core/utils/pdf_helper.dart';
 import '../../core/utils/whatsapp_helper.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/widgets/skeleton_widgets.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
   final String customerId;
@@ -350,7 +351,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 ),
               );
             },
-            loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            loading: () => const DetailPageSkeleton(),
             error: (err, _) => Center(child: Text('Error loading invoices: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
           );
         },

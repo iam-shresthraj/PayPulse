@@ -8,6 +8,7 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/search_bar_widget.dart';
 
 import 'customers_provider.dart';
+import '../../core/widgets/skeleton_widgets.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -250,8 +251,10 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 ),
               );
             },
-              loading: () =>  Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+              loading: () => const SkeletonList(
+                type: SkeletonType.customer,
+                count: 7,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               ),
               error: (err, _) => Center(
                 child: Text('Error loading customers: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),

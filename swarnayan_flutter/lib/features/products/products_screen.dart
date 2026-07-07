@@ -12,6 +12,7 @@ import '../../core/widgets/search_bar_widget.dart';
 import '../../core/widgets/app_header.dart';
 import 'products_provider.dart';
 import '../../models/product.dart';
+import '../../core/widgets/skeleton_widgets.dart';
 
 class ProductsScreen extends ConsumerStatefulWidget {
   const ProductsScreen({super.key});
@@ -293,7 +294,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 ),
               );
             },
-              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () => const SkeletonList(
+                type: SkeletonType.product,
+                count: 6,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              ),
               error: (err, _) => Center(child: Text('Error loading products: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
             ),
           ),

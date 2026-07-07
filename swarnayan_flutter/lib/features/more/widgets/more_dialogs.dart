@@ -20,6 +20,7 @@ import '../coupons_provider.dart';
 import '../staff_provider.dart';
 import '../role_permissions_provider.dart';
 import '../../auth/auth_provider.dart';
+import '../../../core/widgets/skeleton_widgets.dart';
 
 
 // -----------------------------------------------------------
@@ -1036,7 +1037,9 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                   },
                 );
               },
-              loading: () =>  Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () => Column(
+                children: List.generate(3, (_) => const SettingsTileSkeleton()),
+              ),
               error: (err, _) => Text('Error: $err', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ),
         ],

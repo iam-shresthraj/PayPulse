@@ -317,6 +317,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
         hsnCode: item.hsnCode,
         category: item.category,
         purity: item.purity,
+        huidNumber: item.huidNumber,
         rate: item.rate,
         quantity: item.quantity,
         grossWeight: item.grossWeight,

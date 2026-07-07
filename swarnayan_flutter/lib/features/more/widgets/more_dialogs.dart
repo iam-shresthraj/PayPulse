@@ -1305,6 +1305,8 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     Expanded(
                       child: SecondaryButton(
                         label: 'Role Access',
+                        isOutlined: true,
+                        icon: Icons.admin_panel_settings_rounded,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -1318,6 +1320,8 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     Expanded(
                       child: SecondaryButton(
                         label: 'Edit Access',
+                        isOutlined: true,
+                        icon: Icons.border_color_rounded,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -1989,6 +1993,8 @@ class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
       });
 
       await ref.read(rolePermissionsProvider.notifier).updatePermissions(current);
+      ref.invalidate(staffProvider);
+      ref.read(authProvider.notifier).refreshProfile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

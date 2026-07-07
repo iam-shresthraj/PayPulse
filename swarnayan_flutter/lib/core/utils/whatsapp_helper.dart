@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'pdf_helper.dart';
+import 'file_saver_helper.dart';
 import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../../models/company_settings.dart';
@@ -45,13 +48,29 @@ Phone: 7903111274''';
         forWhatsApp: true,
       );
 
-      // 2. Save the PDF to a temporary file
+      // Web Implementation
+      if (kIsWeb) {
+        // Download the PDF in the browser
+        final String fileName = "$invoiceNumber - ${customer.name}.pdf";
+        await FileSaverHelper.savePdfFile(pdfBytes, fileName);
+
+        // Open WhatsApp Web with prefilled message
+        final cleanPhone = customer.mobile.replaceAll(RegExp(r'\D'), '');
+        final whatsappPhone = cleanPhone.length == 10 ? '91$cleanPhone' : cleanPhone;
+        final encodedMsg = Uri.encodeComponent(message);
+        final whatsappUrl = 'https://wa.me/$whatsappPhone?text=$encodedMsg';
+        await launchUrl(Uri.parse(whatsappUrl), mode: LaunchMode.externalApplication);
+        return;
+      }
+
+      // Mobile (Android/iOS) Implementation
       final tempDir = await getTemporaryDirectory();
       final sanitizedInvNum = invoiceNumber.replaceAll(RegExp(r'[^\w\-]'), '_');
-      final file = File('${tempDir.path}/Invoice_$sanitizedInvNum.pdf');
+      final sanitizedCustName = customer.name.replaceAll(RegExp(r'[^\w\-]'), '_');
+      final file = File('${tempDir.path}/${sanitizedInvNum} - ${sanitizedCustName}.pdf');
       await file.writeAsBytes(pdfBytes);
 
-      // 3. Share both the PDF file and the message via share_plus
+      // Share both the PDF file and the message via share_plus
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
         text: message,

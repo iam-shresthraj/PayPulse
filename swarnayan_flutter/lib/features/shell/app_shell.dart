@@ -124,8 +124,20 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
+  String _safeLocation(BuildContext context) {
+    try {
+      return GoRouterState.of(context).uri.toString();
+    } catch (_) {
+      try {
+        return GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
+      } catch (_) {
+        return '/';
+      }
+    }
+  }
+
   int _currentIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    final location = _safeLocation(context);
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/more/rates')) return 7;
     if (location.startsWith('/customers')) return 2;
@@ -175,7 +187,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onTap(BuildContext context, int index) async {
     HapticFeedback.lightImpact();
-    final location = GoRouterState.of(context).uri.toString();
+    final location = _safeLocation(context);
     if (location.startsWith('/billing') && index != 1) {
       final billingState = ref.read(billingProvider);
       if (_hasUnsavedChanges(billingState)) {
@@ -218,7 +230,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   int _bottomBarIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    final location = _safeLocation(context);
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/customers')) return 2;
     if (location.startsWith('/products')) return 3;
@@ -228,7 +240,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onBottomBarTap(BuildContext context, int index) async {
     HapticFeedback.lightImpact();
-    final location = GoRouterState.of(context).uri.toString();
+    final location = _safeLocation(context);
     if (location.startsWith('/billing') && index != 1) {
       final billingState = ref.read(billingProvider);
       if (_hasUnsavedChanges(billingState)) {
@@ -681,7 +693,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
-          final location = GoRouterState.of(context).uri.toString();
+          final location = _safeLocation(context);
           if (location != '/' && location != '/login' && location != '/pending') {
             context.go('/');
           } else {
@@ -754,6 +766,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       height: 36,
                       fit: BoxFit.contain,
                       alignment: Alignment.centerLeft,
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
                     ),
                   );
                 }
@@ -764,6 +777,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   height: 36,
                   fit: BoxFit.contain,
                   alignment: Alignment.centerLeft,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
                 );
               }
             ),

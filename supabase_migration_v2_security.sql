@@ -746,5 +746,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.reassociate_company(TEXT) TO authenticated;
 
+-- ----------------------------------------------------------------------------
+-- 16. Alter invoices table: Add manual_discount field
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS manual_discount DOUBLE PRECISION DEFAULT 0;
+
 -- Done. Verify with:
 --   SELECT name, staff_code, manager_code, owner_code FROM public.companies;

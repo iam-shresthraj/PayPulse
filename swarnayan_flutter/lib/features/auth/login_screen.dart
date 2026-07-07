@@ -102,9 +102,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isWide = MediaQuery.of(context).size.width >= 850;
     final isLight = themeOverride ?? isWide;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
         children: [
           // ── Ambient Background Glows ──
           Positioned(
@@ -143,7 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // ── Centered Glass Card ──
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 400),
                 decoration: BoxDecoration(
@@ -384,8 +387,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ),
-                ),
-              ),
             ),
           ),
         ],

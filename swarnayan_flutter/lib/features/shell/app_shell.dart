@@ -315,31 +315,34 @@ class _AppShellState extends ConsumerState<AppShell> {
                 return Row(
                   children: [
                     Expanded(
-                      child: Container(
-                        height: 42,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(21),
-                          border: Border.all(
-                            color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.home_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              isSuperAdmin ? 'Admin' : 'Dashboard',
-                              style: TextStyle(
-                                color: isDark ? Colors.white : Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
+                      child: GestureDetector(
+                        onTap: () => _onBottomBarTap(context, 0),
+                        child: Container(
+                          height: 42,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(21),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+                              width: 1,
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.home_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                isSuperAdmin ? 'Admin' : 'Dashboard',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -374,31 +377,34 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                   const SizedBox(width: 4),
                   Expanded(
-                    child: Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(21),
-                        border: Border.all(
-                          color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(isSuperAdmin ? Icons.analytics_rounded : Icons.menu_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            isSuperAdmin ? 'Admin Reports' : 'More',
-                            style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
+                    child: GestureDetector(
+                      onTap: () => _onBottomBarTap(context, 4),
+                      child: Container(
+                        height: 42,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(21),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+                            width: 1,
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(isSuperAdmin ? Icons.analytics_rounded : Icons.menu_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              isSuperAdmin ? 'Admin Reports' : 'More',
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

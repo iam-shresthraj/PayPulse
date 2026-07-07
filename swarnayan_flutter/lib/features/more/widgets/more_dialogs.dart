@@ -964,11 +964,29 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                           _couponDetail('Starts At', item.startsAt == null ? 'Immediate' : DateFormat('dd MMM yyyy').format(item.startsAt!)),
                           _couponDetail('Expiry', DateFormat('dd MMM yyyy').format(item.expiryDate)),
                           const SizedBox(height: 8),
-                          const Divider(height: 1),
-                          const SizedBox(height: 4),
+                          // Active/Inactive toggle row
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              Switch(
+                                value: item.isActive,
+                                activeColor: AppColors.success,
+                                onChanged: (val) async {
+                                  if (val) {
+                                    await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
+                                  } else {
+                                    await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                item.isActive ? 'Active' : 'Inactive',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Spacer(),
                               IconButton(
                                 icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
                                 onPressed: () => setState(() => _beginEdit(item)),
@@ -1009,26 +1027,6 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                                 },
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
-                              ),
-                              const Spacer(),
-                              Text(
-                                item.isActive ? 'Active' : 'Inactive',
-                                style: AppTextStyles.bodySm.copyWith(
-                                  color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Switch(
-                                value: item.isActive,
-                                activeColor: AppColors.success,
-                                onChanged: (val) async {
-                                  if (item.isActive) {
-                                    await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
-                                  } else {
-                                    await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
-                                  }
-                                },
                               ),
                             ],
                           ),

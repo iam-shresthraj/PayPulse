@@ -82,6 +82,7 @@ class Invoice with _$Invoice {
     required double grossAmount,
     String? couponCode,
     @Default(0.0) double couponDiscount,
+    @Default(0.0) double manualDiscount,
     OldGoldAdjustment? oldGold,
     required double taxableAmount,
     required double cgst,

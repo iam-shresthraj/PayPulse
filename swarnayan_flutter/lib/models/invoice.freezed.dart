@@ -1258,6 +1258,7 @@ mixin _$Invoice {
   double get grossAmount => throw _privateConstructorUsedError;
   String? get couponCode => throw _privateConstructorUsedError;
   double get couponDiscount => throw _privateConstructorUsedError;
+  double get manualDiscount => throw _privateConstructorUsedError;
   OldGoldAdjustment? get oldGold => throw _privateConstructorUsedError;
   double get taxableAmount => throw _privateConstructorUsedError;
   double get cgst => throw _privateConstructorUsedError;
@@ -1306,6 +1307,7 @@ abstract class $InvoiceCopyWith<$Res> {
     double grossAmount,
     String? couponCode,
     double couponDiscount,
+    double manualDiscount,
     OldGoldAdjustment? oldGold,
     double taxableAmount,
     double cgst,
@@ -1357,6 +1359,7 @@ class _$InvoiceCopyWithImpl<$Res, $Val extends Invoice>
     Object? grossAmount = null,
     Object? couponCode = freezed,
     Object? couponDiscount = null,
+    Object? manualDiscount = null,
     Object? oldGold = freezed,
     Object? taxableAmount = null,
     Object? cgst = null,
@@ -1427,6 +1430,10 @@ class _$InvoiceCopyWithImpl<$Res, $Val extends Invoice>
             couponDiscount: null == couponDiscount
                 ? _value.couponDiscount
                 : couponDiscount // ignore: cast_nullable_to_non_nullable
+                      as double,
+            manualDiscount: null == manualDiscount
+                ? _value.manualDiscount
+                : manualDiscount // ignore: cast_nullable_to_non_nullable
                       as double,
             oldGold: freezed == oldGold
                 ? _value.oldGold
@@ -1545,6 +1552,7 @@ abstract class _$$InvoiceImplCopyWith<$Res> implements $InvoiceCopyWith<$Res> {
     double grossAmount,
     String? couponCode,
     double couponDiscount,
+    double manualDiscount,
     OldGoldAdjustment? oldGold,
     double taxableAmount,
     double cgst,
@@ -1597,6 +1605,7 @@ class __$$InvoiceImplCopyWithImpl<$Res>
     Object? grossAmount = null,
     Object? couponCode = freezed,
     Object? couponDiscount = null,
+    Object? manualDiscount = null,
     Object? oldGold = freezed,
     Object? taxableAmount = null,
     Object? cgst = null,
@@ -1667,6 +1676,10 @@ class __$$InvoiceImplCopyWithImpl<$Res>
         couponDiscount: null == couponDiscount
             ? _value.couponDiscount
             : couponDiscount // ignore: cast_nullable_to_non_nullable
+                  as double,
+        manualDiscount: null == manualDiscount
+            ? _value.manualDiscount
+            : manualDiscount // ignore: cast_nullable_to_non_nullable
                   as double,
         oldGold: freezed == oldGold
             ? _value.oldGold
@@ -1755,6 +1768,7 @@ class _$InvoiceImpl implements _Invoice {
     required this.grossAmount,
     this.couponCode,
     this.couponDiscount = 0.0,
+    this.manualDiscount = 0.0,
     this.oldGold,
     required this.taxableAmount,
     required this.cgst,
@@ -1814,6 +1828,9 @@ class _$InvoiceImpl implements _Invoice {
   @JsonKey()
   final double couponDiscount;
   @override
+  @JsonKey()
+  final double manualDiscount;
+  @override
   final OldGoldAdjustment? oldGold;
   @override
   final double taxableAmount;
@@ -1857,7 +1874,7 @@ class _$InvoiceImpl implements _Invoice {
 
   @override
   String toString() {
-    return 'Invoice(id: $id, invoiceNumber: $invoiceNumber, customerId: $customerId, tempCustomerName: $tempCustomerName, tempCustomerMobile: $tempCustomerMobile, tempCustomerAddress: $tempCustomerAddress, tempCustomerPincode: $tempCustomerPincode, tempCustomerCity: $tempCustomerCity, tempCustomerState: $tempCustomerState, items: $items, grossAmount: $grossAmount, couponCode: $couponCode, couponDiscount: $couponDiscount, oldGold: $oldGold, taxableAmount: $taxableAmount, cgst: $cgst, sgst: $sgst, totalTax: $totalTax, netAmount: $netAmount, finalPayable: $finalPayable, payments: $payments, totalAmountPaid: $totalAmountPaid, balanceDue: $balanceDue, invoiceDate: $invoiceDate, generatedBy: $generatedBy, status: $status, ratesSnapshot: $ratesSnapshot, deletedAt: $deletedAt, pdfBase64: $pdfBase64)';
+    return 'Invoice(id: $id, invoiceNumber: $invoiceNumber, customerId: $customerId, tempCustomerName: $tempCustomerName, tempCustomerMobile: $tempCustomerMobile, tempCustomerAddress: $tempCustomerAddress, tempCustomerPincode: $tempCustomerPincode, tempCustomerCity: $tempCustomerCity, tempCustomerState: $tempCustomerState, items: $items, grossAmount: $grossAmount, couponCode: $couponCode, couponDiscount: $couponDiscount, manualDiscount: $manualDiscount, oldGold: $oldGold, taxableAmount: $taxableAmount, cgst: $cgst, sgst: $sgst, totalTax: $totalTax, netAmount: $netAmount, finalPayable: $finalPayable, payments: $payments, totalAmountPaid: $totalAmountPaid, balanceDue: $balanceDue, invoiceDate: $invoiceDate, generatedBy: $generatedBy, status: $status, ratesSnapshot: $ratesSnapshot, deletedAt: $deletedAt, pdfBase64: $pdfBase64)';
   }
 
   @override
@@ -1889,6 +1906,8 @@ class _$InvoiceImpl implements _Invoice {
                 other.couponCode == couponCode) &&
             (identical(other.couponDiscount, couponDiscount) ||
                 other.couponDiscount == couponDiscount) &&
+            (identical(other.manualDiscount, manualDiscount) ||
+                other.manualDiscount == manualDiscount) &&
             (identical(other.oldGold, oldGold) || other.oldGold == oldGold) &&
             (identical(other.taxableAmount, taxableAmount) ||
                 other.taxableAmount == taxableAmount) &&
@@ -1935,6 +1954,7 @@ class _$InvoiceImpl implements _Invoice {
     grossAmount,
     couponCode,
     couponDiscount,
+    manualDiscount,
     oldGold,
     taxableAmount,
     cgst,
@@ -1983,6 +2003,7 @@ abstract class _Invoice implements Invoice {
     required final double grossAmount,
     final String? couponCode,
     final double couponDiscount,
+    final double manualDiscount,
     final OldGoldAdjustment? oldGold,
     required final double taxableAmount,
     required final double cgst,
@@ -2032,6 +2053,8 @@ abstract class _Invoice implements Invoice {
   String? get couponCode;
   @override
   double get couponDiscount;
+  @override
+  double get manualDiscount;
   @override
   OldGoldAdjustment? get oldGold;
   @override

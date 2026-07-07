@@ -116,6 +116,7 @@ _$InvoiceImpl _$$InvoiceImplFromJson(Map<String, dynamic> json) =>
       grossAmount: (json['grossAmount'] as num).toDouble(),
       couponCode: json['couponCode'] as String?,
       couponDiscount: (json['couponDiscount'] as num?)?.toDouble() ?? 0.0,
+      manualDiscount: (json['manualDiscount'] as num?)?.toDouble() ?? 0.0,
       oldGold: json['oldGold'] == null
           ? null
           : OldGoldAdjustment.fromJson(json['oldGold'] as Map<String, dynamic>),
@@ -157,6 +158,7 @@ Map<String, dynamic> _$$InvoiceImplToJson(_$InvoiceImpl instance) =>
       'grossAmount': instance.grossAmount,
       'couponCode': instance.couponCode,
       'couponDiscount': instance.couponDiscount,
+      'manualDiscount': instance.manualDiscount,
       'oldGold': instance.oldGold,
       'taxableAmount': instance.taxableAmount,
       'cgst': instance.cgst,

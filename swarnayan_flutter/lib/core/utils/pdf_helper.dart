@@ -482,7 +482,9 @@ class PdfHelper {
                         _summaryRow('Subtotal (Gross):', _currencyFormat.format(invoice.grossAmount), fontData, fontData),
                         _summaryRow('Total Making Charge:', _currencyFormat.format(totalMakingCharge), fontData, fontData),
                         if (invoice.couponDiscount > 0)
-                          _summaryRow('Discount:', '- ${_currencyFormat.format(invoice.couponDiscount)}', fontData, fontData),
+                          _summaryRow('Coupon Discount:', '- ${_currencyFormat.format(invoice.couponDiscount)}', fontData, fontData),
+                        if (invoice.manualDiscount > 0)
+                          _summaryRow('Manual Discount:', '- ${_currencyFormat.format(invoice.manualDiscount)}', fontData, fontData),
                         _summaryRow('Taxable Value:', _currencyFormat.format(invoice.taxableAmount), fontBold, fontBold),
                         pw.SizedBox(height: 3),
                         

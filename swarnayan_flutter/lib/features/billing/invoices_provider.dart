@@ -39,6 +39,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       grossAmount: (data['gross_amount'] as num).toDouble(),
       couponCode: data['coupon_code'],
       couponDiscount: (data['coupon_discount'] as num?)?.toDouble() ?? 0.0,
+      manualDiscount: (data['manual_discount'] as num?)?.toDouble() ?? 0.0,
       oldGold: data['old_gold_adjustment_weight'] != null && (data['old_gold_adjustment_weight'] as num) > 0
           ? OldGoldAdjustment(
               weight: (data['old_gold_adjustment_weight'] as num).toDouble(),
@@ -83,6 +84,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       'gross_amount': invoice.grossAmount,
       'coupon_code': invoice.couponCode ?? '',
       'coupon_discount': invoice.couponDiscount,
+      'manual_discount': invoice.manualDiscount,
       'old_gold_adjustment_weight': invoice.oldGold?.weight ?? 0.0,
       'old_gold_adjustment_purity': invoice.oldGold?.purity ?? '',
       'old_gold_adjustment_rate_applied': invoice.oldGold?.rate ?? 0.0,
@@ -113,15 +115,41 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         .maybeSingle();
         
     if (settingsData != null) {
-      final int nextCounter = (settingsData['invoice_current_counter'] ?? 0) + 1;
-      await _client
-          .from('company_settings')
-          .update({'invoice_current_counter': nextCounter})
-          .eq('id', settingsData['id']);
-          
       final prefix = settingsData['invoice_prefix'] ?? 'S';
       final separator = settingsData['invoice_separator'] ?? '-';
       final padding = settingsData['invoice_padding_length'] ?? 6;
+
+      // Fetch all active invoice numbers to find gaps
+      final List<dynamic> activeInvoicesData = await _client
+          .from('invoices')
+          .select('invoice_number')
+          .isFilter('deleted_at', null);
+
+      final Set<int> usedCounters = {};
+      for (final inv in activeInvoicesData) {
+        final String? invNum = inv['invoice_number'];
+        if (invNum != null) {
+          final counter = _parseCounter(invNum, settingsData);
+          if (counter != null) {
+            usedCounters.add(counter);
+          }
+        }
+      }
+
+      // Find the lowest available counter (starting from 1)
+      int nextCounter = 1;
+      while (usedCounters.contains(nextCounter)) {
+        nextCounter++;
+      }
+
+      // Update the settings counter to the max of (current, nextCounter)
+      final int currentMax = usedCounters.isEmpty ? 0 : usedCounters.reduce((a, b) => a > b ? a : b);
+      final int newSettingsCounter = nextCounter > currentMax ? nextCounter : currentMax;
+      await _client
+          .from('company_settings')
+          .update({'invoice_current_counter': newSettingsCounter})
+          .eq('id', settingsData['id']);
+          
       final formattedCounter = nextCounter.toString().padLeft(padding, '0');
       return '$prefix$separator$formattedCounter';
     }

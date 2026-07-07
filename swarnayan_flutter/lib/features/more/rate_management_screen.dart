@@ -58,28 +58,7 @@ class RateManagementScreen extends ConsumerWidget {
             ),
           ).animate().fadeIn(duration: 300.ms),
 
-          const SizedBox(height: 24),
-
-          // Title Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Daily Metal Rates History',
-                  style: AppTextStyles.headlineLgMobile,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Verify and adjust live selling rates',
-                  style: AppTextStyles.sectionSubtitle,
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           // ── Rates List ──
           Expanded(

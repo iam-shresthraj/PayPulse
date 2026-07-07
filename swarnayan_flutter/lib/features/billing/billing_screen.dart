@@ -113,9 +113,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _newProductNameController = TextEditingController();
   final _newProductStockController = TextEditingController(text: '10');
   final _newProductHuidController = TextEditingController();
+  final _newProductWeightController = TextEditingController();
+  final _newProductMakingChargeController = TextEditingController();
   final _newProductNameFocusNode = FocusNode();
   final _newProductStockFocusNode = FocusNode();
   final _newProductHuidFocusNode = FocusNode();
+  final _newProductWeightFocusNode = FocusNode();
+  final _newProductMakingChargeFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -222,9 +226,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _newProductNameController.dispose();
     _newProductStockController.dispose();
     _newProductHuidController.dispose();
+    _newProductWeightController.dispose();
+    _newProductMakingChargeController.dispose();
     _newProductNameFocusNode.dispose();
     _newProductStockFocusNode.dispose();
     _newProductHuidFocusNode.dispose();
+    _newProductWeightFocusNode.dispose();
+    _newProductMakingChargeFocusNode.dispose();
 
     super.dispose();
   }
@@ -387,7 +395,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         tempCustomerAddress: isTemporary && !_registerNewCustomer ? _addressController.text.trim() : null,
         items: invoiceItems,
         grossAmount: billing.subtotal,
-        couponDiscount: billing.discountAmount,
+        couponDiscount: _getCouponDiscountOnly(billing),
+        manualDiscount: billing.customDiscount,
         couponCode: billing.couponCode,
         taxableAmount: billing.taxableAmount,
         cgst: billing.cgst,
@@ -638,7 +647,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       // 3. Coupon sync
       if (!_couponCodeFocusNode.hasFocus) {
         final stateCoupon = next.couponCode ?? '';
-        if (_couponController.text.trim().toUpperCase() != stateCoupon.toUpperCase()) {
+        final prevCoupon = previous?.couponCode ?? '';
+        if (stateCoupon != prevCoupon) {
           _couponController.text = stateCoupon;
         }
       }
@@ -686,19 +696,19 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     });
 
     return PopScope(
-      canPop: _isPopping || !_hasUnsavedChanges(billing),
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final res = await _showDraftDialog(context);
-        if (res == null) return;
-        if (res == false) {
-          ref.read(billingProvider.notifier).reset();
+        if (_hasUnsavedChanges(billing)) {
+          final res = await _showDraftDialog(context);
+          if (res == null) return; // User cancelled, stay on screen
+          if (res == false) {
+            ref.read(billingProvider.notifier).reset(); // Discard draft
+          }
+          // If res is true (Save Draft), we keep the state intact
         }
-        setState(() {
-          _isPopping = true;
-        });
         if (context.mounted) {
-          Navigator.of(context).pop();
+          context.go('/');
         }
       },
       child: Scaffold(
@@ -1297,6 +1307,32 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
               ],
             ),
+            if (_saveDetailsToInventory) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: GlassInput(
+                      focusNode: _newProductWeightFocusNode,
+                      controller: _newProductWeightController,
+                      label: 'Template Weight (g)',
+                      hint: '0.000',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GlassInput(
+                      focusNode: _newProductMakingChargeFocusNode,
+                      controller: _newProductMakingChargeController,
+                      label: 'Template Making Charge',
+                      hint: '0',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             _buildSharedDetailInputs(),
           ],
@@ -1689,9 +1725,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           purity: _newProductPurity,
           huidNumber: huid.isEmpty ? null : huid,
           hsnCode: '7113', // default HSN for jewellery
-          weight: _saveDetailsToInventory ? (double.tryParse(_weightController.text) ?? 0.0) : 0.0,
+          weight: _saveDetailsToInventory ? (double.tryParse(_newProductWeightController.text) ?? 0.0) : 0.0,
           stockUnits: stock,
-          makingChargeValue: _saveDetailsToInventory ? (double.tryParse(_makingChargeController.text) ?? 0.0) : 0.0,
+          makingChargeValue: _saveDetailsToInventory ? (double.tryParse(_newProductMakingChargeController.text) ?? 0.0) : 0.0,
           isActive: true,
         );
         await ref.read(productsProvider.notifier).addProduct(product);
@@ -1699,6 +1735,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         if (updatedList.isNotEmpty) {
           selected = updatedList.firstWhere((p) => p.name == name, orElse: () => updatedList.first);
         }
+        // Cleanup inline product form
+        _newProductNameController.clear();
+        _newProductStockController.text = '10';
+        _newProductHuidController.clear();
+        _newProductWeightController.clear();
+        _newProductMakingChargeController.clear();
+        _saveDetailsToInventory = false;
+        _showInlineNewProductForm = false;
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to create new product: $e'), backgroundColor: AppColors.error),
@@ -2114,13 +2158,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
     }
 
-    // 3. Handle mutual exclusivity and apply remaining valid inputs
-    if (customDisc != null && customDisc > 0 && validCoupon != null) {
-      _couponController.clear();
-      validCoupon = null;
-      errors.add('Only one discount/coupon can be applied. Applied Custom Discount.');
-    }
-
     if (errors.isNotEmpty) {
       setState(() {
         _couponError = errors.join('\n');
@@ -2133,9 +2170,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     // Apply the valid custom discount
     if (customDiscText.isEmpty) {
-      if (validCoupon == null) {
-        ref.read(billingProvider.notifier).setCustomDiscount(0.0);
-      }
+      ref.read(billingProvider.notifier).setCustomDiscount(0.0);
     } else if (customDisc != null && customDisc >= 0) {
       ref.read(billingProvider.notifier).setCustomDiscount(customDisc);
     }
@@ -2143,7 +2178,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     // Apply the valid coupon
     if (validCoupon != null) {
       ref.read(billingProvider.notifier).applyCoupon(validCoupon);
-      _couponController.clear();
     }
 
     // Move focus to payment split (UPI -> CASH -> CARD)
@@ -2544,6 +2578,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final hasProductDiscounts = billing.products.any((p) => p.discountValue > 0);
     final productDiscountTotal = billing.products.fold(0.0, (sum, p) => sum + p.discountValue);
     final rawSubtotal = billing.products.fold(0.0, (sum, p) => sum + p.metalValue + p.makingChargeTotal + p.stoneValue);
+    final couponDiscOnly = _getCouponDiscountOnly(billing);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -2556,8 +2591,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             _summaryRow('Subtotal', rawSubtotal),
             if (hasProductDiscounts)
               _summaryRow('Product Discounts', -productDiscountTotal, isDiscount: true),
-            if (billing.discountAmount > 0)
-              _summaryRow('Coupon Discount', -billing.discountAmount, isDiscount: true),
+            if (couponDiscOnly > 0)
+              _summaryRow('Coupon Discount', -couponDiscOnly, isDiscount: true),
+            if (billing.customDiscount > 0)
+              _summaryRow('Manual Discount', -billing.customDiscount, isDiscount: true),
             _summaryRow('Estimated GST (3%)', billing.totalTax),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -2668,6 +2705,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
       (match) => '${match[1]},',
     );
+  }
+
+  double _getCouponDiscountOnly(BillingState billing) {
+    double couponDisc = 0.0;
+    final coupon = billing.appliedCoupon;
+    if (coupon != null && billing.subtotal >= coupon.minBillAmount) {
+      if (coupon.discountType == 'FIXED') {
+        couponDisc = coupon.discountValue;
+      } else if (coupon.discountType == 'PERCENTAGE') {
+        couponDisc = billing.subtotal * (coupon.discountValue / 100);
+        if (coupon.maxDiscount > 0.0) {
+          couponDisc = couponDisc.clamp(0.0, coupon.maxDiscount);
+        }
+      }
+    }
+    return couponDisc;
   }
 }
 

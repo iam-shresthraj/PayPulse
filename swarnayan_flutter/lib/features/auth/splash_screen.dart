@@ -26,71 +26,57 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Dark premium background
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Glowing logo container
-            Container(
-              width: 100,
-              height: 100,
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Ambient Stylist Glow
+          Positioned.fill(
+            child: Container(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 0.8,
                   colors: [
-                    Color(0xFFFFD700), // Gold
-                    Color(0xFF8B7500), // Dark Gold
+                    const Color(0xFF7D0202).withValues(alpha: 0.25),
+                    Colors.black,
                   ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFFD700).withOpacity(0.5),
-                    blurRadius: 30,
-                    spreadRadius: 5,
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // PayPulse Logo
+                Image.asset(
+                  'assets/images/paypulse.png',
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.contain,
+                )
+                .animate()
+                .scale(duration: 800.ms, curve: Curves.easeOutBack)
+                .fadeIn(duration: 600.ms),
+                
+                const SizedBox(height: 24),
+                
+                // Tagline
+                Text(
+                  'BILLING & INVENTORY SYSTEM',
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: Colors.grey.shade400,
+                    letterSpacing: 3.0,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.account_balance_wallet_rounded,
-                color: Colors.black,
-                size: 48,
-              ),
-            )
-            .animate()
-            .scale(duration: 800.ms, curve: Curves.easeOutBack)
-            .then()
-            .shake(duration: 500.ms),
-            
-            const SizedBox(height: 24),
-            
-            // App Name
-            Text(
-              'PAYPULSE',
-              style: AppTextStyles.headlineLgMobile.copyWith(
-                color: const Color(0xFFFFD700), // Gold
-                fontWeight: FontWeight.bold,
-                letterSpacing: 8.0,
-              ),
-            )
-            .animate()
-            .fadeIn(delay: 300.ms, duration: 600.ms)
-            .slideY(begin: 0.2, end: 0.0),
-            
-            const SizedBox(height: 8),
-            
-            // Subtitle
-            Text(
-              'Swarnayan Jewellers Software',
-              style: AppTextStyles.labelSm.copyWith(
-                color: Colors.grey.shade500,
-                letterSpacing: 2.0,
-              ),
-            )
-            .animate()
-            .fadeIn(delay: 500.ms, duration: 600.ms),
-          ],
-        ),
+                )
+                .animate()
+                .fadeIn(delay: 400.ms, duration: 600.ms)
+                .slideY(begin: 0.2, end: 0.0),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

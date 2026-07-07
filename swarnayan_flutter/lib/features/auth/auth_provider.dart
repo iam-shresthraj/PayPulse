@@ -74,6 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<User?> _fetchProfile(String uid) async {
+    // Fallback chain for database schema compatibility
     try {
       final data = await _client
           .from('profiles')
@@ -83,8 +84,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (data != null) {
         return User.fromJson(data);
       }
-    } catch (e) {
-      // Profile fetch failed; treated as unauthenticated.
+    } catch (e, stack) {
+      print('Profile fetch failed with renew_date, attempting fallback 1: $e');
+      try {
+        final data = await _client
+            .from('profiles')
+            .select('*, companies(category)')
+            .eq('id', uid)
+            .maybeSingle();
+        if (data != null) {
+          return User.fromJson(data);
+        }
+      } catch (e2) {
+        print('Profile fetch failed with companies join, attempting fallback 2: $e2');
+        try {
+          final data = await _client
+              .from('profiles')
+              .select('*')
+              .eq('id', uid)
+              .maybeSingle();
+          if (data != null) {
+            return User.fromJson(data);
+          }
+        } catch (e3) {
+          print('All profile fetch fallbacks failed: $e3');
+        }
+      }
     }
     return null;
   }

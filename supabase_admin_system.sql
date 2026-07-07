@@ -226,3 +226,4 @@ ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS pdf_base64 TEXT;
 -- 10. Add category column to companies table for multi-industry support
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'Jewellery';
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS renew_date TIMESTAMPTZ;

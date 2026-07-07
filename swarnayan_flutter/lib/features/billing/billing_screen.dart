@@ -2845,6 +2845,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
           hsnCode: matched.hsnCode,
           category: matched.category,
           purity: matched.purity,
+          huidNumber: matched.huidNumber,
           rate: calculatedRate,
           quantity: 1,
           grossWeight: matched.weight,

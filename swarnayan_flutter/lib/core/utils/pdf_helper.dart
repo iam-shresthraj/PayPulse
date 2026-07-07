@@ -86,7 +86,7 @@ class PdfHelper {
         final bytes = base64Decode(invoice.pdfBase64!);
         await Printing.layoutPdf(
           onLayout: (PdfPageFormat format) async => bytes,
-          name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
+          name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}',
         );
         return;
       } catch (_) {}
@@ -98,7 +98,7 @@ class PdfHelper {
     );
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
+      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}',
     );
   }
 

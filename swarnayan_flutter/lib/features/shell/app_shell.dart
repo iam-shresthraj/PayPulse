@@ -689,12 +689,38 @@ class _AppShellState extends ConsumerState<AppShell> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity == null) return;
+        final velocity = details.primaryVelocity!;
+        if (velocity.abs() > 300) {
+          final isWide = MediaQuery.of(context).size.width >= 850;
+          if (!isWide) { // Only swipe tabs on mobile layout
+            final currentIndex = _bottomBarIndex(context);
+            if (velocity < 0) {
+              // Swipe Left -> Next Tab
+              if (currentIndex < 4) {
+                _onBottomBarTap(context, currentIndex + 1);
+              }
+            } else {
+              // Swipe Right -> Previous Tab
+              if (currentIndex > 0) {
+                _onBottomBarTap(context, currentIndex - 1);
+              }
+            }
+          }
+        }
+      },
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
+          final router = GoRouter.of(context);
+          if (router.canPop()) {
+            router.pop();
+            return;
+          }
           final location = _safeLocation(context);
-          if (location != '/' && location != '/login' && location != '/pending') {
+          if (location != '/' && location != '/login' && location != '/pending' && location != '/deassociated') {
             context.go('/');
           } else {
             final now = DateTime.now();

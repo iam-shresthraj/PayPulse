@@ -527,7 +527,7 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
             const SizedBox(height: 16),
             GlassInput(
               controller: _notesController,
-              label: 'Invoice Footer Note',
+              label: 'Additional Information',
               hint: 'e.g. Goods once sold will not be taken back.',
               maxLines: 2,
             ),

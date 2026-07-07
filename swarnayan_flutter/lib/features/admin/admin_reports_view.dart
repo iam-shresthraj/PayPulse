@@ -84,7 +84,7 @@ class _AdminReportsViewState extends ConsumerState<AdminReportsView> {
   String _getCompanyName(AdminState state, String companyId) {
     final company = state.companies.firstWhere(
       (c) => c.id == companyId,
-      orElse: () => AdminBusiness(id: '', name: 'Unknown', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+      orElse: () => AdminBusiness(id: '', name: 'Unknown', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
     );
     return company.name;
   }

@@ -16,11 +16,13 @@ class AddBusinessDialog extends ConsumerStatefulWidget {
 class _AddBusinessDialogState extends ConsumerState<AddBusinessDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _categoryController = TextEditingController(text: 'Jewellery');
   bool _submitting = false;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _categoryController.dispose();
     super.dispose();
   }
 
@@ -28,7 +30,10 @@ class _AddBusinessDialogState extends ConsumerState<AddBusinessDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _submitting = true);
-    final success = await ref.read(adminProvider.notifier).createBusiness(_nameController.text.trim());
+    final success = await ref.read(adminProvider.notifier).createBusiness(
+      _nameController.text.trim(),
+      _categoryController.text.trim(),
+    );
     if (mounted) {
       setState(() => _submitting = false);
       if (success) {
@@ -101,6 +106,18 @@ class _AddBusinessDialogState extends ConsumerState<AddBusinessDialog> {
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please enter a business name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            GlassInput(
+              label: 'BUSINESS CATEGORY',
+              controller: _categoryController,
+              hint: 'e.g. Jewellery, Grocery, Electronics',
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Please enter a business category';
                 }
                 return null;
               },

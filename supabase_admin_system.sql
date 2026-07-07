@@ -221,3 +221,8 @@ GRANT EXECUTE ON FUNCTION public.review_member(UUID, BOOLEAN) TO authenticated;
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS manual_discount DOUBLE PRECISION DEFAULT 0;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS pdf_base64 TEXT;
+
+-- ----------------------------------------------------------------------------
+-- 10. Add category column to companies table for multi-industry support
+-- ----------------------------------------------------------------------------
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'Jewellery';

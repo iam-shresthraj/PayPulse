@@ -24,14 +24,21 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final TextEditingController _customerSearchController = TextEditingController();
+  String _customerSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
+    _customerSearchController.addListener(() {
+      setState(() {
+        _customerSearchQuery = _customerSearchController.text.trim().toLowerCase();
       });
     });
   }
@@ -40,6 +47,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _customerSearchController.dispose();
     super.dispose();
   }
 
@@ -47,23 +55,6 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   // Analytics Center Tab
   // -------------------------------------------------------------
   Widget _buildAnalyticsCenter(AdminState state) {
-    final activeInvoices = state.invoices.where((i) => i.status != 'CANCELLED' && i.deletedAt == null).toList();
-    final totalRevenue = activeInvoices.fold(0.0, (sum, i) => sum + i.finalPayable);
-    
-    // Group invoices by company
-    final Map<String, double> companyRevenue = {};
-    final Map<String, int> companyInvoicesCount = {};
-    for (final company in state.companies) {
-      companyRevenue[company.id] = 0.0;
-      companyInvoicesCount[company.id] = 0;
-    }
-    for (final inv in activeInvoices) {
-      if (companyRevenue.containsKey(inv.companyId)) {
-        companyRevenue[inv.companyId] = companyRevenue[inv.companyId]! + inv.finalPayable;
-        companyInvoicesCount[inv.companyId] = companyInvoicesCount[inv.companyId]! + 1;
-      }
-    }
-
     // Role Counts
     int staffCount = 0;
     int managerCount = 0;
@@ -74,16 +65,11 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
       else if (u.isOwner && !u.isSuperAdmin) ownerCount++;
     }
 
-    // Weekly Invoice Volume
-    final weeklyInvoices = List.filled(7, 0);
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
-    for (final inv in activeInvoices) {
-      final diff = inv.invoiceDate.difference(startOfWeek).inDays;
-      if (diff >= 0 && diff < 7) {
-        final weekdayIndex = inv.invoiceDate.weekday % 7;
-        weeklyInvoices[weekdayIndex]++;
-      }
+    // Category Counts
+    final Map<String, int> categoryCounts = {};
+    for (final company in state.companies) {
+      final cat = company.category;
+      categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
     }
 
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -95,14 +81,14 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row of KPIs
+          // Row of KPIs (non-confidential overview)
           GridView.count(
-            crossAxisCount: isWide ? 4 : 2,
+            crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: isWide ? 1.4 : 1.3,
+            childAspectRatio: isWide ? 2.5 : 1.3,
             children: [
               StatCard(
                 title: 'Total Businesses',
@@ -114,87 +100,11 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                 value: state.users.length.toString(),
                 icon: Icons.people_alt_rounded,
               ),
-              StatCard(
-                title: 'Total Invoices',
-                value: state.invoices.length.toString(),
-                icon: Icons.receipt_long_rounded,
-              ),
-              StatCard(
-                title: 'System Revenue',
-                value: '₹${NumberFormat('#,##,###').format(totalRevenue)}',
-                icon: Icons.currency_rupee_rounded,
-              ),
             ],
           ),
           const SizedBox(height: 32),
 
-          // Business Performance Graph (Horizontal Bar Chart)
-          const SectionHeader(title: 'Business Revenue Share'),
-          const SizedBox(height: 12),
-          GlassCard(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (state.companies.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Text('No businesses registered yet.', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
-                    ),
-                  )
-                else
-                  ...state.companies.map((company) {
-                    final rev = companyRevenue[company.id] ?? 0.0;
-                    final maxRev = companyRevenue.values.fold(1.0, (m, v) => v > m ? v : m);
-                    final ratio = maxRev > 0 ? (rev / maxRev) : 0.0;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(company.name, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
-                              Text('₹${(rev / 1000).toStringAsFixed(1)}k', style: AppTextStyles.bodyMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Stack(
-                            children: [
-                              Container(
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: AppColors.border.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                              ),
-                              FractionallySizedBox(
-                                widthFactor: ratio > 0 ? ratio : 0.01,
-                                child: Container(
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(colors: AppColors.primaryGradient),
-                                    borderRadius: BorderRadius.circular(5),
-                                    boxShadow: [
-                                      BoxShadow(color: AppColors.primaryGlow, blurRadius: 4),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Two Column Graph Layout (User distribution & Weekly Volume)
+          // Two Column Graph Layout (User distribution & Business Categories)
           Flex(
             direction: isWide ? Axis.horizontal : Axis.vertical,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,38 +138,35 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SectionHeader(title: 'Weekly Invoice Volume'),
+                    const SectionHeader(title: 'Business Verticals / Categories'),
                     const SizedBox(height: 12),
                     GlassCard(
                       padding: const EdgeInsets.all(24),
-                      child: SizedBox(
-                        height: 160,
-                        child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: List.generate(7, (index) {
-                          final count = weeklyInvoices[index];
-                          final maxCount = weeklyInvoices.fold(1, (m, v) => v > m ? v : m);
-                          final ratio = count / maxCount;
-                          final days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(count > 0 ? '$count' : '', style: AppTextStyles.labelSm.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 6),
-                              Container(
-                                width: 20,
-                                height: ratio > 0 ? (ratio * 100) + 8 : 8,
-                                decoration: BoxDecoration(
-                                  color: count > 0 ? AppColors.info : AppColors.border.withValues(alpha: 0.3),
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(days[index], style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted)),
-                            ],
-                          );
-                        }),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: categoryCounts.isEmpty
+                            ? [
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20.0),
+                                    child: Text(
+                                      'No business categories registered.',
+                                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
+                                    ),
+                                  ),
+                                )
+                              ]
+                            : categoryCounts.entries.map((entry) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                  child: _buildDistributionRow(
+                                    entry.key,
+                                    entry.value,
+                                    state.companies.length,
+                                    AppColors.primary,
+                                  ),
+                                );
+                              }).toList(),
                       ),
                     ),
                   ],
@@ -297,6 +204,150 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
           backgroundColor: AppColors.border.withValues(alpha: 0.2),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
+        ),
+      ],
+    );
+  }
+
+  // -------------------------------------------------------------
+  // Customer Directory Tab
+  // -------------------------------------------------------------
+  Widget _buildCustomersTab(AdminState state) {
+    final filteredCustomers = state.customers.where((c) {
+      final query = _customerSearchQuery.toLowerCase();
+      return c.name.toLowerCase().contains(query) ||
+             c.mobile.toLowerCase().contains(query) ||
+             (c.email?.toLowerCase().contains(query) ?? false);
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Search Bar
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: TextField(
+                  controller: _customerSearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search global customer directory by name or phone...',
+                    hintStyle: TextStyle(color: AppColors.onSurfaceMuted),
+                    border: InputBorder.none,
+                    icon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted),
+                  ),
+                  style: TextStyle(color: AppColors.onBackground),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // List
+        Expanded(
+          child: filteredCustomers.isEmpty
+              ? Center(
+                  child: Text('No customers found.', style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted)),
+                )
+              : ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: filteredCustomers.length,
+                  itemBuilder: (context, index) {
+                    final customer = filteredCustomers[index];
+                    final companyName = state.companies.firstWhere(
+                      (c) => c.id == customer.companyId,
+                      orElse: () => AdminBusiness(id: '', name: 'Unknown Business', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+                    ).name;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GlassCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                              child: Text(
+                                customer.name.isNotEmpty ? customer.name[0].toUpperCase() : 'C',
+                                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(customer.name, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.phone_rounded, size: 12, color: AppColors.onSurfaceMuted),
+                                      const SizedBox(width: 4),
+                                      Text(customer.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                      if (customer.email != null && customer.email!.isNotEmpty) ...[
+                                        const SizedBox(width: 12),
+                                        Icon(Icons.email_rounded, size: 12, color: AppColors.onSurfaceMuted),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            customer.email!,
+                                            style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.08),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          companyName,
+                                          style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
+                                        ),
+                                      ),
+                                      if (customer.pincode != null && customer.pincode!.isNotEmpty) ...[
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Pincode: ${customer.pincode}',
+                                          style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11),
+                                        ),
+                                      ],
+                                      if (customer.address != null && customer.address!.isNotEmpty) ...[
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Addr: ${customer.address}',
+                                            style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -357,7 +408,24 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(company.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(company.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    company.category.toUpperCase(),
+                                    style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
+                                  ),
+                                ),
+                              ],
+                            ),
                             Text(
                               'Created: ${DateFormat('dd MMM yyyy').format(company.createdAt)}',
                               style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
@@ -509,7 +577,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                     final user = filteredUsers[index];
                     final companyName = state.companies.firstWhere(
                       (c) => c.id == user.companyId,
-                      orElse: () => AdminBusiness(id: '', name: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+                      orElse: () => AdminBusiness(id: '', name: '', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
                     ).name;
 
                     return Padding(
@@ -631,8 +699,9 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
           TabBar(
             controller: _tabController,
             tabs: const [
-              Tab(text: 'Analytics Center'),
+              Tab(text: 'System Overview'),
               Tab(text: 'Businesses & Codes'),
+              Tab(text: 'Customer Directory'),
               Tab(text: 'User Access Control'),
             ],
             labelColor: AppColors.primary,
@@ -651,6 +720,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                 children: [
                   _buildAnalyticsCenter(state),
                   _buildBusinessesTab(state),
+                  _buildCustomersTab(state),
                   _buildUsersTab(state),
                 ],
               ),

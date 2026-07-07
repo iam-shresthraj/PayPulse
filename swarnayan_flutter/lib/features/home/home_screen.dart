@@ -230,7 +230,7 @@ class HomeScreen extends ConsumerWidget {
                       final userObj = ref.watch(authProvider).user;
                       final isManagerOrOwner = userObj?.canManage ?? false;
                       return Text(
-                        isManagerOrOwner ? 'Admin Dashboard' : 'Staff Dashboard',
+                        isManagerOrOwner ? 'Dashboard' : 'Staff Dashboard',
                         style: AppTextStyles.headlineLg.copyWith(
                           color: AppColors.onBackground,
                           fontWeight: FontWeight.bold,

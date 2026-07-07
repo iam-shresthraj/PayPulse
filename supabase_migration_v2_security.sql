@@ -27,6 +27,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE TABLE IF NOT EXISTS public.companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Jewellery',
   staff_code CHAR(8) NOT NULL UNIQUE DEFAULT public.generate_company_code(),
   manager_code CHAR(8) NOT NULL UNIQUE DEFAULT public.generate_company_code(),
   owner_code CHAR(8) NOT NULL UNIQUE DEFAULT public.generate_company_code(),

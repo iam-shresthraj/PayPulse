@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../../models/user.dart';
+import '../../models/customer.dart';
 
 class AdminBusiness {
   final String id;
   final String name;
+  final String category;
   final String staffCode;
   final String managerCode;
   final String ownerCode;
@@ -13,6 +15,7 @@ class AdminBusiness {
   AdminBusiness({
     required this.id,
     required this.name,
+    required this.category,
     required this.staffCode,
     required this.managerCode,
     required this.ownerCode,
@@ -23,6 +26,7 @@ class AdminBusiness {
     return AdminBusiness(
       id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
+      category: json['category'] ?? 'Jewellery',
       staffCode: json['staff_code'] ?? '',
       managerCode: json['manager_code'] ?? '',
       ownerCode: json['owner_code'] ?? '',
@@ -81,10 +85,43 @@ class AdminInvoice {
   }
 }
 
+class AdminCustomer {
+  final String id;
+  final String name;
+  final String mobile;
+  final String? email;
+  final String? pincode;
+  final String? address;
+  final String companyId;
+
+  AdminCustomer({
+    required this.id,
+    required this.name,
+    required this.mobile,
+    this.email,
+    this.pincode,
+    this.address,
+    required this.companyId,
+  });
+
+  factory AdminCustomer.fromJson(Map<String, dynamic> json) {
+    return AdminCustomer(
+      id: (json['id'] ?? '').toString(),
+      name: json['name'] ?? '',
+      mobile: json['mobile'] ?? '',
+      email: json['email']?.toString(),
+      pincode: json['pincode']?.toString(),
+      address: json['address']?.toString(),
+      companyId: json['company_id']?.toString() ?? '',
+    );
+  }
+}
+
 class AdminState {
   final List<AdminBusiness> companies;
   final List<User> users;
   final List<AdminInvoice> invoices;
+  final List<AdminCustomer> customers;
   final bool isLoading;
   final String? error;
 
@@ -92,6 +129,7 @@ class AdminState {
     this.companies = const [],
     this.users = const [],
     this.invoices = const [],
+    this.customers = const [],
     this.isLoading = false,
     this.error,
   });
@@ -100,6 +138,7 @@ class AdminState {
     List<AdminBusiness>? companies,
     List<User>? users,
     List<AdminInvoice>? invoices,
+    List<AdminCustomer>? customers,
     bool? isLoading,
     String? error,
   }) {
@@ -107,6 +146,7 @@ class AdminState {
       companies: companies ?? this.companies,
       users: users ?? this.users,
       invoices: invoices ?? this.invoices,
+      customers: customers ?? this.customers,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -121,22 +161,28 @@ class AdminNotifier extends StateNotifier<AdminState> {
   Future<void> loadAdminData() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // Only fetch lightweight columns for invoices to keep it fast
+      // Only fetch lightweight columns for invoices and customers to keep it fast and secure
       final companiesData = await _client.from('companies').select().order('created_at', ascending: false);
       final usersData = await _client.from('profiles').select().order('created_at', ascending: false);
       final invoicesData = await _client
           .from('invoices')
           .select('id, invoice_number, company_id, invoice_date, gross_amount, final_payable, total_amount_paid, balance_due, status, deleted_at')
           .order('created_at', ascending: false);
+      final customersData = await _client
+          .from('customers')
+          .select('id, name, mobile, email, address, pincode, company_id')
+          .order('created_at', ascending: false);
 
       final companies = (companiesData as List).map((x) => AdminBusiness.fromJson(x)).toList();
       final users = (usersData as List).map((x) => User.fromJson(x)).toList();
       final invoices = (invoicesData as List).map((x) => AdminInvoice.fromJson(x)).toList();
+      final customers = (customersData as List).map((x) => AdminCustomer.fromJson(x)).toList();
 
       state = state.copyWith(
         companies: companies,
         users: users,
         invoices: invoices,
+        customers: customers,
         isLoading: false,
       );
     } catch (e) {
@@ -144,11 +190,12 @@ class AdminNotifier extends StateNotifier<AdminState> {
     }
   }
 
-  Future<bool> createBusiness(String name) async {
+  Future<bool> createBusiness(String name, String category) async {
     state = state.copyWith(isLoading: true);
     try {
       await _client.from('companies').insert({
         'name': name,
+        'category': category,
       });
       await loadAdminData();
       return true;

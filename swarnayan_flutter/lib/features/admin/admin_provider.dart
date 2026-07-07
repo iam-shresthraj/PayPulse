@@ -11,6 +11,7 @@ class AdminBusiness {
   final String managerCode;
   final String ownerCode;
   final DateTime createdAt;
+  final DateTime? renewDate;
 
   AdminBusiness({
     required this.id,
@@ -20,6 +21,7 @@ class AdminBusiness {
     required this.managerCode,
     required this.ownerCode,
     required this.createdAt,
+    this.renewDate,
   });
 
   factory AdminBusiness.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,9 @@ class AdminBusiness {
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at'].toString())
           : DateTime.now(),
+      renewDate: json['renew_date'] != null
+          ? DateTime.tryParse(json['renew_date'].toString())
+          : null,
     );
   }
 }
@@ -93,6 +98,7 @@ class AdminCustomer {
   final String? pincode;
   final String? address;
   final String companyId;
+  final DateTime? createdAt;
 
   AdminCustomer({
     required this.id,
@@ -102,6 +108,7 @@ class AdminCustomer {
     this.pincode,
     this.address,
     required this.companyId,
+    this.createdAt,
   });
 
   factory AdminCustomer.fromJson(Map<String, dynamic> json) {
@@ -113,9 +120,13 @@ class AdminCustomer {
       pincode: json['pincode']?.toString(),
       address: json['address']?.toString(),
       companyId: json['company_id']?.toString() ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
     );
   }
 }
+
 
 class AdminState {
   final List<AdminBusiness> companies;
@@ -170,8 +181,9 @@ class AdminNotifier extends StateNotifier<AdminState> {
           .order('created_at', ascending: false);
       final customersData = await _client
           .from('customers')
-          .select('id, name, mobile, email, address, pincode, company_id')
+          .select('id, name, mobile, email, address, pincode, company_id, created_at')
           .order('created_at', ascending: false);
+
 
       final companies = (companiesData as List).map((x) => AdminBusiness.fromJson(x)).toList();
       final users = (usersData as List).map((x) => User.fromJson(x)).toList();
@@ -225,6 +237,7 @@ class AdminNotifier extends StateNotifier<AdminState> {
     required bool isActive,
     required String approvalStatus,
     required Map<String, bool> accessList,
+    String? companyId,
   }) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -242,6 +255,7 @@ class AdminNotifier extends StateNotifier<AdminState> {
         'access_staff': accessList['staff'] ?? true,
         'access_settings': accessList['settings'] ?? true,
         'access_coupons': accessList['coupons'] ?? true,
+        'company_id': companyId,
       }).eq('id', userId);
       await loadAdminData();
       return true;
@@ -249,6 +263,43 @@ class AdminNotifier extends StateNotifier<AdminState> {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
+  }
+
+  Future<bool> deleteUser(String userId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      // Check if delete_user_pp RPC exists or just delete from profiles directly
+      // Since staff_provider.dart calls client.rpc('delete_user_pp'), we should check that
+      await _client.from('profiles').delete().eq('id', userId);
+      await loadAdminData();
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> updateCompanyRenewDate(String companyId, DateTime renewDate) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      await _client.from('companies').update({
+        'renew_date': renewDate.toUtc().toIso8601String(),
+      }).eq('id', companyId);
+      await loadAdminData();
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> renewCompanySubscription(String companyId, DateTime? currentRenewDate) async {
+    DateTime baseDate = DateTime.now();
+    if (currentRenewDate != null && currentRenewDate.isAfter(baseDate)) {
+      baseDate = currentRenewDate;
+    }
+    final nextYear = DateTime(baseDate.year + 1, baseDate.month, baseDate.day);
+    return updateCompanyRenewDate(companyId, nextYear);
   }
 }
 

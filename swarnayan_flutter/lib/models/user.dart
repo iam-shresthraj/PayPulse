@@ -3,7 +3,7 @@ class User {
   final String id;
   final String name;
   final String email;
-  final String role; // OWNER, MANAGER, STAFF
+  final String role; // OWNER, MANAGER, STAFF, SUPER_ADMIN
   final bool isActive;
   final String approvalStatus; // PENDING, APPROVED, REJECTED
   final String? companyId;
@@ -11,6 +11,8 @@ class User {
   final DateTime? lastLogin;
   final String? phone;
   final String? address;
+  final String? companyCategory; // 'Jewellery' or others
+  final DateTime? companyRenewDate;
 
   // Feature-wise Access Control Toggles (10 sections)
   final bool accessDashboard;
@@ -36,6 +38,8 @@ class User {
     this.lastLogin,
     this.phone,
     this.address,
+    this.companyCategory = 'Jewellery',
+    this.companyRenewDate,
     this.accessDashboard = true,
     this.accessInvoices = true,
     this.accessCustomers = true,
@@ -54,6 +58,13 @@ class User {
   bool get isStaff => role.toUpperCase() == 'STAFF';
   bool get isApproved => approvalStatus.toUpperCase() == 'APPROVED' || role.toUpperCase() == 'SUPER_ADMIN';
   bool get isDeassociated => ((companyId == null || companyId!.isEmpty) && role.toUpperCase() != 'SUPER_ADMIN') || approvalStatus.toUpperCase() == 'DEASSOCIATED';
+
+  bool get isJewellery => companyCategory?.toLowerCase() == 'jewellery';
+  bool get isExpired {
+    if (isSuperAdmin) return false;
+    if (companyRenewDate == null) return false;
+    return DateTime.now().isAfter(companyRenewDate!);
+  }
 
   /// Manager-level access (manager or owner).
   bool get canManage => isOwner || isManager || isSuperAdmin;
@@ -87,6 +98,26 @@ class User {
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
+    String? category;
+    DateTime? renewDate;
+
+    if (json['companies'] != null) {
+      final comp = json['companies'];
+      if (comp is Map) {
+        category = comp['category']?.toString();
+        final rDate = comp['renew_date'];
+        if (rDate != null) {
+          renewDate = DateTime.tryParse(rDate.toString());
+        }
+      }
+    } else {
+      category = json['companyCategory'] ?? json['company_category'];
+      final rDate = json['companyRenewDate'] ?? json['company_renew_date'];
+      if (rDate != null) {
+        renewDate = DateTime.tryParse(rDate.toString());
+      }
+    }
+
     return User(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       name: json['name'] ?? '',
@@ -104,6 +135,8 @@ class User {
               : null),
       phone: json['phone'],
       address: json['address'],
+      companyCategory: category ?? 'Jewellery',
+      companyRenewDate: renewDate,
       accessDashboard: json['accessDashboard'] ?? json['access_dashboard'] ?? true,
       accessInvoices: json['accessInvoices'] ?? json['access_invoices'] ?? true,
       accessCustomers: json['accessCustomers'] ?? json['access_customers'] ?? true,
@@ -129,6 +162,8 @@ class User {
         'lastLogin': lastLogin?.toIso8601String(),
         'phone': phone,
         'address': address,
+        'company_category': companyCategory,
+        'company_renew_date': companyRenewDate?.toIso8601String(),
         'access_dashboard': accessDashboard,
         'access_invoices': accessInvoices,
         'access_inventory': accessInventory,
@@ -153,6 +188,8 @@ class User {
     DateTime? lastLogin,
     String? phone,
     String? address,
+    String? companyCategory,
+    DateTime? companyRenewDate,
     bool? accessDashboard,
     bool? accessInvoices,
     bool? accessInventory,
@@ -176,6 +213,8 @@ class User {
       lastLogin: lastLogin ?? this.lastLogin,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      companyCategory: companyCategory ?? this.companyCategory,
+      companyRenewDate: companyRenewDate ?? this.companyRenewDate,
       accessDashboard: accessDashboard ?? this.accessDashboard,
       accessInvoices: accessInvoices ?? this.accessInvoices,
       accessInventory: accessInventory ?? this.accessInventory,

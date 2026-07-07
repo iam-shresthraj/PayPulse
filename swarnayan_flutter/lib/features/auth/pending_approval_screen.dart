@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -17,6 +18,7 @@ class PendingApprovalScreen extends ConsumerStatefulWidget {
 
 class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
   bool _checking = false;
+  DateTime? _lastBackPressTime;
 
   Future<void> _refresh() async {
     setState(() => _checking = true);
@@ -43,9 +45,27 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
     final role = (auth.user?.role ?? 'STAFF').toUpperCase();
     final approver = role == 'STAFF' ? 'a manager or the owner' : 'the owner';
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Press back again to exit PayPulse'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          await SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Container(
@@ -110,6 +130,7 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

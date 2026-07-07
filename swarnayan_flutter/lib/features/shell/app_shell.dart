@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -14,6 +16,9 @@ import '../auth/auth_provider.dart';
 import '../more/role_permissions_provider.dart';
 import '../billing/billing_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/widgets/notifications_dialog.dart';
+import '../admin/platform_settings_provider.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -29,6 +34,95 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   bool _prompted = false;
   DateTime? _lastBackPressTime;
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService.instance.init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupNotificationSubscription();
+    });
+  }
+
+  @override
+  void dispose() {
+    NotificationService.instance.unsubscribe();
+    super.dispose();
+  }
+
+  void _setupNotificationSubscription() {
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      NotificationService.instance.subscribe(user, (notification) {
+        if (mounted) {
+          _showNotificationPopup(notification);
+          ref.read(unreadNotificationsProvider.notifier).update((state) => state + 1);
+        }
+      });
+    }
+  }
+
+  void _showNotificationPopup(Map<String, dynamic> notification) {
+    final title = notification['title'] ?? 'New Notification';
+    final body = notification['body'] ?? '';
+    final fileUrl = notification['file_url']?.toString();
+
+    showDialog(
+      context: shellNavigatorKey.currentContext ?? context,
+      barrierDismissible: true,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: AlertDialog(
+          backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppColors.glassBorder),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.notifications_active_rounded, color: AppColors.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                body,
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+              ),
+              if (fileUrl != null && fileUrl.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () => launchUrl(Uri.parse(fileUrl)),
+                  icon: const Icon(Icons.attachment_rounded),
+                  label: const Text('View Attachment'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Dismiss', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
@@ -170,6 +264,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _checkRates() {
     if (_prompted) return;
 
+    final user = ref.read(authProvider).user;
+    if (user == null || !user.isJewellery) return; // Skip daily rates prompt if not jewellery category
+
     final ratesState = ref.read(dailyRatesProvider);
     if (ratesState is AsyncData) {
       final hasToday = ref.read(dailyRatesProvider.notifier).isTodayRateEntered();
@@ -268,7 +365,31 @@ class _AppShellState extends ConsumerState<AppShell> {
     } else {
       mainContent = Scaffold(
         backgroundColor: AppColors.background,
-        body: widget.child,
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0.0;
+            if (velocity == 0.0) return;
+            final int currentIndex = _bottomBarIndex(context); // 0 (Dashboard), 1 (Invoice), 4 (More)
+            
+            if (velocity < -300) {
+              // Swipe right-to-left -> Next Page
+              if (currentIndex == 0) {
+                _onBottomBarTap(context, 1); // Go to Invoice
+              } else if (currentIndex == 1) {
+                _onBottomBarTap(context, 4); // Go to More
+              }
+            } else if (velocity > 300) {
+              // Swipe left-to-right -> Previous Page
+              if (currentIndex == 4) {
+                _onBottomBarTap(context, 1); // Go to Invoice
+              } else if (currentIndex == 1) {
+                _onBottomBarTap(context, 0); // Go to Dashboard
+              }
+            }
+          },
+          child: widget.child,
+        ),
         extendBody: true,
         bottomNavigationBar: Builder(
           builder: (context) {
@@ -611,13 +732,40 @@ class _AppShellState extends ConsumerState<AppShell> {
           // Logo & Branding
           Padding(
             padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 32.0, bottom: 20.0),
-            child: Image.asset(
-              isLight
-                  ? 'assets/images/paypulse2.png'
-                  : 'assets/images/paypulse1.png',
-              height: 36,
-              fit: BoxFit.contain,
-              alignment: Alignment.centerLeft,
+            child: Builder(
+              builder: (context) {
+                final platformSettingsAsync = ref.watch(platformSettingsProvider);
+                final logoUrl = isLight 
+                    ? platformSettingsAsync.value?.logoLightUrl 
+                    : platformSettingsAsync.value?.logoDarkUrl;
+                if (logoUrl != null && logoUrl.isNotEmpty) {
+                  return CachedNetworkImage(
+                    imageUrl: logoUrl,
+                    height: 36,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.centerLeft,
+                    placeholder: (context, url) => const SizedBox(
+                      height: 36,
+                      width: 36,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    errorWidget: (context, url, error) => Image.asset(
+                      isLight ? 'assets/images/paypulse2.png' : 'assets/images/paypulse1.png',
+                      height: 36,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.centerLeft,
+                    ),
+                  );
+                }
+                return Image.asset(
+                  isLight
+                      ? 'assets/images/paypulse2.png'
+                      : 'assets/images/paypulse1.png',
+                  height: 36,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerLeft,
+                );
+              }
             ),
           ),
 
@@ -657,7 +805,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       isActive: currentIndex == 1,
                       onTap: () => _onTap(context, 1),
                     ),
-                  if (user?.hasAccess('rates', rolePermissions) ?? true)
+                  if ((user?.hasAccess('rates', rolePermissions) ?? true) && (user?.isJewellery ?? true))
                     _buildSidebarItem(
                       icon: Icons.trending_up_rounded,
                       label: 'Rate Management',
@@ -710,6 +858,14 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ref.read(themeModeProvider.notifier).toggleTheme(isLight);
                   },
                 ),
+                _buildSidebarItem(
+                  icon: Icons.notifications_none_rounded,
+                  label: 'Notifications',
+                  isActive: false,
+                  onTap: () {
+                    showNotificationsDialog(context);
+                  },
+                ),
                 if (isOwner)
                   _buildSidebarItem(
                     icon: Icons.settings_rounded,
@@ -723,18 +879,19 @@ class _AppShellState extends ConsumerState<AppShell> {
                       );
                     },
                   ),
-                _buildSidebarItem(
-                  icon: Icons.help_outline_rounded,
-                  label: 'Help',
-                  isActive: false,
-                  onTap: () {
-                    showDialog(
-                      context: shellNavigatorKey.currentContext ?? context,
-                      useRootNavigator: false,
-                      builder: (context) => const HelpSupportDialog(),
-                    );
-                  },
-                ),
+                if (!(user?.isSuperAdmin ?? false))
+                  _buildSidebarItem(
+                    icon: Icons.help_outline_rounded,
+                    label: 'Help',
+                    isActive: false,
+                    onTap: () {
+                      showDialog(
+                        context: shellNavigatorKey.currentContext ?? context,
+                        useRootNavigator: false,
+                        builder: (context) => const HelpSupportDialog(),
+                      );
+                    },
+                  ),
                 _buildSidebarItem(
                   icon: Icons.logout_rounded,
                   label: 'Logout',

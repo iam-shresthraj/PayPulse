@@ -1260,7 +1260,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
     final staffState = ref.watch(staffProvider);
 
     return GlassDialogWrapper(
-      title: 'Staff Management',
+      title: 'Access Control',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1270,10 +1270,13 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _showAddForm ? (_editingUser != null ? 'Edit Staff Member' : 'Add Staff Member') : 'All Staff Members',
-                    style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
-                  ),
+                  if (_showAddForm)
+                    Text(
+                      _editingUser != null ? 'Edit Staff Member' : 'Add Staff Member',
+                      style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
+                    )
+                  else
+                    const SizedBox.shrink(),
                   SecondaryButton(
                     label: _showAddForm ? 'View List' : '+ Add Staff',
                     onPressed: () {

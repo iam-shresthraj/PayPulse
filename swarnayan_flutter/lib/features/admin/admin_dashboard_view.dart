@@ -7,7 +7,6 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/stat_card.dart';
 import '../../core/widgets/section_header.dart';
-import '../../core/widgets/status_badge.dart';
 import '../../models/user.dart';
 import 'admin_provider.dart';
 import 'widgets/add_business_dialog.dart';
@@ -398,6 +397,8 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
               itemCount: state.companies.length,
               itemBuilder: (context, index) {
                 final company = state.companies[index];
+                final now = DateTime.now();
+                final isExpired = company.renewDate != null && now.isAfter(company.renewDate!);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: GlassCard(
@@ -426,9 +427,81 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                                 ),
                               ],
                             ),
-                            Text(
-                              'Created: ${DateFormat('dd MMM yyyy').format(company.createdAt)}',
-                              style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Created: ${DateFormat('dd MMM yyyy').format(company.createdAt)}',
+                                  style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isExpired ? AppColors.error.withValues(alpha: 0.08) : AppColors.success.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: isExpired ? AppColors.error.withValues(alpha: 0.3) : AppColors.success.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(
+                                        company.renewDate != null
+                                            ? 'Renews: ${DateFormat('dd MMM yyyy').format(company.renewDate!)}'
+                                            : 'No Expiry Set',
+                                        style: AppTextStyles.bodySm.copyWith(
+                                          color: isExpired ? AppColors.error : AppColors.success,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton(
+                                      onPressed: () async {
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: company.renewDate ?? DateTime.now().add(const Duration(days: 365)),
+                                          firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                                          lastDate: DateTime.now().add(const Duration(days: 3650)),
+                                          helpText: 'Set Renewal Date',
+                                        );
+                                        if (picked != null && mounted) {
+                                          await ref.read(adminProvider.notifier).updateCompanyRenewDate(company.id, picked);
+                                        }
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.primary,
+                                        side: BorderSide(color: AppColors.primary),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text('Set Date', style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11)),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        await ref.read(adminProvider.notifier).renewCompanySubscription(company.id, company.renewDate);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('${company.name} renewed for 1 year!'), backgroundColor: AppColors.success),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.success,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text('+1 Year', style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -528,9 +601,14 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   // -------------------------------------------------------------
   Widget _buildUsersTab(AdminState state) {
     final filteredUsers = state.users.where((User u) {
+      final companyName = state.companies.firstWhere(
+        (c) => c.id == u.companyId,
+        orElse: () => AdminBusiness(id: '', name: '', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+      ).name;
       final matchesSearch = u.name.toLowerCase().contains(_searchQuery) ||
           u.email.toLowerCase().contains(_searchQuery) ||
-          u.role.toLowerCase().contains(_searchQuery);
+          u.role.toLowerCase().contains(_searchQuery) ||
+          companyName.toLowerCase().contains(_searchQuery);
       return matchesSearch;
     }).toList();
 
@@ -551,7 +629,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search system users by name, email, or role...',
+                    hintText: 'Search by name, email, role, or company name...',
                     hintStyle: TextStyle(color: AppColors.onSurfaceMuted),
                     border: InputBorder.none,
                     icon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted),
@@ -602,11 +680,6 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                                   Row(
                                     children: [
                                       Text(user.name, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
-                                      const SizedBox(width: 8),
-                                      StatusBadge(
-                                        status: user.isActive ? 'PAID' : 'CANCELLED',
-                                        fontSize: 8.0,
-                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 2),
@@ -673,19 +746,9 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'PAYPULSE',
-                      style: AppTextStyles.labelSm.copyWith(color: AppColors.primary, letterSpacing: 1.5),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Admin Dashboard',
-                      style: AppTextStyles.headlineLgMobile.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ],
+                Text(
+                  'Admin Dashboard',
+                  style: AppTextStyles.headlineLgMobile.copyWith(fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),

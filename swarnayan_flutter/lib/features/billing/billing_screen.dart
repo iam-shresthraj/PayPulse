@@ -122,6 +122,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   final _newProductWeightFocusNode = FocusNode();
   final _newProductMakingChargeFocusNode = FocusNode();
 
+  final _itemHuidController = TextEditingController();
+  final _itemHuidFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -234,6 +237,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     _newProductHuidFocusNode.dispose();
     _newProductWeightFocusNode.dispose();
     _newProductMakingChargeFocusNode.dispose();
+    _itemHuidController.dispose();
+    _itemHuidFocusNode.dispose();
 
     super.dispose();
   }
@@ -500,12 +505,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   onPressed: () async {
                     final company = ref.read(companyProvider).value;
                     await WhatsAppHelper.shareInvoice(
-                      customerName: customer.name,
-                      customerPhone: customer.mobile,
-                      invoiceNumber: savedInvoice.invoiceNumber ?? '',
-                      totalAmount: savedInvoice.finalPayable,
-                      balanceDue: savedInvoice.balanceDue,
-                      date: savedInvoice.invoiceDate,
+                      invoice: savedInvoice,
+                      customer: customer,
                       company: company,
                     );
                   },
@@ -536,7 +537,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
               ),
               child: Row(
                 children: [
@@ -1087,12 +1087,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              product.name,
+                              '${product.name}${product.huidNumber != null && product.huidNumber!.isNotEmpty ? " (HUID: ${product.huidNumber})" : ""}',
                               style: AppTextStyles.cardTitle,
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${product.purity} | Weight: ${product.grossWeight.toStringAsFixed(2)}g${product.huidNumber != null && product.huidNumber!.isNotEmpty ? " | HUID: ${product.huidNumber}" : ""}',
+                              '${product.purity} | Weight: ${product.grossWeight.toStringAsFixed(2)}g',
                               style: AppTextStyles.cardSubtitle,
                             ),
                           ],
@@ -1642,10 +1642,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 hint: '0',
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
-                onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
+                onFieldSubmitted: (_) => _itemHuidFocusNode.requestFocus(),
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        GlassInput(
+          focusNode: _itemHuidFocusNode,
+          controller: _itemHuidController,
+          label: 'HUID Number (Optional)',
+          hint: 'e.g. HUID123456',
+          onFieldSubmitted: (_) => _addItemButtonFocusNode.requestFocus(),
         ),
       ],
     );
@@ -1664,6 +1672,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final filtered = activeProducts.where((p) =>
       p.name.toLowerCase().contains(query) ||
       (p.id?.toLowerCase().contains(query) ?? false) ||
+      (p.serialNumber?.toLowerCase().contains(query) ?? false) ||
       (p.huidNumber?.toLowerCase().contains(query) ?? false) ||
       (p.purity.toLowerCase().contains(query)) ||
       (p.category.toLowerCase().contains(query))
@@ -1684,6 +1693,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       _selectedProduct = p;
       _weightController.text = p.weight.toStringAsFixed(3);
       _makingChargeController.text = p.makingChargeValue.toStringAsFixed(0);
+      _itemHuidController.text = p.huidNumber ?? '';
 
       // Auto-compute rate based on today's daily rate snapshot
       final rates = ref.read(dailyRatesProvider).value ?? [];
@@ -1800,7 +1810,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       hsnCode: selected.hsnCode,
       category: selected.category,
       purity: selected.purity,
-      huidNumber: selected.huidNumber,
+      huidNumber: _itemHuidController.text.trim().isEmpty ? null : _itemHuidController.text.trim(),
       rate: rate,
       quantity: qty,
       grossWeight: weight,
@@ -1816,6 +1826,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     // Reset controllers for next product entry
     _searchController.clear();
+    _itemHuidController.clear();
     _qtyController.text = '1';
     _rateController.clear();
     _weightController.clear();
@@ -2079,35 +2090,27 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () {
+              onPressed: () async {
                 final newNum = controller.text.trim();
                 if (newNum.isNotEmpty) {
-                  final invoicesState = ref.read(invoicesProvider);
-                  if (invoicesState is AsyncData<List<Invoice>>) {
-                    final matchedIdx = invoicesState.value.indexWhere(
-                      (inv) => _matchInvoiceNumber(inv.invoiceNumber, newNum) && inv.deletedAt == null,
+                  final inv = await ref.read(invoicesProvider.notifier).findInvoiceByNumber(newNum);
+                  if (inv != null) {
+                    final customers = ref.read(customersProvider).value ?? [];
+                    final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
+                    final customer = customerIndex != -1 
+                        ? customers[customerIndex] 
+                        : Customer(
+                            name: inv.tempCustomerName ?? 'Customer',
+                            mobile: inv.tempCustomerMobile ?? '',
+                            address: inv.tempCustomerAddress ?? '',
+                          );
+                    ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Existing invoice "${inv.invoiceNumber}" loaded for editing.'),
+                        backgroundColor: AppColors.success,
+                      ),
                     );
-                    if (matchedIdx != -1) {
-                      final inv = invoicesState.value[matchedIdx];
-                      final customers = ref.read(customersProvider).value ?? [];
-                      final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
-                      final customer = customerIndex != -1 
-                          ? customers[customerIndex] 
-                          : Customer(
-                              name: inv.tempCustomerName ?? 'Customer',
-                              mobile: inv.tempCustomerMobile ?? '',
-                              address: inv.tempCustomerAddress ?? '',
-                            );
-                      ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Existing invoice "$newNum" loaded for editing.'),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
-                    } else {
-                      ref.read(billingProvider.notifier).setCustomInvoiceNumber(newNum);
-                    }
                   } else {
                     ref.read(billingProvider.notifier).setCustomInvoiceNumber(newNum);
                   }
@@ -2800,7 +2803,7 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
       final products = productsState.value!;
       Product? matched;
       for (final p in products) {
-        if (p.huidNumber == trimmed || p.id == trimmed) {
+        if (p.serialNumber == trimmed || p.huidNumber == trimmed || p.id == trimmed) {
           matched = p;
           break;
         }
@@ -2864,7 +2867,6 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                   decoration: BoxDecoration(
                     color: AppColors.success.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    border: Border.all(color: AppColors.success.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -2896,7 +2898,6 @@ class _BarcodeScannerDialogState extends ConsumerState<BarcodeScannerDialog> {
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [

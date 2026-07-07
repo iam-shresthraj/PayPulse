@@ -31,6 +31,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _companyCodeController = TextEditingController();
   bool _obscurePassword = true;
   bool _isSignUp = false;
+  DateTime? _lastBackPressTime;
 
   final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
@@ -102,10 +103,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isWide = MediaQuery.of(context).size.width >= 850;
     final isLight = themeOverride ?? isWide;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Press back again to exit PayPulse'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          await SystemNavigator.pop();
+        }
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Scaffold(
         backgroundColor: AppColors.background,
         body: Stack(
         children: [
@@ -394,6 +413,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ],
       ),
     ),
-  );
-  }
+  ),
+);
+}
 }

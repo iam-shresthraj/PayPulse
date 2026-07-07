@@ -98,7 +98,7 @@ class RateManagementScreen extends ConsumerWidget {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GlassCard(
                         animationIndex: index,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -112,11 +112,9 @@ class RateManagementScreen extends ConsumerWidget {
                                       style: AppTextStyles.cardTitle.copyWith(color: AppColors.primary),
                                     ),
                                     const SizedBox(width: 8),
-                                    IconButton(
-                                      constraints: const BoxConstraints(),
-                                      padding: EdgeInsets.zero,
-                                      icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
-                                      onPressed: () {
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
                                         showDialog(
                                           context: context,
                                           useRootNavigator: false,
@@ -127,6 +125,10 @@ class RateManagementScreen extends ConsumerWidget {
                                           ),
                                         );
                                       },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
+                                      ),
                                     ),
                                   ],
                                 ),

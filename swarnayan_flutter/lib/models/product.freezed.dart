@@ -28,6 +28,7 @@ mixin _$Product {
       throw _privateConstructorUsedError; // GOLD, SILVER, PLATINUM, DIAMOND, OTHER
   String get purity =>
       throw _privateConstructorUsedError; // 24K, 22K, 18K, 14K, SILVER_999, SILVER_925, OTHER
+  String? get serialNumber => throw _privateConstructorUsedError;
   String? get huidNumber => throw _privateConstructorUsedError;
   String get hsnCode => throw _privateConstructorUsedError;
   int get stockUnits => throw _privateConstructorUsedError;
@@ -58,6 +59,7 @@ abstract class $ProductCopyWith<$Res> {
     String name,
     String category,
     String purity,
+    String? serialNumber,
     String? huidNumber,
     String hsnCode,
     int stockUnits,
@@ -90,6 +92,7 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
     Object? name = null,
     Object? category = null,
     Object? purity = null,
+    Object? serialNumber = freezed,
     Object? huidNumber = freezed,
     Object? hsnCode = null,
     Object? stockUnits = null,
@@ -119,6 +122,10 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
                 ? _value.purity
                 : purity // ignore: cast_nullable_to_non_nullable
                       as String,
+            serialNumber: freezed == serialNumber
+                ? _value.serialNumber
+                : serialNumber // ignore: cast_nullable_to_non_nullable
+                      as String?,
             huidNumber: freezed == huidNumber
                 ? _value.huidNumber
                 : huidNumber // ignore: cast_nullable_to_non_nullable
@@ -178,6 +185,7 @@ abstract class _$$ProductImplCopyWith<$Res> implements $ProductCopyWith<$Res> {
     String name,
     String category,
     String purity,
+    String? serialNumber,
     String? huidNumber,
     String hsnCode,
     int stockUnits,
@@ -209,6 +217,7 @@ class __$$ProductImplCopyWithImpl<$Res>
     Object? name = null,
     Object? category = null,
     Object? purity = null,
+    Object? serialNumber = freezed,
     Object? huidNumber = freezed,
     Object? hsnCode = null,
     Object? stockUnits = null,
@@ -238,6 +247,10 @@ class __$$ProductImplCopyWithImpl<$Res>
             ? _value.purity
             : purity // ignore: cast_nullable_to_non_nullable
                   as String,
+        serialNumber: freezed == serialNumber
+            ? _value.serialNumber
+            : serialNumber // ignore: cast_nullable_to_non_nullable
+                  as String?,
         huidNumber: freezed == huidNumber
             ? _value.huidNumber
             : huidNumber // ignore: cast_nullable_to_non_nullable
@@ -291,6 +304,7 @@ class _$ProductImpl implements _Product {
     required this.name,
     required this.category,
     required this.purity,
+    this.serialNumber,
     this.huidNumber,
     this.hsnCode = '7113',
     this.stockUnits = 1,
@@ -317,6 +331,8 @@ class _$ProductImpl implements _Product {
   @override
   final String purity;
   // 24K, 22K, 18K, 14K, SILVER_999, SILVER_925, OTHER
+  @override
+  final String? serialNumber;
   @override
   final String? huidNumber;
   @override
@@ -347,7 +363,7 @@ class _$ProductImpl implements _Product {
 
   @override
   String toString() {
-    return 'Product(id: $id, name: $name, category: $category, purity: $purity, huidNumber: $huidNumber, hsnCode: $hsnCode, stockUnits: $stockUnits, weight: $weight, makingChargeValue: $makingChargeValue, stoneType: $stoneType, stoneWeight: $stoneWeight, stoneValue: $stoneValue, imageUrl: $imageUrl, isActive: $isActive)';
+    return 'Product(id: $id, name: $name, category: $category, purity: $purity, serialNumber: $serialNumber, huidNumber: $huidNumber, hsnCode: $hsnCode, stockUnits: $stockUnits, weight: $weight, makingChargeValue: $makingChargeValue, stoneType: $stoneType, stoneWeight: $stoneWeight, stoneValue: $stoneValue, imageUrl: $imageUrl, isActive: $isActive)';
   }
 
   @override
@@ -360,6 +376,8 @@ class _$ProductImpl implements _Product {
             (identical(other.category, category) ||
                 other.category == category) &&
             (identical(other.purity, purity) || other.purity == purity) &&
+            (identical(other.serialNumber, serialNumber) ||
+                other.serialNumber == serialNumber) &&
             (identical(other.huidNumber, huidNumber) ||
                 other.huidNumber == huidNumber) &&
             (identical(other.hsnCode, hsnCode) || other.hsnCode == hsnCode) &&
@@ -388,6 +406,7 @@ class _$ProductImpl implements _Product {
     name,
     category,
     purity,
+    serialNumber,
     huidNumber,
     hsnCode,
     stockUnits,
@@ -420,6 +439,7 @@ abstract class _Product implements Product {
     required final String name,
     required final String category,
     required final String purity,
+    final String? serialNumber,
     final String? huidNumber,
     final String hsnCode,
     final int stockUnits,
@@ -443,6 +463,8 @@ abstract class _Product implements Product {
   String get category; // GOLD, SILVER, PLATINUM, DIAMOND, OTHER
   @override
   String get purity; // 24K, 22K, 18K, 14K, SILVER_999, SILVER_925, OTHER
+  @override
+  String? get serialNumber;
   @override
   String? get huidNumber;
   @override

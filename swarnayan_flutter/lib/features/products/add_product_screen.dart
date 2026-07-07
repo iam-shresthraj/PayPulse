@@ -25,6 +25,7 @@ class AddProductScreen extends ConsumerStatefulWidget {
 class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _serialController = TextEditingController();
   final _huidController = TextEditingController();
   final _hsnController = TextEditingController(text: '7113');
   final _weightController = TextEditingController();
@@ -38,6 +39,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   final _nameFocusNode = FocusNode();
   final _categoryFocusNode = FocusNode();
   final _purityFocusNode = FocusNode();
+  final _serialFocusNode = FocusNode();
   final _huidFocusNode = FocusNode();
   final _hsnFocusNode = FocusNode();
   final _weightFocusNode = FocusNode();
@@ -58,13 +60,18 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     DropdownMenuItem(value: 'SILVER', child: Text('Silver')),
     DropdownMenuItem(value: 'PLATINUM', child: Text('Platinum')),
     DropdownMenuItem(value: 'DIAMOND', child: Text('Diamond')),
-    DropdownMenuItem(value: 'GEMS', child: Text('Gems')),
+    DropdownMenuItem(value: 'OTHER', child: Text('Other')),
   ];
 
   static const _purities = [
-    DropdownMenuItem(value: '22K', child: Text('22K')),
-    DropdownMenuItem(value: '18K', child: Text('18K')),
-    DropdownMenuItem(value: 'SILVER', child: Text('Silver')),
+    DropdownMenuItem(value: '22K', child: Text('22K Gold (916)')),
+    DropdownMenuItem(value: '18K', child: Text('18K Gold (750)')),
+    DropdownMenuItem(value: '24K', child: Text('24K Gold (999)')),
+    DropdownMenuItem(value: '14K', child: Text('14K Gold (585)')),
+    DropdownMenuItem(value: '925', child: Text('925 Silver (Sterling)')),
+    DropdownMenuItem(value: '999', child: Text('999 Silver (Pure)')),
+    DropdownMenuItem(value: 'PLAT', child: Text('Platinum (950)')),
+    DropdownMenuItem(value: 'OTHER', child: Text('Other / Custom')),
   ];
 
   bool get _isEditing => widget.product != null;
@@ -75,6 +82,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     final product = widget.product;
     if (product != null) {
       _nameController.text = product.name;
+      _serialController.text = product.serialNumber ?? '';
       _huidController.text = product.huidNumber ?? '';
       _hsnController.text = product.hsnCode;
       _weightController.text = product.weight.toStringAsFixed(3);
@@ -89,9 +97,9 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         try {
-          final nextHuid = await ref.read(productsProvider.notifier).generateNextHuid();
+          final nextSerial = await ref.read(productsProvider.notifier).generateNextSerialNumber();
           if (mounted) {
-            _huidController.text = nextHuid;
+            _serialController.text = nextSerial;
           }
         } catch (_) {}
       });
@@ -101,6 +109,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _serialController.dispose();
     _huidController.dispose();
     _hsnController.dispose();
     _weightController.dispose();
@@ -114,6 +123,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     _nameFocusNode.dispose();
     _categoryFocusNode.dispose();
     _purityFocusNode.dispose();
+    _serialFocusNode.dispose();
     _huidFocusNode.dispose();
     _hsnFocusNode.dispose();
     _weightFocusNode.dispose();
@@ -145,7 +155,8 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
         name: _nameController.text.trim(),
         category: _selectedCategory!,
         purity: _selectedPurity!,
-        huidNumber: _huidController.text.trim().isEmpty ? widget.product?.huidNumber : _huidController.text.trim(),
+        serialNumber: _serialController.text.trim().isEmpty ? widget.product?.serialNumber : _serialController.text.trim(),
+        huidNumber: _huidController.text.trim().isEmpty ? null : _huidController.text.trim(),
         hsnCode: _hsnController.text.trim(),
         weight: _weightController.text.trim().isEmpty ? 0.0 : double.parse(_weightController.text),
         stockUnits: int.parse(_stockController.text),
@@ -178,7 +189,6 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -225,7 +235,6 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
               ),
               child: Row(
                 children: [
@@ -331,13 +340,28 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    GlassInput(
-                      focusNode: _huidFocusNode,
-                      controller: _huidController,
-                      label: 'HUID Number',
-                      hint: _isEditing ? 'Preserved existing HUID' : 'Auto-generated when blank',
-                      readOnly: _isEditing,
-                      onFieldSubmitted: (_) => _hsnFocusNode.requestFocus(),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GlassInput(
+                            focusNode: _serialFocusNode,
+                            controller: _serialController,
+                            label: 'Serial Number',
+                            readOnly: true,
+                            hint: 'Auto-incremented',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GlassInput(
+                            focusNode: _huidFocusNode,
+                            controller: _huidController,
+                            label: 'HUID Number (Optional)',
+                            hint: 'Enter HUID number',
+                            onFieldSubmitted: (_) => _hsnFocusNode.requestFocus(),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     GlassInput(

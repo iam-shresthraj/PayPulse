@@ -24,6 +24,10 @@ class AuthState {
   bool get isDeassociated =>
       isAuthenticated && user != null && user!.isDeassociated;
 
+  bool get isExpired =>
+      isAuthenticated && user != null && user!.isExpired;
+
+
   AuthState copyWith({
     User? user,
     bool? isAuthenticated,
@@ -73,7 +77,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final data = await _client
           .from('profiles')
-          .select()
+          .select('*, companies(category, renew_date)')
           .eq('id', uid)
           .maybeSingle();
       if (data != null) {

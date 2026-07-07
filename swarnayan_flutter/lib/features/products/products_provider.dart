@@ -15,6 +15,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
       name: data['name'] ?? '',
       category: data['category'] ?? 'GOLD',
       purity: data['purity'] ?? '22K',
+      serialNumber: data['serial_number'],
       huidNumber: data['huid_number'],
       hsnCode: data['hsn_code'] ?? '7113',
       stockUnits: data['stock_units'] ?? 1,
@@ -32,6 +33,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
       'name': product.name,
       'category': product.category,
       'purity': product.purity,
+      if (product.serialNumber != null) 'serial_number': product.serialNumber,
       if (product.huidNumber != null) 'huid_number': product.huidNumber,
       'hsn_code': product.hsnCode,
       'stock_units': product.stockUnits,
@@ -44,21 +46,21 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     };
   }
 
-  Future<String> generateNextHuid() async {
+  Future<String> generateNextSerialNumber() async {
     try {
       final response = await _client
           .from('products')
-          .select('huid_number')
-          .not('huid_number', 'is', null);
+          .select('serial_number')
+          .not('serial_number', 'is', null);
 
       if (response != null && response is List) {
         int maxVal = -1;
         int maxLen = 3;
 
         for (final item in response) {
-          final String? huid = item['huid_number'];
-          if (huid != null && huid.isNotEmpty) {
-            final numericOnly = huid.replaceAll(RegExp(r'\D'), '');
+          final String? serial = item['serial_number'];
+          if (serial != null && serial.isNotEmpty) {
+            final numericOnly = serial.replaceAll(RegExp(r'\D'), '');
             if (numericOnly.isNotEmpty) {
               final val = int.tryParse(numericOnly);
               if (val != null) {
@@ -95,9 +97,9 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
   Future<void> addProduct(Product product) async {
     try {
       var payload = _unmapProduct(product);
-      if (product.huidNumber == null || product.huidNumber!.trim().isEmpty) {
-        final nextHuid = await generateNextHuid();
-        payload['huid_number'] = nextHuid;
+      if (product.serialNumber == null || product.serialNumber!.trim().isEmpty) {
+        final nextSerial = await generateNextSerialNumber();
+        payload['serial_number'] = nextSerial;
       }
       final data = await _client.from('products').insert(payload).select().single();
       final newProd = _mapProduct(data);

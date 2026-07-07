@@ -1,72 +1,71 @@
-import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
+import 'pdf_helper.dart';
+import '../../models/invoice.dart';
+import '../../models/customer.dart';
 import '../../models/company_settings.dart';
 
 class WhatsAppHelper {
   static Future<void> shareInvoice({
-    required String? customerName,
-    required String? customerPhone,
-    required String invoiceNumber,
-    required double totalAmount,
-    required double balanceDue,
-    required DateTime date,
+    required Invoice invoice,
+    required Customer customer,
     CompanySettings? company,
   }) async {
-    final phoneNum = customerPhone ?? '';
-    final name = customerName ?? 'Customer';
-    final dateStr = '${date.day}/${date.month}/${date.year}';
-    
-    var phone = phoneNum.replaceAll(RegExp(r'\D'), '');
-    if (phone.length == 10) {
-      phone = '91$phone';
-    }
+    final String dateStr = DateFormat('dd/MM/yyyy').format(invoice.invoiceDate);
+    final String invoiceNumber = invoice.invoiceNumber ?? 'N/A';
+    final String totalAmount = invoice.finalPayable.toStringAsFixed(2);
+    final String balanceDue = invoice.balanceDue.toStringAsFixed(2);
+    final String firstName = _toPascalCase(customer.name);
 
-    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
-    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';
-    final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
-    
-    String cAddressLine = '';
-    if (company != null) {
-      final addr = company.address;
-      final parts = <String>[];
-      if (addr.line1.isNotEmpty) parts.add(addr.line1);
-      if (addr.line2.isNotEmpty) parts.add(addr.line2);
-      if (addr.city.isNotEmpty) parts.add(addr.city);
-      if (addr.state.isNotEmpty) parts.add(addr.state);
-      cAddressLine = parts.join(', ');
-      if (addr.postalCode.isNotEmpty) {
-        cAddressLine += ' - ${addr.postalCode}';
-      }
-    } else {
-      cAddressLine = 'Gulab Bagh Market, Thakurbari Road, Patna - 800004';
-    }
+    final message = '''Hello $firstName,
 
-    final message = '''
-Hello $name,
+Thank you for shopping at *Swarnayan Jewellers*! 🙏
 
-Thank you for shopping at *$cName*! 🙏
 Here is your invoice summary:
+- *Invoice No:* $invoiceNumber
+- *Date:* $dateStr
+- *Grand Total:* ₹$totalAmount
+- *Balance Due:* ₹$balanceDue
 
-*Invoice No:* $invoiceNumber
-*Date:* $dateStr
-*Grand Total:* ₹${totalAmount.toStringAsFixed(0)}
-*Balance Due:* ₹${balanceDue.toStringAsFixed(0)}
+*Trusted Hallmark Jewellery Destination* 
 
-_${cTagline}_
-$cAddressLine
-Phone: $cPhone
-''';
+*Please share your feedback* : https://bit.ly/swarnayan-jewellers-feedback
 
-    final encodedMessage = Uri.encodeComponent(message);
-    final url = Uri.parse('https://api.whatsapp.com/send?phone=$phone&text=$encodedMessage');
-    
+Gulab Bagh Market, Thakurbari Road, Patna, Bihar - 800004
+Phone: 7903111274''';
+
     try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      try {
-        await launchUrl(url, mode: LaunchMode.platformDefault);
-      } catch (e) {
-        throw 'Could not launch WhatsApp: $e';
-      }
+      // 1. Generate the PDF bytes in WhatsApp mode (no signatures)
+      final pdfBytes = await PdfHelper.generateInvoicePdfBytes(
+        invoice: invoice,
+        customer: customer,
+        company: company,
+        forWhatsApp: true,
+      );
+
+      // 2. Save the PDF to a temporary file
+      final tempDir = await getTemporaryDirectory();
+      final sanitizedInvNum = invoiceNumber.replaceAll(RegExp(r'[^\w\-]'), '_');
+      final file = File('${tempDir.path}/Invoice_$sanitizedInvNum.pdf');
+      await file.writeAsBytes(pdfBytes);
+
+      // 3. Share both the PDF file and the message via share_plus
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        text: message,
+        subject: 'Invoice $invoiceNumber - Swarnayan Jewellers',
+      );
+    } catch (e) {
+      throw 'Failed to share invoice: $e';
     }
+  }
+
+  static String _toPascalCase(String name) {
+    if (name.isEmpty) return 'Customer';
+    final firstWord = name.trim().split(' ').first;
+    if (firstWord.isEmpty) return 'Customer';
+    return firstWord[0].toUpperCase() + firstWord.substring(1).toLowerCase();
   }
 }

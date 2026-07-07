@@ -136,8 +136,8 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }
       }
 
-      // Find the lowest available counter (starting from 1)
-      int nextCounter = 1;
+      // Find the lowest available counter (starting from 645)
+      int nextCounter = 645;
       while (usedCounters.contains(nextCounter)) {
         nextCounter++;
       }
@@ -615,6 +615,52 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       rethrow;
     }
   }
+
+  Future<Invoice?> findInvoiceByNumber(String number) async {
+    try {
+      // 1. Exact match
+      var data = await _client
+          .from('invoices')
+          .select()
+          .eq('invoice_number', number)
+          .isFilter('deleted_at', null)
+          .maybeSingle();
+          
+      if (data != null) return _mapInvoice(data);
+
+      // 2. Trailing match or case-insensitive match
+      final response = await _client
+          .from('invoices')
+          .select()
+          .ilike('invoice_number', '%$number')
+          .isFilter('deleted_at', null);
+
+      if (response != null && response is List && response.isNotEmpty) {
+        for (final item in response) {
+          final inv = _mapInvoice(item);
+          final invNum = inv.invoiceNumber;
+          if (invNum != null) {
+            final cleanInv = invNum.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+            final cleanQuery = number.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+            if (cleanInv == cleanQuery || cleanInv.endsWith(cleanQuery)) {
+              return inv;
+            }
+            final invDigits = invNum.replaceAll(RegExp(r'\D'), '');
+            final queryDigits = number.replaceAll(RegExp(r'\D'), '');
+            if (invDigits.isNotEmpty && queryDigits.isNotEmpty) {
+              final invVal = int.tryParse(invDigits);
+              final queryVal = int.tryParse(queryDigits);
+              if (invVal != null && queryVal != null && invVal == queryVal) {
+                return inv;
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   int? _parseCounter(String invoiceNum, Map<String, dynamic> settings) {
     final prefix = (settings['invoice_prefix'] ?? '') as String;
     final separator = (settings['invoice_separator'] ?? '-') as String;

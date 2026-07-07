@@ -10,6 +10,7 @@ class Product with _$Product {
     required String name,
     required String category, // GOLD, SILVER, PLATINUM, DIAMOND, OTHER
     required String purity, // 24K, 22K, 18K, 14K, SILVER_999, SILVER_925, OTHER
+    String? serialNumber,
     String? huidNumber,
     @Default('7113') String hsnCode,
     @Default(1) int stockUnits,

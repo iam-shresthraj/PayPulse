@@ -140,7 +140,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 if (_searchQuery.isNotEmpty) {
                   filtered = filtered.where((p) {
                     final nameMatch = p.name.toLowerCase().contains(_searchQuery);
-                    final codeMatch = (p.huidNumber ?? p.id ?? '').toLowerCase().contains(_searchQuery);
+                    final codeMatch = (p.serialNumber ?? p.huidNumber ?? p.id ?? '').toLowerCase().contains(_searchQuery);
                     final catMatch = p.category.toLowerCase().contains(_searchQuery);
                     return nameMatch || codeMatch || catMatch;
                   }).toList();
@@ -213,7 +213,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                   Row(
                                     children: [
                                       Text(
-                                        p.huidNumber ?? 'No HUID',
+                                        'S/N: ${p.serialNumber ?? 'N/A'}${p.huidNumber != null && p.huidNumber!.isNotEmpty ? " | HUID: ${p.huidNumber}" : ""}',
                                         style: AppTextStyles.cardSubtitle,
                                       ),
                                       const SizedBox(width: 8),
@@ -377,7 +377,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             style: AppTextStyles.titleLg.copyWith(color: AppColors.error),
           ),
           content: Text(
-            'Are you sure you want to delete product "${product.name}" (${product.huidNumber ?? 'No HUID'})?',
+            'Are you sure you want to delete product "${product.name}" (S/N: ${product.serialNumber ?? 'N/A'})?',
             style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
           ),
           actions: [
@@ -448,12 +448,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                _detailRow('Serial Number', p.serialNumber ?? 'N/A'),
                 _detailRow('HUID Number', p.huidNumber ?? 'No HUID'),
                 _detailRow('Category', p.category),
                 _detailRow('Purity', p.purity),
                 _detailRow('HSN Code', p.hsnCode),
-                if (p.huidNumber != null && p.huidNumber!.isNotEmpty) ...[
+                if (p.serialNumber != null && p.serialNumber!.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Center(
                     child: Container(
@@ -464,15 +464,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       ),
                       child: BarcodeWidget(
                         barcode: Barcode.code128(),
-                        data: p.huidNumber!,
+                        data: p.serialNumber!,
                         width: 200,
                         height: 70,
                         style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
                 ],
+                const SizedBox(height: 12),
                 _detailRow('Weight (g)', '${p.weight.toStringAsFixed(3)} g'),
                 _detailRow('Stock units', '${p.stockUnits} units'),
                 if (p.stoneType != null && p.stoneType != 'NONE') ...[

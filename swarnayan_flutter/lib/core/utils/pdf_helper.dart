@@ -106,11 +106,13 @@ class PdfHelper {
     required Invoice invoice,
     required Customer customer,
     CompanySettings? company,
+    bool forWhatsApp = false,
   }) async {
     final doc = await buildInvoiceDocument(
       invoice: invoice,
       customer: customer,
       company: company,
+      forWhatsApp: forWhatsApp,
     );
     return doc.save();
   }
@@ -119,6 +121,7 @@ class PdfHelper {
     required Invoice invoice,
     required Customer customer,
     CompanySettings? company,
+    bool forWhatsApp = false,
   }) async {
     final doc = pw.Document();
 
@@ -175,53 +178,56 @@ class PdfHelper {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        cName,
-                        style: pw.TextStyle(
-                          font: fontBold,
-                          fontSize: 20,
-                          color: PdfColors.black,
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          cName,
+                          style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 20,
+                            color: PdfColors.black,
+                          ),
                         ),
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Text(
-                        cTagline,
-                        style: pw.TextStyle(
-                          font: fontItalic,
-                          fontSize: 9,
-                          color: PdfColors.grey700,
+                        pw.SizedBox(height: 10),
+                        pw.Text(
+                          cTagline,
+                          style: pw.TextStyle(
+                            font: fontItalic,
+                            fontSize: 9,
+                            color: PdfColors.grey700,
+                          ),
                         ),
-                      ),
-                      pw.Text(
-                        cNotes,
-                        style: pw.TextStyle(
-                          font: fontData,
-                          fontSize: 8.5,
-                          color: PdfColors.grey700,
+                        pw.Text(
+                          cNotes,
+                          style: pw.TextStyle(
+                            font: fontData,
+                            fontSize: 8.5,
+                            color: PdfColors.grey700,
+                          ),
                         ),
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        'GSTIN: $cGstin',
-                        style: pw.TextStyle(font: fontData, fontSize: 8.5),
-                      ),
-                      pw.Text(
-                        'Phone: +91 $cPhone',
-                        style: pw.TextStyle(font: fontData, fontSize: 8.5),
-                      ),
-                      pw.Text(
-                        cAddressLine,
-                        style: pw.TextStyle(font: fontData, fontSize: 8.5),
-                      ),
-                      pw.Text(
-                        'Email: $cEmail',
-                        style: pw.TextStyle(font: fontData, fontSize: 8.5),
-                      ),
-                    ],
+                        pw.SizedBox(height: 4),
+                        pw.Text(
+                          'GSTIN: $cGstin',
+                          style: pw.TextStyle(font: fontData, fontSize: 8.5),
+                        ),
+                        pw.Text(
+                          'Phone: +91 $cPhone',
+                          style: pw.TextStyle(font: fontData, fontSize: 8.5),
+                        ),
+                        pw.Text(
+                          cAddressLine,
+                          style: pw.TextStyle(font: fontData, fontSize: 8.5),
+                        ),
+                        pw.Text(
+                          'Email: $cEmail',
+                          style: pw.TextStyle(font: fontData, fontSize: 8.5),
+                        ),
+                      ],
+                    ),
                   ),
+                  pw.SizedBox(width: 16),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
@@ -243,9 +249,9 @@ class PdfHelper {
                         height: 45,
                         child: pw.BarcodeWidget(
                           barcode: pw.Barcode.qrCode(),
-                          data: company?.logoUrl.isNotEmpty == true
+                          data: company?.logoUrl.isNotEmpty == true && !company!.logoUrl.contains('maps.app.goo.gl')
                               ? company!.logoUrl
-                              : 'https://maps.app.goo.gl/JC4gdmnJizG5NULs5',
+                              : 'https://bit.ly/swarnayan-jewellers-feedback',
                           width: 45,
                           height: 45,
                         ),
@@ -370,7 +376,7 @@ class PdfHelper {
                     return pw.TableRow(
                       children: [
                         _tableDataCell(
-                          '${item.productName}${item.huidNumber != null && item.huidNumber!.isNotEmpty ? '\nHUID: ${item.huidNumber}' : ''}',
+                          '${item.productName}${item.huidNumber != null && item.huidNumber!.isNotEmpty ? ' (HUID: ${item.huidNumber})' : ''}',
                           fontData,
                           align: pw.TextAlign.left,
                         ),
@@ -479,8 +485,8 @@ class PdfHelper {
                     flex: 1,
                     child: pw.Column(
                       children: [
-                        _summaryRow('Subtotal (Gross):', _currencyFormat.format(invoice.grossAmount), fontData, fontData),
                         _summaryRow('Total Making Charge:', _currencyFormat.format(totalMakingCharge), fontData, fontData),
+                        _summaryRow('Subtotal (Gross):', _currencyFormat.format(invoice.grossAmount), fontData, fontData),
                         if (invoice.couponDiscount > 0)
                           _summaryRow('Coupon Discount:', '- ${_currencyFormat.format(invoice.couponDiscount)}', fontData, fontData),
                         if (invoice.manualDiscount > 0)
@@ -530,82 +536,90 @@ class PdfHelper {
 
               // Signature Box
               pw.SizedBox(height: 15),
-              pw.Table(
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(1),
-                  1: const pw.FlexColumnWidth(1),
-                },
-                children: [
-                  pw.TableRow(
-                    children: [
-                      pw.Container(), // Empty space for customer side header
-                      pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          'For $cName',
-                          style: pw.TextStyle(font: fontBold, fontSize: 8),
+              if (forWhatsApp)
+                pw.Center(
+                  child: pw.Text(
+                    'This is a computer-generated invoice and does not require a physical signature.',
+                    style: pw.TextStyle(font: fontItalic, fontSize: 8.5, color: PdfColors.grey700),
+                  ),
+                )
+              else
+                pw.Table(
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(1),
+                    1: const pw.FlexColumnWidth(1),
+                  },
+                  children: [
+                    pw.TableRow(
+                      children: [
+                        pw.Container(), // Empty space for customer side header
+                        pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            'For $cName',
+                            style: pw.TextStyle(font: fontBold, fontSize: 8),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      pw.SizedBox(height: 30), // Signing area
-                      pw.SizedBox(height: 30),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Container(
-                          width: 140,
-                          decoration: const pw.BoxDecoration(
-                            border: pw.Border(
-                              bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                      ],
+                    ),
+                    pw.TableRow(
+                      children: [
+                        pw.SizedBox(height: 30), // Signing area
+                        pw.SizedBox(height: 30),
+                      ],
+                    ),
+                    pw.TableRow(
+                      children: [
+                        pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Container(
+                            width: 140,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(
+                                bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Container(
-                          width: 140,
-                          decoration: const pw.BoxDecoration(
-                            border: pw.Border(
-                              bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                        pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Container(
+                            width: 140,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(
+                                bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      pw.SizedBox(height: 4),
-                      pw.SizedBox(height: 4),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          'Customer Signature',
-                          style: pw.TextStyle(font: fontBold, fontSize: 8),
+                      ],
+                    ),
+                    pw.TableRow(
+                      children: [
+                        pw.SizedBox(height: 4),
+                        pw.SizedBox(height: 4),
+                      ],
+                    ),
+                    pw.TableRow(
+                      children: [
+                        pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            'Customer Signature',
+                            style: pw.TextStyle(font: fontBold, fontSize: 8),
+                          ),
                         ),
-                      ),
-                      pw.Container(
-                        alignment: pw.Alignment.center,
-                        child: pw.Text(
-                          'Authorised Signature',
-                          style: pw.TextStyle(font: fontBold, fontSize: 8),
+                        pw.Container(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(
+                            'Authorised Signature',
+                            style: pw.TextStyle(font: fontBold, fontSize: 8),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                  ],
+                ),
 
               pw.SizedBox(height: 8),
 

@@ -18,6 +18,7 @@ import '../../features/auth/splash_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/auth/pending_approval_screen.dart';
 import '../../features/auth/deassociated_screen.dart';
+import '../../features/auth/expired_screen.dart';
 import '../../features/more/role_permissions_provider.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
@@ -40,12 +41,17 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isLoggingIn = location == '/login';
       final isPendingPage = location == '/pending';
+      final isDeassociatedPage = location == '/deassociated';
+      final isExpiredPage = location == '/expired';
 
       if (!authState.isAuthenticated) {
         return '/login';
       }
 
-      final isDeassociatedPage = location == '/deassociated';
+      // Expiry check
+      if (authState.isExpired) {
+        return isExpiredPage ? null : '/expired';
+      }
 
       // Deassociated users only see /deassociated page.
       if (authState.isDeassociated) {
@@ -57,7 +63,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isPendingPage ? null : '/pending';
       }
 
-      if (isLoggingIn || isPendingPage || isDeassociatedPage) {
+      if (isLoggingIn || isPendingPage || isDeassociatedPage || isExpiredPage) {
         return '/';
       }
 
@@ -142,6 +148,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _buildPage(
           const DeassociatedScreen(),
+          state,
+        ),
+      ),
+      GoRoute(
+        path: '/expired',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildPage(
+          const ExpiredScreen(),
           state,
         ),
       ),
@@ -257,7 +271,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     if (previous?.isAuthenticated != next.isAuthenticated ||
         previous?.isLoading != next.isLoading ||
         previous?.user?.approvalStatus != next.user?.approvalStatus ||
-        previous?.user?.companyId != next.user?.companyId) {
+        previous?.user?.companyId != next.user?.companyId ||
+        previous?.user?.companyRenewDate != next.user?.companyRenewDate) {
       router.refresh();
     }
   });
@@ -271,9 +286,13 @@ CustomTransitionPage _buildPage(Widget child, GoRouterState state) {
     key: state.pageKey,
     child: child,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      return FadeTransition(opacity: animation, child: child);
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeInOutCubic,
+      );
+      return FadeTransition(opacity: curved, child: child);
     },
-    transitionDuration: const Duration(milliseconds: 250),
+    transitionDuration: const Duration(milliseconds: 300),
   );
 }
 
@@ -285,16 +304,16 @@ CustomTransitionPage _buildSlidePage(Widget child, GoRouterState state) {
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(
         parent: animation,
-        curve: Curves.easeOutCubic,
+        curve: Curves.easeOutQuint,
       );
       return SlideTransition(
         position: Tween<Offset>(
-          begin: const Offset(0, 0.1),
+          begin: const Offset(0, 0.08),
           end: Offset.zero,
         ).animate(curved),
         child: FadeTransition(opacity: curved, child: child),
       );
     },
-    transitionDuration: const Duration(milliseconds: 350),
+    transitionDuration: const Duration(milliseconds: 400),
   );
 }

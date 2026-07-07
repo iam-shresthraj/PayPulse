@@ -51,6 +51,48 @@ class RolePermissionsNotifier extends StateNotifier<AsyncValue<Map<String, bool>
         'p_manager_settings': updated['manager_access_settings'] ?? false,
         'p_manager_coupons': updated['manager_access_coupons'] ?? true,
       });
+
+      final currentUser = _client.auth.currentUser;
+      if (currentUser != null) {
+        final profileRes = await _client
+            .from('profiles')
+            .select('company_id')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+
+        if (profileRes != null && profileRes['company_id'] != null) {
+          final String companyId = profileRes['company_id'];
+
+          // Sync Staff Profiles
+          await _client.from('profiles').update({
+            'access_dashboard': updated['staff_access_dashboard'] ?? true,
+            'access_invoices': updated['staff_access_invoices'] ?? true,
+            'access_customers': updated['staff_access_customers'] ?? true,
+            'access_inventory': updated['staff_access_inventory'] ?? true,
+            'access_reports': updated['staff_access_reports'] ?? false,
+            'access_records': updated['staff_access_records'] ?? true,
+            'access_rates': updated['staff_access_rates'] ?? true,
+            'access_staff': updated['staff_access_staff'] ?? false,
+            'access_settings': updated['staff_access_settings'] ?? false,
+            'access_coupons': updated['staff_access_coupons'] ?? false,
+          }).eq('company_id', companyId).eq('role', 'STAFF');
+
+          // Sync Manager Profiles
+          await _client.from('profiles').update({
+            'access_dashboard': updated['manager_access_dashboard'] ?? true,
+            'access_invoices': updated['manager_access_invoices'] ?? true,
+            'access_customers': updated['manager_access_customers'] ?? true,
+            'access_inventory': updated['manager_access_inventory'] ?? true,
+            'access_reports': updated['manager_access_reports'] ?? true,
+            'access_records': updated['manager_access_records'] ?? true,
+            'access_rates': updated['manager_access_rates'] ?? true,
+            'access_staff': updated['manager_access_staff'] ?? true,
+            'access_settings': updated['manager_access_settings'] ?? false,
+            'access_coupons': updated['manager_access_coupons'] ?? true,
+          }).eq('company_id', companyId).eq('role', 'MANAGER');
+        }
+      }
+
       await loadPermissions();
     } catch (e) {
       rethrow;

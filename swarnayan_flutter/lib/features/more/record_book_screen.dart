@@ -603,16 +603,17 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                               IconButton(
                                                 icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                                                 onPressed: () async {
-                                                  final phone = customerIndex != -1 ? customers[customerIndex].mobile : (inv.tempCustomerMobile ?? '');
-                                                  final name = customerIndex != -1 ? customers[customerIndex].name : (inv.tempCustomerName ?? 'Customer');
+                                                  final customer = customerIndex != -1 
+                                                      ? customers[customerIndex] 
+                                                      : Customer(
+                                                          name: inv.tempCustomerName ?? 'Customer',
+                                                          mobile: inv.tempCustomerMobile ?? '',
+                                                          address: inv.tempCustomerAddress ?? '',
+                                                        );
                                                   final company = ref.read(companyProvider).value;
                                                   await WhatsAppHelper.shareInvoice(
-                                                    customerName: name,
-                                                    customerPhone: phone,
-                                                    invoiceNumber: inv.invoiceNumber ?? '',
-                                                    totalAmount: inv.finalPayable,
-                                                    balanceDue: inv.balanceDue,
-                                                    date: inv.invoiceDate,
+                                                    invoice: inv,
+                                                    customer: customer,
                                                     company: company,
                                                   );
                                                 },

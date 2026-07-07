@@ -96,7 +96,6 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -129,7 +128,6 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -19,6 +20,7 @@ class _DeassociatedScreenState extends ConsumerState<DeassociatedScreen> {
   final _codeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _submitting = false;
+  DateTime? _lastBackPressTime;
 
   @override
   void dispose() {
@@ -117,7 +119,25 @@ class _DeassociatedScreenState extends ConsumerState<DeassociatedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Press back again to exit PayPulse'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          await SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: Colors.black, // Dark/black page
       body: Center(
         child: SingleChildScrollView(
@@ -217,6 +237,7 @@ class _DeassociatedScreenState extends ConsumerState<DeassociatedScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

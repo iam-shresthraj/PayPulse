@@ -194,7 +194,6 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [

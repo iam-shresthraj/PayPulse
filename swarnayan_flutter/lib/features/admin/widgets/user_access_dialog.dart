@@ -26,7 +26,9 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
   late bool _isActive;
   late String _selectedStatus;
   late Map<String, bool> _accessList;
+  String? _selectedCompanyId;
   bool _submitting = false;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
     _selectedRole = widget.user.role;
     _isActive = widget.user.isActive;
     _selectedStatus = widget.user.approvalStatus;
+    _selectedCompanyId = widget.user.companyId;
     _accessList = {
       'dashboard': widget.user.accessDashboard,
       'invoices': widget.user.accessInvoices,
@@ -56,6 +59,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
           isActive: _isActive,
           approvalStatus: _selectedStatus,
           accessList: _accessList,
+          companyId: _selectedCompanyId,
         );
     if (mounted) {
       setState(() => _submitting = false);
@@ -71,6 +75,57 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(ref.read(adminProvider).error ?? 'Failed to update user.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteUser() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Delete User', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
+        content: Text(
+          'Are you sure you want to permanently delete "${widget.user.name}"? This action cannot be undone.',
+          style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _deleting = true);
+    final success = await ref.read(adminProvider.notifier).deleteUser(widget.user.id);
+    if (mounted) {
+      setState(() => _deleting = false);
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('User deleted successfully.'), backgroundColor: AppColors.success),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ref.read(adminProvider).error ?? 'Failed to delete user.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -98,10 +153,20 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
   Widget build(BuildContext context) {
     final roles = ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'STAFF'];
     final statuses = ['PENDING', 'APPROVED', 'REJECTED', 'DEASSOCIATED'];
+    final adminState = ref.watch(adminProvider);
+    final companies = adminState.companies;
 
     return GlassDialogWrapper(
       title: 'Manage User & Access',
       actions: [
+        TextButton.icon(
+          onPressed: (_submitting || _deleting) ? null : _deleteUser,
+          icon: _deleting
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+              : Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.error),
+          label: Text('Delete User', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
+        ),
+        const Spacer(),
         TextButton(
           onPressed: _submitting ? null : () => Navigator.pop(context),
           child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
@@ -211,6 +276,34 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Company Assignment
+          Text('COMPANY ASSIGNMENT', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String?>(
+            value: _selectedCompanyId,
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('— No Company (Super Admin) —'),
+              ),
+              ...companies.map((company) => DropdownMenuItem<String?>(
+                    value: company.id,
+                    child: Text('${company.name} (${company.category})'),
+                  )),
+            ],
+            onChanged: (val) => setState(() => _selectedCompanyId = val),
+            decoration: InputDecoration(
+              labelText: 'Assign to Company',
+              labelStyle: TextStyle(color: AppColors.primary),
+              filled: true,
+              fillColor: AppColors.surfaceContainer,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            dropdownColor: AppColors.surfaceContainer,
+          ),
+          const SizedBox(height: 16),
+
           SwitchListTile(
             value: _isActive,
             onChanged: (val) => setState(() => _isActive = val),

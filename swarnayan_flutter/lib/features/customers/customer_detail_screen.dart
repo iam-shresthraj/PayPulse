@@ -330,12 +330,8 @@ class CustomerDetailScreen extends ConsumerWidget {
                                       onPressed: () async {
                                         final company = ref.read(companyProvider).value;
                                         await WhatsAppHelper.shareInvoice(
-                                          customerName: customer.name,
-                                          customerPhone: customer.mobile,
-                                          invoiceNumber: inv.invoiceNumber ?? '',
-                                          totalAmount: inv.finalPayable,
-                                          balanceDue: inv.balanceDue,
-                                          date: inv.invoiceDate,
+                                          invoice: inv,
+                                          customer: customer,
                                           company: company,
                                         );
                                       },

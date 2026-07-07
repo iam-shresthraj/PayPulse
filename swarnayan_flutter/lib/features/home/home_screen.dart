@@ -121,7 +121,12 @@ class HomeScreen extends ConsumerWidget {
                 activeInvoices: activeInvoices,
                 customers: clients,
               ),
-              loading: () => _buildDashboardSkeleton(),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
               error: (err, _) => Center(child: Text('Error: $err', style: TextStyle(color: AppColors.error))),
             );
           }
@@ -175,12 +180,12 @@ class HomeScreen extends ConsumerWidget {
                     onAction: () => context.push('/more/records'),
                   ),
                   const SizedBox(height: 12),
-                  customersState.when(
+                   customersState.when(
                     data: (clients) => _buildRecentInvoices(activeInvoices, clients, context, ref),
-                    loading: () => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: List.generate(3, (_) => const InvoiceListItemSkeleton()),
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: CircularProgressIndicator(),
                       ),
                     ),
                     error: (_, __) => const SizedBox(),
@@ -190,7 +195,12 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => _buildDashboardSkeleton(),
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.0),
+            child: CircularProgressIndicator(),
+          ),
+        ),
         error: (err, _) => Center(
           child: Text(
             'Error loading stats: $err',
@@ -201,40 +211,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDashboardSkeleton() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-      physics: const NeverScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const DashboardHeaderSkeleton(),
-          const SizedBox(height: 20),
-          const ChartSkeleton(),
-          const SizedBox(height: 20),
-          Row(
-            children: const [
-              Expanded(child: StatCardSkeleton()),
-              SizedBox(width: 12),
-              Expanded(child: StatCardSkeleton()),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: const [
-              Expanded(child: StatCardSkeleton()),
-              SizedBox(width: 12),
-              Expanded(child: StatCardSkeleton()),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const SkeletonShimmer(child: SkeletonBox(width: 130, height: 14)),
-          const SizedBox(height: 12),
-          ...List.generate(3, (_) => const InvoiceListItemSkeleton()),
-        ],
-      ),
-    );
-  }
 
   Widget _buildWebDashboard({
     required BuildContext context,

@@ -294,10 +294,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 ),
               );
             },
-              loading: () => const SkeletonList(
-                type: SkeletonType.product,
-                count: 6,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
               ),
               error: (err, _) => Center(child: Text('Error loading products: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
             ),

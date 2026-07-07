@@ -25,6 +25,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   String _searchQuery = '';
   final TextEditingController _customerSearchController = TextEditingController();
   String _customerSearchQuery = '';
+  String? _selectedCompanyFilterId;
 
   @override
   void initState() {
@@ -213,6 +214,9 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   // -------------------------------------------------------------
   Widget _buildCustomersTab(AdminState state) {
     final filteredCustomers = state.customers.where((c) {
+      if (_selectedCompanyFilterId != null && c.companyId != _selectedCompanyFilterId) {
+        return false;
+      }
       final query = _customerSearchQuery.toLowerCase();
       return c.name.toLowerCase().contains(query) ||
              c.mobile.toLowerCase().contains(query) ||
@@ -222,7 +226,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Search Bar
+        // Search Bar & Filter Dropdown
         Row(
           children: [
             Expanded(
@@ -242,6 +246,40 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                     icon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted),
                   ),
                   style: TextStyle(color: AppColors.onBackground),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: _selectedCompanyFilterId,
+                  hint: Text('Filter by Company', style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13)),
+                  icon: Icon(Icons.filter_list_rounded, color: AppColors.primary, size: 18),
+                  dropdownColor: AppColors.surfaceContainer,
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All Companies', style: TextStyle(color: AppColors.onBackground, fontSize: 13)),
+                    ),
+                    ...state.companies.map((company) {
+                      return DropdownMenuItem<String?>(
+                        value: company.id,
+                        child: Text(company.name, style: TextStyle(color: AppColors.onBackground, fontSize: 13)),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCompanyFilterId = val;
+                    });
+                  },
                 ),
               ),
             ),
@@ -456,48 +494,103 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    OutlinedButton(
-                                      onPressed: () async {
-                                        final picked = await showDatePicker(
-                                          context: context,
-                                          initialDate: company.renewDate ?? DateTime.now().add(const Duration(days: 365)),
-                                          firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                                          lastDate: DateTime.now().add(const Duration(days: 3650)),
-                                          helpText: 'Set Renewal Date',
-                                        );
-                                        if (picked != null && mounted) {
-                                          await ref.read(adminProvider.notifier).updateCompanyRenewDate(company.id, picked);
-                                        }
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppColors.primary,
-                                        side: BorderSide(color: AppColors.primary),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Text('Set Date', style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11)),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    ElevatedButton(
-                                      onPressed: () async {
-                                        await ref.read(adminProvider.notifier).renewCompanySubscription(company.id, company.renewDate);
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('${company.name} renewed for 1 year!'), backgroundColor: AppColors.success),
+                                    PopupMenuButton<String>(
+                                      tooltip: 'Manage Expiry',
+                                      onSelected: (val) async {
+                                        if (val == 'date') {
+                                          final picked = await showDatePicker(
+                                            context: context,
+                                            initialDate: company.renewDate ?? DateTime.now().add(const Duration(days: 365)),
+                                            firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                                            lastDate: DateTime.now().add(const Duration(days: 3650)),
+                                            helpText: 'Set Renewal Date',
                                           );
+                                          if (picked != null && mounted) {
+                                            await ref.read(adminProvider.notifier).updateCompanyRenewDate(company.id, picked);
+                                          }
+                                        } else if (val == 'year') {
+                                          await ref.read(adminProvider.notifier).renewCompanySubscription(company.id, company.renewDate);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('${company.name} renewed for 1 year!'), backgroundColor: AppColors.success),
+                                            );
+                                          }
+                                        } else if (val == 'lifetime') {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              backgroundColor: AppColors.surfaceContainer,
+                                              title: const Text('Give Lifetime Access'),
+                                              content: Text('Are you sure you want to give lifetime access (no expiry) to "${company.name}"?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: Text('Cancel', style: TextStyle(color: AppColors.onSurfaceDim)),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: const Text('Confirm', style: TextStyle(color: Colors.green)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true && mounted) {
+                                            await ref.read(adminProvider.notifier).updateCompanyRenewDate(company.id, null);
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('${company.name} granted lifetime access!'), backgroundColor: AppColors.success),
+                                              );
+                                            }
+                                          }
                                         }
                                       },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.success,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'date',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.calendar_today_rounded, size: 16),
+                                              SizedBox(width: 8),
+                                              Text('Set Custom Date'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'year',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.update_rounded, size: 16),
+                                              SizedBox(width: 8),
+                                              Text('Renew +1 Year'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'lifetime',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.all_inclusive_rounded, size: 16, color: Colors.green),
+                                              SizedBox(width: 8),
+                                              Text('Lifetime (No Expiry)', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text('Manage', style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                            const SizedBox(width: 2),
+                                            const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 16),
+                                          ],
+                                        ),
                                       ),
-                                      child: Text('+1 Year', style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                                     ),
                                   ],
                                 ),

@@ -323,8 +323,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                 ? ref.watch(deletedInvoicesProvider).when(
                     data: (deletedList) {
                       if (customersState is! AsyncData) {
-                        return const SkeletonList(type: SkeletonType.invoice, count: 5, padding: EdgeInsets.zero);
-
+                        return const Center(child: Padding(padding: EdgeInsets.all(24.0), child: CircularProgressIndicator()));
                       }
                       final customers = customersState.value!;
 
@@ -452,10 +451,11 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                         ),
                       );
                     },
-                    loading: () => const SkeletonList(
-                      type: SkeletonType.invoice,
-                      count: 6,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
+                      ),
                     ),
                     error: (err, _) => Center(child: Text('Error loading deleted: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
                   )
@@ -643,10 +643,11 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                         ),
                       );
                     },
-                    loading: () => const SkeletonList(
-                      type: SkeletonType.invoice,
-                      count: 6,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
+                      ),
                     ),
                     error: (err, _) => Center(child: Text('Error loading register: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
                   ),

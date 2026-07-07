@@ -1037,8 +1037,11 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                   },
                 );
               },
-              loading: () => Column(
-                children: List.generate(3, (_) => const SettingsTileSkeleton()),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: CircularProgressIndicator(),
+                ),
               ),
               error: (err, _) => Text('Error: $err', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ),

@@ -86,7 +86,7 @@ class PdfHelper {
         final bytes = base64Decode(invoice.pdfBase64!);
         await Printing.layoutPdf(
           onLayout: (PdfPageFormat format) async => bytes,
-          name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}',
+          name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
         );
         return;
       } catch (_) {}
@@ -98,7 +98,7 @@ class PdfHelper {
     );
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}',
+      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
     );
   }
 
@@ -133,8 +133,8 @@ class PdfHelper {
     final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cNotes = company?.notes.isNotEmpty == true ? company!.notes : 'Offering Gold, Silver & Diamond Collections';
-    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';
-    final String cEmail = company?.email.isNotEmpty == true ? company!.email : 'swarnayanjewellers@gmail.com';
+    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';
+    final String cEmail = company?.email.isNotEmpty == true ? company!.email : 'nayanjewellers@gmail.com';
     
     String cAddressLine = '';
     if (company != null) {

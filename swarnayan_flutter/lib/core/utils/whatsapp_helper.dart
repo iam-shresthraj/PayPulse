@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'pdf_helper.dart';
 import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../../models/company_settings.dart';
@@ -34,15 +37,28 @@ Gulab Bagh Market, Thakurbari Road, Patna, Bihar - 800004
 Phone: 7903111274''';
 
     try {
-      final cleanPhone = customer.mobile.replaceAll(RegExp(r'\D'), '');
-      final whatsappPhone = cleanPhone.length == 10 ? '91$cleanPhone' : cleanPhone;
-      final encodedMsg = Uri.encodeComponent(message);
-      
-      final whatsappUrl = 'https://wa.me/$whatsappPhone?text=$encodedMsg';
-      final uri = Uri.parse(whatsappUrl);
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      // 1. Generate the PDF bytes in WhatsApp mode (no signatures)
+      final pdfBytes = await PdfHelper.generateInvoicePdfBytes(
+        invoice: invoice,
+        customer: customer,
+        company: company,
+        forWhatsApp: true,
+      );
+
+      // 2. Save the PDF to a temporary file
+      final tempDir = await getTemporaryDirectory();
+      final sanitizedInvNum = invoiceNumber.replaceAll(RegExp(r'[^\w\-]'), '_');
+      final file = File('${tempDir.path}/Invoice_$sanitizedInvNum.pdf');
+      await file.writeAsBytes(pdfBytes);
+
+      // 3. Share both the PDF file and the message via share_plus
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        text: message,
+        subject: 'Invoice $invoiceNumber - Swarnayan Jewellers',
+      );
     } catch (e) {
-      throw 'Failed to open WhatsApp: $e';
+      throw 'Failed to share invoice: $e';
     }
   }
 

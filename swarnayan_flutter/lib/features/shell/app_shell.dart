@@ -124,20 +124,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  String _safeLocation(BuildContext context) {
-    try {
-      return GoRouterState.of(context).uri.toString();
-    } catch (_) {
-      try {
-        return GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
-      } catch (_) {
-        return '/';
-      }
-    }
-  }
-
   int _currentIndex(BuildContext context) {
-    final location = _safeLocation(context);
+    final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/more/rates')) return 7;
     if (location.startsWith('/customers')) return 2;
@@ -187,7 +175,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onTap(BuildContext context, int index) async {
     HapticFeedback.lightImpact();
-    final location = _safeLocation(context);
+    final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing') && index != 1) {
       final billingState = ref.read(billingProvider);
       if (_hasUnsavedChanges(billingState)) {
@@ -230,7 +218,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   int _bottomBarIndex(BuildContext context) {
-    final location = _safeLocation(context);
+    final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/customers')) return 2;
     if (location.startsWith('/products')) return 3;
@@ -240,7 +228,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onBottomBarTap(BuildContext context, int index) async {
     HapticFeedback.lightImpact();
-    final location = _safeLocation(context);
+    final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/billing') && index != 1) {
       final billingState = ref.read(billingProvider);
       if (_hasUnsavedChanges(billingState)) {
@@ -689,38 +677,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      onHorizontalDragEnd: (details) {
-        if (details.primaryVelocity == null) return;
-        final velocity = details.primaryVelocity!;
-        if (velocity.abs() > 300) {
-          final isWide = MediaQuery.of(context).size.width >= 850;
-          if (!isWide) { // Only swipe tabs on mobile layout
-            final currentIndex = _bottomBarIndex(context);
-            if (velocity < 0) {
-              // Swipe Left -> Next Tab
-              if (currentIndex < 4) {
-                _onBottomBarTap(context, currentIndex + 1);
-              }
-            } else {
-              // Swipe Right -> Previous Tab
-              if (currentIndex > 0) {
-                _onBottomBarTap(context, currentIndex - 1);
-              }
-            }
-          }
-        }
-      },
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
-          final router = GoRouter.of(context);
-          if (router.canPop()) {
-            router.pop();
-            return;
-          }
-          final location = _safeLocation(context);
-          if (location != '/' && location != '/login' && location != '/pending' && location != '/deassociated') {
+          final location = GoRouterState.of(context).uri.toString();
+          if (location != '/' && location != '/login' && location != '/pending') {
             context.go('/');
           } else {
             final now = DateTime.now();
@@ -792,7 +754,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                       height: 36,
                       fit: BoxFit.contain,
                       alignment: Alignment.centerLeft,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
                     ),
                   );
                 }
@@ -803,7 +764,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                   height: 36,
                   fit: BoxFit.contain,
                   alignment: Alignment.centerLeft,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
                 );
               }
             ),

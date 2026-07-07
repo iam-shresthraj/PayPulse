@@ -527,7 +527,7 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
             const SizedBox(height: 16),
             GlassInput(
               controller: _notesController,
-              label: 'Additional Information',
+              label: 'Invoice Footer Note',
               hint: 'e.g. Goods once sold will not be taken back.',
               maxLines: 2,
             ),
@@ -1037,11 +1037,8 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                   },
                 );
               },
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: CircularProgressIndicator(),
-                ),
+              loading: () => Column(
+                children: List.generate(3, (_) => const SettingsTileSkeleton()),
               ),
               error: (err, _) => Text('Error: $err', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
             ),
@@ -1308,8 +1305,6 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     Expanded(
                       child: SecondaryButton(
                         label: 'Role Access',
-                        isOutlined: true,
-                        icon: Icons.admin_panel_settings_rounded,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -1323,8 +1318,6 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     Expanded(
                       child: SecondaryButton(
                         label: 'Edit Access',
-                        isOutlined: true,
-                        icon: Icons.border_color_rounded,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -1996,8 +1989,6 @@ class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
       });
 
       await ref.read(rolePermissionsProvider.notifier).updatePermissions(current);
-      ref.invalidate(staffProvider);
-      ref.read(authProvider.notifier).refreshProfile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

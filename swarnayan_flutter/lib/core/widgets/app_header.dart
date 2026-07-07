@@ -73,10 +73,10 @@ class AppHeader extends ConsumerWidget {
                   GestureDetector(
                     onTap: () => showNotificationsDialog(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.all(8),
                       margin: const EdgeInsets.only(right: 10),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
+                        shape: BoxShape.circle,
                         color: AppColors.surfaceContainer.withValues(alpha: 0.5),
                         border: Border.all(color: AppColors.border, width: 0.5),
                       ),

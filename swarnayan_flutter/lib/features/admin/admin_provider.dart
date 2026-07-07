@@ -279,11 +279,11 @@ class AdminNotifier extends StateNotifier<AdminState> {
     }
   }
 
-  Future<bool> updateCompanyRenewDate(String companyId, DateTime? renewDate) async {
+  Future<bool> updateCompanyRenewDate(String companyId, DateTime renewDate) async {
     state = state.copyWith(isLoading: true);
     try {
       await _client.from('companies').update({
-        'renew_date': renewDate?.toUtc().toIso8601String(),
+        'renew_date': renewDate.toUtc().toIso8601String(),
       }).eq('id', companyId);
       await loadAdminData();
       return true;

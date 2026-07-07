@@ -251,11 +251,10 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 ),
               );
             },
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
+              loading: () => const SkeletonList(
+                type: SkeletonType.customer,
+                count: 7,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               ),
               error: (err, _) => Center(
                 child: Text('Error loading customers: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),

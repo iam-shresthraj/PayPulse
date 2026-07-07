@@ -351,12 +351,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 ),
               );
             },
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32.0),
-                child: CircularProgressIndicator(),
-              ),
-            ),
+            loading: () => const DetailPageSkeleton(),
             error: (err, _) => Center(child: Text('Error loading invoices: $err', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
           );
         },

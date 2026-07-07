@@ -280,46 +280,17 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-int lastNavigatedIndex = 0;
-
-int _getRouteIndex(String path) {
-  if (path.startsWith('/billing')) return 1;
-  if (path.startsWith('/customers')) return 2;
-  if (path.startsWith('/products')) return 3;
-  if (path.startsWith('/more') || path.startsWith('/reports') || path.contains('/records')) return 4;
-  return 0;
-}
-
-/// Fade transition for tab pages on desktop, slide transition on mobile
+/// Fade transition for tab pages
 CustomTransitionPage _buildPage(Widget child, GoRouterState state) {
-  final targetIndex = _getRouteIndex(state.uri.toString());
-  final isSlideRight = targetIndex >= lastNavigatedIndex;
-  lastNavigatedIndex = targetIndex;
-
   return CustomTransitionPage(
     key: state.pageKey,
     child: child,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final isWide = MediaQuery.of(context).size.width >= 850;
-      if (isWide) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        );
-        return FadeTransition(opacity: curved, child: child);
-      } else {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        );
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: Offset(isSlideRight ? 1.0 : -1.0, 0.0),
-            end: Offset.zero,
-          ).animate(curved),
-          child: child,
-        );
-      }
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeInOutCubic,
+      );
+      return FadeTransition(opacity: curved, child: child);
     },
     transitionDuration: const Duration(milliseconds: 300),
   );

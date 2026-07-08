@@ -14,6 +14,8 @@ import 'widgets/user_access_dialog.dart';
 import 'widgets/send_notification_dialog.dart';
 import 'platform_settings_provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../../core/widgets/glass_input.dart';
 
 class AdminDashboardView extends ConsumerStatefulWidget {
   const AdminDashboardView({super.key});

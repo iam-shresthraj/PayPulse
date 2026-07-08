@@ -1,1 +1,1 @@
-# PayPulse
+# PayPulse - Inventory & Invoicing Software

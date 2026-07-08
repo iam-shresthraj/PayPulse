@@ -173,7 +173,7 @@ class AdminBusinessesScreen extends ConsumerWidget {
                                       const SizedBox(height: 6),
                                       ElevatedButton(
                                         onPressed: () async {
-                                          await ref.read(adminProvider.notifier).extendCompanyValidity(company.id);
+                                          await ref.read(adminProvider.notifier).renewCompanySubscription(company.id, company.renewDate);
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text('Validity extended for ${company.name}'),
@@ -1081,7 +1081,7 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
 
   Future<void> _pickAndUploadLogo(bool isLightLogo) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.image,
         withData: true,
       );

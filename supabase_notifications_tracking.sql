@@ -163,6 +163,10 @@ GRANT EXECUTE ON FUNCTION public.mark_notifications_as_read() TO authenticated;
 -- 7. Add notify_on_signup column to platform_settings table
 ALTER TABLE public.platform_settings
   ADD COLUMN IF NOT EXISTS notify_on_signup BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.platform_settings
+  ADD COLUMN IF NOT EXISTS welcome_title TEXT NOT NULL DEFAULT 'Welcome to PayPulse';
+ALTER TABLE public.platform_settings
+  ADD COLUMN IF NOT EXISTS welcome_body TEXT NOT NULL DEFAULT 'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.';
 
 -- 8. Recreate handle_new_user() trigger function to optionally auto-notify Super Admin on new signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

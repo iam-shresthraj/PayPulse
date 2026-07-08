@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +11,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/glass_input.dart';
 import '../../core/widgets/glass_dropdown.dart';
-import '../../core/widgets/section_header.dart';
+import '../../core/widgets/search_bar_widget.dart';
 import '../../models/user.dart';
 import 'admin_provider.dart';
 import 'widgets/add_business_dialog.dart';
@@ -99,27 +98,24 @@ class AdminBusinessesScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SectionHeader(title: 'Registered Businesses'),
-              ElevatedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const AddBusinessDialog(),
-                  );
-                },
-                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                label: Text('Add Business', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const AddBusinessDialog(),
+                );
+              },
+              icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+              label: Text('Add Business', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -183,7 +179,7 @@ class AdminBusinessesScreen extends ConsumerWidget {
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.primary,
-                                          foregroundColor: Colors.black,
+                                          foregroundColor: Colors.white,
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -221,18 +217,38 @@ class AdminBusinessesScreen extends ConsumerWidget {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              const Divider(height: 1),
-                              const SizedBox(height: 16),
-                              Text('ACCESS PASS CODES', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(child: _buildCodeTile(context, ref, 'STAFF', company.staffCode, company.id)),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: _buildCodeTile(context, ref, 'MANAGER', company.managerCode, company.id)),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: _buildCodeTile(context, ref, 'OWNER', company.ownerCode, company.id)),
-                                ],
+                          const Divider(height: 1),
+                          const SizedBox(height: 16),
+                          Text('ACCESS PASS CODES', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
+                          const SizedBox(height: 12),
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final isCompact = constraints.maxWidth < 620;
+                                  final tiles = [
+                                    _buildCodeTile(context, ref, 'STAFF', company.staffCode, company.id),
+                                    _buildCodeTile(context, ref, 'MANAGER', company.managerCode, company.id),
+                                    _buildCodeTile(context, ref, 'OWNER', company.ownerCode, company.id),
+                                  ];
+                                  if (isCompact) {
+                                    return Column(
+                                      children: [
+                                        for (var i = 0; i < tiles.length; i++) ...[
+                                          tiles[i],
+                                          if (i != tiles.length - 1) const SizedBox(height: 12),
+                                        ],
+                                      ],
+                                    );
+                                  }
+                                  return Row(
+                                    children: [
+                                      Expanded(child: tiles[0]),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: tiles[1]),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: tiles[2]),
+                                    ],
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -363,24 +379,10 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: _customerSearchController,
-              decoration: InputDecoration(
-                hintText: 'Search global customer directory by name or phone...',
-                hintStyle: TextStyle(color: AppColors.onSurfaceMuted),
-                border: InputBorder.none,
-                icon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted),
-              ),
-              style: TextStyle(color: AppColors.onBackground),
-            ),
+          SearchBarWidget(
+            controller: _customerSearchController,
+            hint: 'Search by name, phone, or client ID..',
+            onChanged: (_) {},
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -559,24 +561,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by name, email, role, or company name...',
-                hintStyle: TextStyle(color: AppColors.onSurfaceMuted),
-                border: InputBorder.none,
-                icon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted),
-              ),
-              style: TextStyle(color: AppColors.onBackground),
-            ),
+          SearchBarWidget(
+            controller: _searchController,
+            hint: 'Search by name, email, role, or company name...',
+            onChanged: (_) {},
           ),
           const SizedBox(height: 20),
           Expanded(

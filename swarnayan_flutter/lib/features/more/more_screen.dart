@@ -52,7 +52,9 @@ class MoreScreen extends ConsumerWidget {
     final canManage = user?.canManage ?? false;
     final isOwner = user?.isOwner ?? false;
     final hasAssignedCompany = (user?.companyId ?? '').isNotEmpty;
-    final companyName = hasAssignedCompany ? (ref.watch(companyProvider).value?.companyName ?? '') : '';
+    final companyName = user?.isSuperAdmin ?? false
+        ? 'PayPulse'
+        : (hasAssignedCompany ? (ref.watch(companyProvider).value?.companyName ?? '') : '');
     final pendingCount =
         canManage ? (ref.watch(pendingMembersProvider).value?.length ?? 0) : 0;
     final themeOverride = ref.watch(themeModeProvider);

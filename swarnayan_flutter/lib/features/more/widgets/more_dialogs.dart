@@ -1268,56 +1268,54 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
               ],
             )
           else
-            SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      SecondaryButton(
-                        label: 'Role Access',
-                        isOutlined: true,
-                        icon: Icons.security_rounded,
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            useRootNavigator: false,
-                            builder: (ctx) => const RoleAccessDialog(),
-                          );
-                        },
-                      ),
-                      SecondaryButton(
-                        label: 'Edit Access',
-                        isOutlined: true,
-                        icon: Icons.edit_rounded,
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            useRootNavigator: false,
-                            builder: (ctx) => const BulkAccessDialog(),
-                          );
-                        },
-                      ),
-                    ],
+            Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Role Access',
+                    isOutlined: true,
+                    icon: Icons.security_rounded,
+                    height: 40,
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (ctx) => const RoleAccessDialog(),
+                      );
+                    },
                   ),
-                  SecondaryButton(
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Edit Access',
+                    isOutlined: true,
+                    icon: Icons.edit_rounded,
+                    height: 40,
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (ctx) => const BulkAccessDialog(),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SecondaryButton(
                     label: 'Add Staff',
                     isOutlined: true,
                     icon: Icons.add_rounded,
+                    height: 40,
                     onPressed: () {
                       setState(() {
                         _showAddForm = true;
                       });
                     },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           const SizedBox(height: 20),
           if (_showAddForm)

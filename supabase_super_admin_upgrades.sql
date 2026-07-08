@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
   logo_dark_url TEXT DEFAULT '',
   contact_email TEXT NOT NULL DEFAULT 'contact@paypulse.com',
   working_time TEXT NOT NULL DEFAULT '10:00 AM - 08:00 PM (Mon - Sat)',
+  notify_on_signup BOOLEAN NOT NULL DEFAULT TRUE,
+  welcome_title TEXT NOT NULL DEFAULT 'Welcome to PayPulse',
+  welcome_body TEXT NOT NULL DEFAULT 'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

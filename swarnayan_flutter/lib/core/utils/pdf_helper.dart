@@ -130,7 +130,7 @@ class PdfHelper {
     final fontItalic = await PdfGoogleFonts.poppinsItalic();
 
     // Dynamically retrieve company details with Patna settings as fallback
-    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
+    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PayPulse';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cNotes = company?.notes.isNotEmpty == true ? company!.notes : 'Offering Gold, Silver & Diamond Collections';
     final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';

@@ -35,7 +35,7 @@ class WhatsAppHelper {
     final String balanceDue = invoice.balanceDue.toStringAsFixed(2);
     final String firstName = _toPascalCase(customer.name);
 
-    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
+    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PayPulse';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cFeedback = company?.logoUrl.isNotEmpty == true ? company!.logoUrl : 'https://bit.ly/swarnayan-jewellers-feedback';
     final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';

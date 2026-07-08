@@ -69,61 +69,113 @@ class _AppShellState extends ConsumerState<AppShell> {
     final title = notification['title'] ?? 'New Notification';
     final body = notification['body'] ?? '';
     final fileUrl = notification['file_url']?.toString();
+    final overlayContext = shellNavigatorKey.currentContext ?? context;
+    final isWide = MediaQuery.of(overlayContext).size.width >= 850;
 
-    showSingleDialog(
-      context: shellNavigatorKey.currentContext ?? context,
+    showGeneralDialog(
+      context: overlayContext,
       barrierDismissible: true,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: AlertDialog(
-          backgroundColor: AppColors.surfaceContainer.withValues(alpha: 0.9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: AppColors.glassBorder),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.notifications_active_rounded, color: AppColors.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
-                ),
+      barrierLabel: 'Notification',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        Future.delayed(const Duration(seconds: 5), () {
+          if (Navigator.of(dialogContext, rootNavigator: true).canPop()) {
+            Navigator.of(dialogContext, rootNavigator: true).pop();
+          }
+        });
+
+        return SafeArea(
+          child: Align(
+            alignment: isWide ? Alignment.topRight : Alignment.topCenter,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: 16,
+                right: isWide ? 16 : 12,
+                left: isWide ? 0 : 12,
               ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                body,
-                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
-              ),
-              if (fileUrl != null && fileUrl.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () => launchUrl(Uri.parse(fileUrl)),
-                  icon: const Icon(Icons.attachment_rounded),
-                  label: const Text('View Attachment'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: isWide ? 360 : double.infinity,
+                  margin: EdgeInsets.only(left: isWide ? 0 : 0),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.glassBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.18),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.notifications_active_rounded, color: AppColors.primary),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.close_rounded),
+                            color: AppColors.onSurfaceMuted,
+                            onPressed: () => Navigator.pop(dialogContext),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        body,
+                        style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                      ),
+                      if (fileUrl != null && fileUrl.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        OutlinedButton.icon(
+                          onPressed: () => launchUrl(Uri.parse(fileUrl)),
+                          icon: const Icon(Icons.attachment_rounded),
+                          label: const Text('View Attachment'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(color: AppColors.primary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Dismiss', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, -0.08),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -333,6 +385,16 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authProvider, (previous, next) {
+      if (previous?.user?.id != next.user?.id) {
+        if (next.user != null) {
+          _setupNotificationSubscription();
+        } else {
+          NotificationService.instance.unsubscribe();
+        }
+      }
+    });
+
     // Watch dailyRatesProvider to trigger loading if not already
     final ratesState = ref.watch(dailyRatesProvider);
 

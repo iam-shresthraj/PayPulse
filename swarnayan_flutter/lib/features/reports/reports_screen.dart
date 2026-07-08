@@ -33,8 +33,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   List<Invoice> _filteredInvoices = [];
   bool _hasSearched = false;
   String _selectedStatusFilter = 'ALL';
-  String _selectedSearchField = 'ALL';
+  final Set<String> _selectedSearchFields = {'ALL'};
   final TextEditingController _searchQueryController = TextEditingController();
+
+  static const List<({String key, String label})> _searchScopes = [
+    (key: 'ALL', label: 'All Columns'),
+    (key: 'invoiceNumber', label: 'Invoice No'),
+    (key: 'customerName', label: 'Customer'),
+    (key: 'productDetails', label: 'Products'),
+    (key: 'grossAmount', label: 'Gross Amount'),
+    (key: 'couponDiscount', label: 'Discount'),
+    (key: 'taxableAmount', label: 'Taxable Amount'),
+    (key: 'totalTax', label: 'Total Tax'),
+    (key: 'netAmount', label: 'Net Amount'),
+  ];
 
   @override
   void initState() {
@@ -53,6 +65,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final startOfDay = DateTime(_startDate.year, _startDate.month, _startDate.day);
       final endOfDay = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
       final query = _searchQueryController.text.trim().toLowerCase();
+      final selectedFields = _selectedSearchFields.toSet();
 
       setState(() {
         _filteredInvoices = invoicesState.value.where((inv) {
@@ -80,45 +93,38 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             final taxable = inv.taxableAmount.toStringAsFixed(2);
             final tax = inv.totalTax.toStringAsFixed(2);
             final netAmt = inv.netAmount.toStringAsFixed(2);
-
-            switch (_selectedSearchField) {
-              case 'invoiceNumber':
-                if (!invNum.contains(query)) return false;
-                break;
-              case 'customerName':
-                if (!custName.contains(query)) return false;
-                break;
-              case 'productDetails':
-                if (!prodDetails.contains(query)) return false;
-                break;
-              case 'grossAmount':
-                if (!grossAmt.contains(query)) return false;
-                break;
-              case 'couponDiscount':
-                if (!discount.contains(query)) return false;
-                break;
-              case 'taxableAmount':
-                if (!taxable.contains(query)) return false;
-                break;
-              case 'totalTax':
-                if (!tax.contains(query)) return false;
-                break;
-              case 'netAmount':
-                if (!netAmt.contains(query)) return false;
-                break;
-              case 'ALL':
-              default:
-                final matchAny = invNum.contains(query) ||
+            final matchAny = selectedFields.contains('ALL')
+                ? invNum.contains(query) ||
                     custName.contains(query) ||
                     prodDetails.contains(query) ||
                     grossAmt.contains(query) ||
                     discount.contains(query) ||
                     taxable.contains(query) ||
                     tax.contains(query) ||
-                    netAmt.contains(query);
-                if (!matchAny) return false;
-                break;
-            }
+                    netAmt.contains(query)
+                : selectedFields.any((field) {
+                    switch (field) {
+                      case 'invoiceNumber':
+                        return invNum.contains(query);
+                      case 'customerName':
+                        return custName.contains(query);
+                      case 'productDetails':
+                        return prodDetails.contains(query);
+                      case 'grossAmount':
+                        return grossAmt.contains(query);
+                      case 'couponDiscount':
+                        return discount.contains(query);
+                      case 'taxableAmount':
+                        return taxable.contains(query);
+                      case 'totalTax':
+                        return tax.contains(query);
+                      case 'netAmount':
+                        return netAmt.contains(query);
+                      default:
+                        return false;
+                    }
+                  });
+            if (!matchAny) return false;
           }
           return true;
         }).toList();
@@ -329,59 +335,114 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
+  Future<void> _pickSearchScopes() async {
+    final selected = Set<String>.from(_selectedSearchFields);
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        title: Text('Search In', style: AppTextStyles.titleMd),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _searchScopes.map((scope) {
+                    final checked = selected.contains(scope.key);
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: checked,
+                      title: Text(scope.label, style: AppTextStyles.bodyMd),
+                      onChanged: (val) {
+                        setStateDialog(() {
+                          if (scope.key == 'ALL') {
+                            selected
+                              ..clear()
+                              ..add('ALL');
+                          } else if (val == true) {
+                            selected.remove('ALL');
+                            selected.add(scope.key);
+                          } else {
+                            selected.remove(scope.key);
+                            if (selected.isEmpty) selected.add('ALL');
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, selected),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _selectedSearchFields
+          ..clear()
+          ..addAll(result);
+        if (_selectedSearchFields.isEmpty) _selectedSearchFields.add('ALL');
+      });
+      _performSearch();
+    }
+  }
+
   Widget _buildSearchFieldDropdown() {
+    final selectedLabel = _selectedSearchFields.contains('ALL')
+        ? 'All Columns'
+        : _selectedSearchFields.length == 1
+            ? _searchScopes.firstWhere((scope) => scope.key == _selectedSearchFields.first).label
+            : '${_selectedSearchFields.length} Columns';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'SEARCH COLUMN',
+          'SEARCH IN',
           style: AppTextStyles.labelMd.copyWith(
             color: AppColors.onSurfaceMuted,
             letterSpacing: 1.0,
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedSearchField,
-          dropdownColor: AppColors.surface,
-          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            filled: true,
-            fillColor: AppColors.surfaceContainer.withValues(alpha: 0.4),
-            border: OutlineInputBorder(
+        InkWell(
+          onTap: _pickSearchScopes,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide: BorderSide(color: AppColors.glassBorder),
+              border: Border.all(color: AppColors.glassBorder),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide: BorderSide(color: AppColors.glassBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedLabel,
+                    style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                  ),
+                ),
+                Icon(Icons.expand_more_rounded, color: AppColors.onSurfaceMuted),
+              ],
             ),
           ),
-          items: const [
-            DropdownMenuItem(value: 'ALL', child: Text('All Columns')),
-            DropdownMenuItem(value: 'invoiceNumber', child: Text('Invoice No')),
-            DropdownMenuItem(value: 'customerName', child: Text('Customer')),
-            DropdownMenuItem(value: 'productDetails', child: Text('Products')),
-            DropdownMenuItem(value: 'grossAmount', child: Text('Gross Amount')),
-            DropdownMenuItem(value: 'couponDiscount', child: Text('Discount')),
-            DropdownMenuItem(value: 'taxableAmount', child: Text('Taxable Amount')),
-            DropdownMenuItem(value: 'totalTax', child: Text('Total Tax')),
-            DropdownMenuItem(value: 'netAmount', child: Text('Net Amount')),
-          ],
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedSearchField = val;
-              });
-              _performSearch();
-            }
-          },
         ),
       ],
     );
@@ -765,13 +826,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       : Padding(
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(
-                            child: Text(
-                              'Select a date range and click Search to display reports.',
-                              style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                'Select a date range and click Search to display reports.',
+                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ),
-                  const SizedBox(height: 100), // Space to clear bottom navigation bar
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 72),
                 ],
               ),
             ),

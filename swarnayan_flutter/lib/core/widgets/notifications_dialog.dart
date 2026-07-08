@@ -23,6 +23,14 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
   List<Map<String, dynamic>> _notifications = [];
   String? _error;
 
+  bool _matchesTarget(Map<String, dynamic> item, dynamic user) {
+    final targetCompanyId = item['target_company_id']?.toString();
+    final targetRole = item['target_role']?.toString().toUpperCase() ?? 'ALL';
+    final companyMatches = targetCompanyId == null || targetCompanyId.isEmpty || targetCompanyId == user.companyId;
+    final roleMatches = targetRole == 'ALL' || targetRole == user.role.toUpperCase();
+    return companyMatches && roleMatches;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -37,14 +45,12 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
       final response = await Supabase.instance.client
           .from('notifications')
           .select()
-          .or('target_company_id.is.null,target_company_id.eq.${user.companyId}')
-          .or('target_role.eq.ALL,target_role.eq.${user.role.toUpperCase()}')
           .order('created_at', ascending: false)
           .limit(20);
 
       if (mounted) {
         setState(() {
-          _notifications = List<Map<String, dynamic>>.from(response);
+          _notifications = List<Map<String, dynamic>>.from(response).where((item) => _matchesTarget(item, user)).toList();
           _loading = false;
         });
         
@@ -76,6 +82,24 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
     }
   }
 
+  Future<void> _markAllAsRead() async {
+    try {
+      await Supabase.instance.client.rpc('mark_notifications_as_read');
+      ref.read(unreadNotificationsProvider.notifier).state = 0;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Marked as read'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to mark as read: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassDialogWrapper(
@@ -85,50 +109,65 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
               height: 150,
               child: Center(child: CircularProgressIndicator()),
             )
-          : _error != null
-              ? SizedBox(
-                  height: 150,
-                  child: Center(
-                    child: Text(
-                      'Notifications are unavailable right now.',
-                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              : _notifications.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 40),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Icon(Icons.notifications_none_rounded, size: 56, color: AppColors.onSurfaceMuted.withValues(alpha: 0.5)),
-                            const SizedBox(height: 14),
-                            Text(
-                              'No notifications yet',
-                              style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'You\'ll see alerts and updates here',
-                              style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted.withValues(alpha: 0.6)),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+          : SizedBox(
+              height: MediaQuery.of(context).size.height * 0.65,
+              child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _notifications.isEmpty ? null : _markAllAsRead,
+                            icon: const Icon(Icons.done_all_rounded, size: 18),
+                            label: const Text('Mark as read'),
+                          ),
+                        ],
                       ),
-                    )
-                  : ScrollConfiguration(
-                      behavior: const ScrollBehavior().copyWith(scrollbars: false),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _notifications.length,
-                        itemBuilder: (context, index) {
+                    ),
+                    Expanded(
+                      child: _error != null
+                          ? Center(
+                              child: Text(
+                                'Notifications are unavailable right now.',
+                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          : _notifications.isEmpty
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 40),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.notifications_none_rounded, size: 56, color: AppColors.onSurfaceMuted.withValues(alpha: 0.5)),
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          'No notifications yet',
+                                          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'You\'ll see alerts and updates here',
+                                          style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted.withValues(alpha: 0.6)),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : ScrollConfiguration(
+                                  behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const BouncingScrollPhysics(),
+                                    itemCount: _notifications.length,
+                                    itemBuilder: (context, index) {
                           final item = _notifications[index];
                           final title = item['title'] ?? 'Alert';
                           final body = item['body'] ?? '';
@@ -144,7 +183,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(color: AppColors.border, width: 0.5),
                             ),
-                          child: Padding(
+                            child: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,8 +228,12 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                             ),
                           );
                         },
-                      ),
+                                  ),
+                                ),
                     ),
+                  ],
+                ),
+            ),
     );
   }
 }

@@ -28,7 +28,6 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
   late bool _isActive;
   late String _selectedStatus;
   late Map<String, bool> _accessList;
-  String? _selectedCompanyId;
   bool _submitting = false;
   bool _deleting = false;
 
@@ -38,7 +37,6 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
     _selectedRole = widget.user.role;
     _isActive = widget.user.isActive;
     _selectedStatus = widget.user.approvalStatus;
-    _selectedCompanyId = widget.user.companyId;
     _accessList = {
       'dashboard': widget.user.accessDashboard,
       'invoices': widget.user.accessInvoices,
@@ -61,7 +59,6 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
           isActive: _isActive,
           approvalStatus: _selectedStatus,
           accessList: _accessList,
-          companyId: _selectedCompanyId,
         );
     if (mounted) {
       setState(() => _submitting = false);
@@ -303,33 +300,6 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
                 ],
               );
             },
-          ),
-          const SizedBox(height: 16),
-
-          // Company Assignment
-          Text('COMPANY ASSIGNMENT', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String?>(
-            value: _selectedCompanyId,
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('— No Company (Super Admin) —'),
-              ),
-              ...companies.map((company) => DropdownMenuItem<String?>(
-                    value: company.id,
-                    child: Text('${company.name} (${company.category})'),
-                  )),
-            ],
-            onChanged: (val) => setState(() => _selectedCompanyId = val),
-            decoration: InputDecoration(
-              labelText: 'Assign to Company',
-              labelStyle: TextStyle(color: AppColors.primary),
-              filled: true,
-              fillColor: AppColors.surfaceContainer,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            dropdownColor: AppColors.surfaceContainer,
           ),
           const SizedBox(height: 16),
 

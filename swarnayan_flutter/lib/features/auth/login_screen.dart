@@ -167,8 +167,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
           // ── Centered Glass Card ──
           Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: ScrollConfiguration(
+              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 400),
                 decoration: BoxDecoration(
@@ -413,7 +415,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-        ],
+        ),
+      ],
       ),
     ),
   ),

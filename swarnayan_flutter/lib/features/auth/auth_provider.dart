@@ -45,9 +45,55 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final sb.SupabaseClient _client = sb.Supabase.instance.client;
+  sb.RealtimeChannel? _profileChannel;
 
   AuthNotifier() : super(const AuthState()) {
     checkAuthStatus();
+  }
+
+  @override
+  set state(AuthState value) {
+    final oldUser = state.user;
+    super.state = value;
+    if (value.isAuthenticated && value.user != null) {
+      if (oldUser?.id != value.user!.id) {
+        _subscribeProfile(value.user!.id);
+      }
+    } else {
+      _unsubscribeProfile();
+    }
+  }
+
+  void _subscribeProfile(String uid) {
+    _unsubscribeProfile();
+    try {
+      _profileChannel = _client.channel('public:profiles:id=eq.$uid')
+        .onPostgresChanges(
+          event: sb.PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'profiles',
+          filter: sb.PostgresChangeFilter(
+            type: sb.PostgresChangeFilterType.eq,
+            column: 'id',
+            value: uid,
+          ),
+          callback: (payload) {
+            refreshProfile();
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      print('Realtime profile subscription failed: $e');
+    }
+  }
+
+  void _unsubscribeProfile() {
+    if (_profileChannel != null) {
+      try {
+        _client.removeChannel(_profileChannel!);
+      } catch (_) {}
+      _profileChannel = null;
+    }
   }
 
   Future<void> checkAuthStatus() async {

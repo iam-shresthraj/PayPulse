@@ -73,38 +73,51 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
   Widget build(BuildContext context) {
     return GlassDialogWrapper(
       title: 'Notifications',
-      child: SizedBox(
-        width: 480,
-        child: _loading
-            ? const SizedBox(
-                height: 150,
-                child: Center(child: CircularProgressIndicator()),
-              )
-            : _error != null
-                ? SizedBox(
-                    height: 150,
-                    child: Center(
-                      child: Text(
-                        'Notifications are unavailable right now.',
-                        style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                        textAlign: TextAlign.center,
-                      ),
+      child: _loading
+          ? const SizedBox(
+              height: 150,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _error != null
+              ? SizedBox(
+                  height: 150,
+                  child: Center(
+                    child: Text(
+                      'Notifications are unavailable right now.',
+                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                      textAlign: TextAlign.center,
                     ),
-                  )
-                : _notifications.isEmpty
-                    ? Padding(
+                  ),
+                )
+              : _notifications.isEmpty
+                  ? Center(
+                      child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 40),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Icon(Icons.notifications_none_rounded, size: 48, color: AppColors.onSurfaceMuted),
-                            const SizedBox(height: 12),
-                            Text('No notifications yet', style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted)),
+                            Icon(Icons.notifications_none_rounded, size: 56, color: AppColors.onSurfaceMuted.withValues(alpha: 0.5)),
+                            const SizedBox(height: 14),
+                            Text(
+                              'No notifications yet',
+                              style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'You\'ll see alerts and updates here',
+                              style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted.withValues(alpha: 0.6)),
+                              textAlign: TextAlign.center,
+                            ),
                           ],
                         ),
-                      )
-                    : ListView.builder(
+                      ),
+                    )
+                  : ScrollConfiguration(
+                      behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                      child: ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _notifications.length,
@@ -171,7 +184,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                           );
                         },
                       ),
-      ),
+                    ),
     );
   }
 }

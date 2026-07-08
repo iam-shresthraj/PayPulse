@@ -1307,7 +1307,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     ],
                   ),
                   SecondaryButton(
-                    label: '+ Add Staff',
+                    label: 'Add Staff',
                     isOutlined: true,
                     icon: Icons.add_rounded,
                     onPressed: () {
@@ -1889,14 +1889,92 @@ class HelpSupportDialog extends ConsumerWidget {
           _supportRow(Icons.email_outlined, 'Email Support', platformSettings?.contactEmail ?? 'contact.shresthraj@gmail.com'),
           const SizedBox(height: 16),
           _supportRow(Icons.access_time_rounded, 'Operational Hours', platformSettings?.workingTime ?? '10:00 AM - 08:00 PM (Mon - Sat)'),
-          const SizedBox(height: 24),
-           Divider(color: AppColors.border),
+          const SizedBox(height: 28),
+          Divider(color: AppColors.border),
+          const SizedBox(height: 8),
+          Text(
+            'Frequently Asked Questions',
+            style: AppTextStyles.titleMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _faqItem(
+            question: 'How do I create my first invoice?',
+            answer: 'Go to the Billing tab and tap the + button. Fill in customer details (or select an existing customer), add items from inventory, apply discounts or coupons if needed, and tap "Generate Invoice". The PDF is auto-saved.',
+          ),
+          _faqItem(
+            question: 'How do I add customers?',
+            answer: 'Navigate to the Customers tab and tap "+ Add Customer". Fill in the name, mobile number, address, and any notes. Once saved, the customer will appear in the billing flow automatically.',
+          ),
+          _faqItem(
+            question: 'How do I update today\'s gold/silver rates?',
+            answer: 'Go to More → Rates. Tap "+ Add Rate" and enter today\'s gold (22K, 18K) and silver prices. Rates auto-populate into new invoices once saved. You can also delete old rates from the same screen.',
+          ),
+          _faqItem(
+            question: 'How do I add or manage inventory items?',
+            answer: 'Go to the Inventory tab and tap "+ Add Product". Enter the product name, category, weight, purity, price, and stock units. Products added here can be selected while creating invoices.',
+          ),
+          _faqItem(
+            question: 'How do coupons work?',
+            answer: 'Go to More → Coupons to create discount coupons (fixed or percentage). Set a usage limit, expiry date, and minimum bill amount. During billing, enter the coupon code in the "Coupon Code" field to apply the discount.',
+          ),
+          _faqItem(
+            question: 'How do I share an invoice via WhatsApp?',
+            answer: 'Open any invoice, tap the WhatsApp icon. It will open WhatsApp with the customer\'s number pre-filled and a message including invoice details. The PDF is attached automatically on mobile.',
+          ),
+          _faqItem(
+            question: 'How do I add staff and set their permissions?',
+            answer: 'Go to More → Access Control. Tap "Add Staff" to invite a team member using their email. Use "Edit Access" to set role-level permissions for Staff and Manager roles, which apply to all users of that role.',
+          ),
+          _faqItem(
+            question: 'A staff member can\'t see a section after I changed permissions. Why?',
+            answer: 'Permissions update immediately for all existing members. Ask the staff member to close and reopen the app, or pull-to-refresh their screen, to see the updated access.',
+          ),
+          _faqItem(
+            question: 'How do I generate reports?',
+            answer: 'Go to Reports, select the report type and date range, then tap "Search". The report data will appear below. Tap the download icon to export it as a PDF with the current date in the file name.',
+          ),
+          _faqItem(
+            question: 'How do I change company settings like logo or name?',
+            answer: 'Go to More (Settings icon in sidebar) → Company Settings. Update the name, tagline, address, logo, contact email, and working hours. Changes reflect across all users in your company instantly.',
+          ),
           const SizedBox(height: 16),
+          Divider(color: AppColors.border),
+          const SizedBox(height: 12),
           Text(
             'In case of server connectivity issues, please check your network connection or verify settings with the administrator.',
             style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _faqItem({required String question, required String answer}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 0.5),
+      ),
+      child: Theme(
+        data: ThemeData(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          iconColor: AppColors.primary,
+          collapsedIconColor: AppColors.onSurfaceMuted,
+          title: Text(
+            question,
+            style: AppTextStyles.labelMd.copyWith(color: AppColors.onBackground, fontWeight: FontWeight.w600),
+          ),
+          children: [
+            Text(
+              answer,
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1977,6 +2055,8 @@ class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
       });
 
       await ref.read(rolePermissionsProvider.notifier).updatePermissions(current);
+      // Refresh current user's in-memory profile so their access flags update immediately
+      await ref.read(authProvider.notifier).refreshProfile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

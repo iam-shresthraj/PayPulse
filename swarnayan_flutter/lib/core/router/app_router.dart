@@ -22,6 +22,7 @@ import '../../features/auth/expired_screen.dart';
 import '../../features/more/role_permissions_provider.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
+import '../../features/admin/admin_sub_screens.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -97,6 +98,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (location.startsWith('/customers')) {
+        if (user?.isSuperAdmin ?? false) {
+          return '/admin/customers';
+        }
         final accessCustomers = user?.hasAccess('customers', rolePermissions) ?? true;
         if (!accessCustomers) return '/';
       }
@@ -261,6 +265,41 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/admin/businesses',
+            pageBuilder: (context, state) => _buildPage(
+              const AdminBusinessesScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/admin/customers',
+            pageBuilder: (context, state) => _buildPage(
+              const AdminCustomersScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/admin/users',
+            pageBuilder: (context, state) => _buildPage(
+              const AdminUsersScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/admin/notifications',
+            pageBuilder: (context, state) => _buildPage(
+              const AdminNotificationsScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/admin/branding',
+            pageBuilder: (context, state) => _buildPage(
+              const AdminBrandingScreen(),
+              state,
+            ),
           ),
         ],
       ),

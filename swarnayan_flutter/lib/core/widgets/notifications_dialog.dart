@@ -46,7 +46,13 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
           _notifications = List<Map<String, dynamic>>.from(response);
           _loading = false;
         });
-        // Mark all as read
+        
+        // Mark all as read in database
+        try {
+          await Supabase.instance.client.rpc('mark_notifications_as_read');
+        } catch (_) {}
+        
+        // Clear local unread count
         ref.read(unreadNotificationsProvider.notifier).state = 0;
       }
     } catch (e) {

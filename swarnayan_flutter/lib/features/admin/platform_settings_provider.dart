@@ -11,6 +11,7 @@ class PlatformSettings {
   final String? address;
   final String contactEmail;
   final String workingTime;
+  final bool notifyOnSignup;
 
   PlatformSettings({
     required this.companyName,
@@ -21,6 +22,7 @@ class PlatformSettings {
     this.address,
     required this.contactEmail,
     required this.workingTime,
+    this.notifyOnSignup = true,
   });
 
   factory PlatformSettings.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class PlatformSettings {
       address: json['address'],
       contactEmail: json['contact_email'] ?? 'contact.shresthraj@gmail.com',
       workingTime: json['working_time'] ?? '10:00 AM - 08:00 PM (Mon - Sat)',
+      notifyOnSignup: json['notify_on_signup'] ?? true,
     );
   }
 
@@ -45,6 +48,7 @@ class PlatformSettings {
         'address': address,
         'contact_email': contactEmail,
         'working_time': workingTime,
+        'notify_on_signup': notifyOnSignup,
       };
 }
 
@@ -61,6 +65,7 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
       tagline: 'Brilliant Crafts, Eternal Sparkle',
       contactEmail: 'contact.shresthraj@gmail.com',
       workingTime: '10:00 AM - 08:00 PM (Mon - Sat)',
+      notifyOnSignup: true,
     );
   }
 
@@ -92,6 +97,7 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
       state = AsyncValue.data(settings);
       return true;
     } catch (e) {
+      print('DEBUG: updateSettings failed: $e');
       return false;
     }
   }
@@ -108,6 +114,7 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
       final publicUrl = _client.storage.from('platform_assets').getPublicUrl(path);
       return publicUrl;
     } catch (e) {
+      print('DEBUG: uploadLogoFile failed: $e');
       return null;
     }
   }

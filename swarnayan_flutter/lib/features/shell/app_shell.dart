@@ -17,8 +17,8 @@ import '../more/role_permissions_provider.dart';
 import '../billing/billing_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/widgets/notifications_dialog.dart';
 import '../admin/platform_settings_provider.dart';
+import '../../core/utils/dialog_helper.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -784,13 +784,37 @@ class _AppShellState extends ConsumerState<AppShell> {
                     icon: Icons.admin_panel_settings_rounded,
                     label: 'Admin Dashboard',
                     isActive: currentIndex == 0,
-                    onTap: () => _onTap(context, 0),
+                    onTap: () => context.go('/'),
                   ),
                   _buildSidebarItem(
-                    icon: Icons.analytics_rounded,
-                    label: 'Admin Reports',
-                    isActive: currentIndex == 4,
-                    onTap: () => _onTap(context, 4),
+                    icon: Icons.business_rounded,
+                    label: 'Businesses & Codes',
+                    isActive: currentIndex == 101,
+                    onTap: () => context.go('/admin/businesses'),
+                  ),
+                  _buildSidebarItem(
+                    icon: Icons.people_alt_rounded,
+                    label: 'Customer Directory',
+                    isActive: currentIndex == 102,
+                    onTap: () => context.go('/admin/customers'),
+                  ),
+                  _buildSidebarItem(
+                    icon: Icons.lock_person_rounded,
+                    label: 'User Access Control',
+                    isActive: currentIndex == 103,
+                    onTap: () => context.go('/admin/users'),
+                  ),
+                  _buildSidebarItem(
+                    icon: Icons.campaign_rounded,
+                    label: 'Notifications',
+                    isActive: currentIndex == 104,
+                    onTap: () => context.go('/admin/notifications'),
+                  ),
+                  _buildSidebarItem(
+                    icon: Icons.palette_rounded,
+                    label: 'System Branding',
+                    isActive: currentIndex == 105,
+                    onTap: () => context.go('/admin/branding'),
                   ),
                 ] else ...[
                   _buildSidebarHeader('MENU'),
@@ -846,7 +870,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   if (user?.hasAccess('staff', rolePermissions) ?? true)
                     _buildSidebarItem(
                       icon: Icons.folder_shared_rounded,
-                      label: 'Managements',
+                      label: 'Management',
                       isActive: currentIndex == 6,
                       onTap: () => _onTap(context, 6),
                     ),
@@ -945,6 +969,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required VoidCallback onTap,
     Color? textColor,
     Color? iconColor,
+    int? badgeCount,
   }) {
     final activeBg = AppColors.primary.withValues(alpha: 0.08);
     final activeFg = AppColors.primary;
@@ -984,6 +1009,24 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ),
                   ),
                 ),
+                if (badgeCount != null && badgeCount > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      badgeCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 if (isActive)
                   Container(
                     width: 4,

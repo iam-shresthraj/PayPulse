@@ -255,7 +255,7 @@ class _AdminReportsViewState extends ConsumerState<AdminReportsView> {
                               style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: AppColors.error,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -327,7 +327,7 @@ class _AdminReportsViewState extends ConsumerState<AdminReportsView> {
                               style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
+                              backgroundColor: AppColors.error,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
-import '../../core/widgets/app_header.dart';
 import '../auth/auth_provider.dart';
 import 'widgets/more_dialogs.dart';
 import 'widgets/team_dialogs.dart';
@@ -209,154 +208,204 @@ class MoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
 
-            if (showDirectorySection) ...[
-              // ── Directory Section ──
-              _buildSectionLabel('Directory'),
+            if (user?.isSuperAdmin ?? false) ...[
+              // ── Admin Panel Section ──
+              _buildSectionLabel('Admin Panel'),
               const SizedBox(height: 12),
-              if (showCustomers)
-                _buildMenuItem(
-                  icon: Icons.people_alt_rounded,
-                  label: 'Customers',
-                  subtitle: 'Manage client directory & balances',
-                  index: 20,
-                  onTap: () => context.go('/customers'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.3,
+                  children: [
+                    _buildAdminBox(
+                      context: context,
+                      icon: Icons.business_rounded,
+                      label: 'Businesses & Codes',
+                      onTap: () => context.push('/admin/businesses'),
+                    ),
+                    _buildAdminBox(
+                      context: context,
+                      icon: Icons.people_alt_rounded,
+                      label: 'Customer Directory',
+                      onTap: () => context.push('/admin/customers'),
+                    ),
+                    _buildAdminBox(
+                      context: context,
+                      icon: Icons.lock_person_rounded,
+                      label: 'User Access Control',
+                      onTap: () => context.push('/admin/users'),
+                    ),
+                    _buildAdminBox(
+                      context: context,
+                      icon: Icons.campaign_rounded,
+                      label: 'Notifications',
+                      onTap: () => context.push('/admin/notifications'),
+                    ),
+                    _buildAdminBox(
+                      context: context,
+                      icon: Icons.palette_rounded,
+                      label: 'System Branding',
+                      onTap: () => context.push('/admin/branding'),
+                    ),
+                  ],
                 ),
-              if (showProducts)
-                _buildMenuItem(
-                  icon: Icons.diamond_rounded,
-                  label: 'Products',
-                  subtitle: 'Manage inventory & prices',
-                  index: 21,
-                  onTap: () => context.go('/products'),
-                ),
+              ),
               const SizedBox(height: 24),
-            ],
+            ] else ...[
+              if (showDirectorySection) ...[
+                // ── Directory Section ──
+                _buildSectionLabel('Directory'),
+                const SizedBox(height: 12),
+                if (showCustomers)
+                  _buildMenuItem(
+                    icon: Icons.people_alt_rounded,
+                    label: 'Customers',
+                    subtitle: 'Manage client directory & balances',
+                    index: 20,
+                    onTap: () => context.go('/customers'),
+                  ),
+                if (showProducts)
+                  _buildMenuItem(
+                    icon: Icons.diamond_rounded,
+                    label: 'Products',
+                    subtitle: 'Manage inventory & prices',
+                    index: 21,
+                    onTap: () => context.go('/products'),
+                  ),
+                const SizedBox(height: 24),
+              ],
 
-            if (showBusinessSection) ...[
-              // ── Business Section ──
-              _buildSectionLabel('Business'),
-              const SizedBox(height: 12),
-              if (showReports)
-                _buildMenuItem(
-                  icon: Icons.analytics_rounded,
-                  label: 'Reports',
-                  subtitle: 'Search & export reports',
-                  index: 0,
-                  onTap: () => context.go('/reports'),
-                ),
-              if (showSettings)
-                _buildMenuItem(
-                  icon: Icons.business_rounded,
-                  label: 'Company Settings',
-                  subtitle: 'Name, address, GSTIN, logo',
-                  index: 1,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      useRootNavigator: false,
-                      builder: (_) => const CompanySettingsDialog(),
-                    );
-                  },
-                ),
-              if (showRates)
-                _buildMenuItem(
-                  icon: Icons.trending_up_rounded,
-                  label: 'Rate Management',
-                  subtitle: 'Daily gold & silver rates',
-                  index: 2,
-                  onTap: () => context.push('/more/rates'),
-                ),
-              if (showRecords)
-                _buildMenuItem(
-                  icon: Icons.book_rounded,
-                  label: 'Record Book',
-                  subtitle: 'Income & expense tracking',
-                  index: 3,
-                  onTap: () => context.push('/more/records'),
-                ),
-              if (showCoupons)
-                _buildMenuItem(
-                  icon: Icons.local_offer_rounded,
-                  label: 'Coupons & Offers',
-                  subtitle: 'Manage discount codes',
-                  index: 4,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      useRootNavigator: false,
-                      builder: (_) => const CouponsManagementDialog(),
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-            ],
+              if (showBusinessSection) ...[
+                // ── Business Section ──
+                _buildSectionLabel('Business'),
+                const SizedBox(height: 12),
+                if (showReports)
+                  _buildMenuItem(
+                    icon: Icons.analytics_rounded,
+                    label: 'Reports',
+                    subtitle: 'Search & export reports',
+                    index: 0,
+                    onTap: () => context.go('/reports'),
+                  ),
+                if (showSettings)
+                  _buildMenuItem(
+                    icon: Icons.business_rounded,
+                    label: 'Company Settings',
+                    subtitle: 'Name, address, GSTIN, logo',
+                    index: 1,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const CompanySettingsDialog(),
+                      );
+                    },
+                  ),
+                if (showRates)
+                  _buildMenuItem(
+                    icon: Icons.trending_up_rounded,
+                    label: 'Rate Management',
+                    subtitle: 'Daily gold & silver rates',
+                    index: 2,
+                    onTap: () => context.push('/more/rates'),
+                  ),
+                if (showRecords)
+                  _buildMenuItem(
+                    icon: Icons.book_rounded,
+                    label: 'Record Book',
+                    subtitle: 'Income & expense tracking',
+                    index: 3,
+                    onTap: () => context.push('/more/records'),
+                  ),
+                if (showCoupons)
+                  _buildMenuItem(
+                    icon: Icons.local_offer_rounded,
+                    label: 'Coupons & Offers',
+                    subtitle: 'Manage discount codes',
+                    index: 4,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const CouponsManagementDialog(),
+                      );
+                    },
+                  ),
+                const SizedBox(height: 24),
+              ],
 
-            // ── Team Section ──
-            if (showTeamSection) ...[
-              _buildSectionLabel('Team'),
-              const SizedBox(height: 12),
-              if (showStaffMgmt)
-                _buildMenuItem(
-                  icon: Icons.people_outline_rounded,
-                  label: 'Staff Management',
-                  subtitle: 'Users, roles & permissions',
-                  index: 5,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      useRootNavigator: false,
-                      builder: (_) => const StaffManagementDialog(),
-                    );
-                  },
-                ),
-              if (showPending)
-                _buildMenuItem(
-                  icon: Icons.how_to_reg_rounded,
-                  label: 'Pending Approvals',
-                  subtitle: pendingCount > 0
-                      ? '$pendingCount request${pendingCount == 1 ? '' : 's'} waiting for you'
-                      : 'Review new account requests',
-                  index: 10,
-                  badgeCount: pendingCount,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      useRootNavigator: false,
-                      builder: (_) => const PendingApprovalsDialog(),
-                    ).then((_) => ref.invalidate(pendingMembersProvider));
-                  },
-                ),
-              if (showCompanyCodes)
-                _buildMenuItem(
-                  icon: Icons.vpn_key_rounded,
-                  label: 'Company Codes',
-                  subtitle: isOwner
-                      ? 'Staff, manager & owner access codes'
-                      : 'Staff access code',
-                  index: 11,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      useRootNavigator: false,
-                      builder: (_) => const CompanyCodesDialog(),
-                    );
-                  },
-                ),
-              if (showChangePassword)
-                _buildMenuItem(
-                  icon: Icons.lock_outline_rounded,
-                  label: 'Change Password',
-                  subtitle: 'Update your credentials',
-                  index: 6,
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      useRootNavigator: false,
-                      builder: (_) => const ChangePasswordDialog(),
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
+              // ── Team Section ──
+              if (showTeamSection) ...[
+                _buildSectionLabel('Team'),
+                const SizedBox(height: 12),
+                if (showStaffMgmt)
+                  _buildMenuItem(
+                    icon: Icons.people_outline_rounded,
+                    label: 'Staff Management',
+                    subtitle: 'Users, roles & permissions',
+                    index: 5,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const StaffManagementDialog(),
+                      );
+                    },
+                  ),
+                if (showPending)
+                  _buildMenuItem(
+                    icon: Icons.how_to_reg_rounded,
+                    label: 'Pending Approvals',
+                    subtitle: pendingCount > 0
+                        ? '$pendingCount request${pendingCount == 1 ? '' : 's'} waiting for you'
+                        : 'Review new account requests',
+                    index: 10,
+                    badgeCount: pendingCount,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const PendingApprovalsDialog(),
+                      ).then((_) => ref.invalidate(pendingMembersProvider));
+                    },
+                  ),
+                if (showCompanyCodes)
+                  _buildMenuItem(
+                    icon: Icons.vpn_key_rounded,
+                    label: 'Company Codes',
+                    subtitle: isOwner
+                        ? 'Staff, manager & owner access codes'
+                        : 'Staff access code',
+                    index: 11,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const CompanyCodesDialog(),
+                      );
+                    },
+                  ),
+                if (showChangePassword)
+                  _buildMenuItem(
+                    icon: Icons.lock_outline_rounded,
+                    label: 'Change Password',
+                    subtitle: 'Update your credentials',
+                    index: 6,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const ChangePasswordDialog(),
+                      );
+                    },
+                  ),
+                const SizedBox(height: 24),
+              ],
             ],
 
             // ── App Section ──
@@ -559,6 +608,39 @@ class MoreScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAdminBox({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GlassCard(
+      animationIndex: 1,
+      padding: const EdgeInsets.all(16),
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

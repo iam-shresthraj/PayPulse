@@ -301,6 +301,28 @@ class AdminNotifier extends StateNotifier<AdminState> {
     final nextYear = DateTime(baseDate.year + 1, baseDate.month, baseDate.day);
     return updateCompanyRenewDate(companyId, nextYear);
   }
+
+  Future<bool> sendNotification({
+    required String title,
+    required String body,
+    String? fileUrl,
+    String? targetCompanyId,
+    required String targetRole,
+  }) async {
+    try {
+      await _client.from('notifications').insert({
+        'title': title,
+        'body': body,
+        'file_url': fileUrl,
+        'target_company_id': targetCompanyId,
+        'target_role': targetRole,
+      });
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
 }
 
 final adminProvider = StateNotifierProvider<AdminNotifier, AdminState>((ref) {

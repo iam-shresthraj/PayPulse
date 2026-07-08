@@ -11,6 +11,9 @@ import '../../models/user.dart';
 import 'admin_provider.dart';
 import 'widgets/add_business_dialog.dart';
 import 'widgets/user_access_dialog.dart';
+import 'widgets/send_notification_dialog.dart';
+import 'platform_settings_provider.dart';
+import 'package:file_picker/file_picker.dart';
 
 class AdminDashboardView extends ConsumerStatefulWidget {
   const AdminDashboardView({super.key});
@@ -29,7 +32,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();
@@ -761,11 +764,14 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
           // Tabs
           TabBar(
             controller: _tabController,
+            isScrollable: true,
             tabs: const [
               Tab(text: 'System Overview'),
               Tab(text: 'Businesses & Codes'),
               Tab(text: 'Customer Directory'),
               Tab(text: 'User Access Control'),
+              Tab(text: 'Notifications'),
+              Tab(text: 'System Branding'),
             ],
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.onSurfaceMuted,
@@ -785,6 +791,8 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
                   _buildBusinessesTab(state),
                   _buildCustomersTab(state),
                   _buildUsersTab(state),
+                  _buildNotificationsTab(state),
+                  const SystemBrandingTab(),
                 ],
               ),
             ),
@@ -793,4 +801,459 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> with Si
       ),
     );
   }
+
+  // -------------------------------------------------------------
+  // Broadcast Notifications Tab
+  // -------------------------------------------------------------
+  Widget _buildNotificationsTab(AdminState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const SectionHeader(title: 'Broadcast History'),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final result = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => const SendNotificationDialog(),
+                );
+                if (result == true) {
+                  setState(() {}); // refresh list view
+                }
+              },
+              icon: const Icon(Icons.campaign_rounded, color: Colors.white, size: 20),
+              label: Text('New Broadcast', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: Supabase.instance.client
+                .from('notifications')
+                .select()
+                .order('created_at', ascending: false)
+                .limit(20)
+                .then((res) => List<Map<String, dynamic>>.from(res as List)),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading history: ${snapshot.error}',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                );
+              }
+              final list = snapshot.data ?? [];
+              if (list.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Text('No broadcasts sent yet.', style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted)),
+                  ),
+                );
+              }
+              return ListView.builder(
+                physics: const BouncingScrollPhysics(),
+                itemCount: list.length,
+                itemBuilder: (context, index) {
+                  final item = list[index];
+                  final title = item['title'] ?? '';
+                  final body = item['body'] ?? '';
+                  final created = item['created_at'] != null 
+                      ? DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.parse(item['created_at'].toString()).toLocal())
+                      : '';
+                  final role = item['target_role'] ?? 'ALL';
+                  final companyId = item['target_company_id'];
+                  final companyName = companyId == null 
+                      ? 'All Businesses'
+                      : state.companies.firstWhere((c) => c.id == companyId, orElse: () => AdminBusiness(id: '', name: 'Unknown', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now())).name;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(title, style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                              ),
+                              Text(created, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(body, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(Icons.business_rounded, size: 12, color: AppColors.onSurfaceMuted),
+                              const SizedBox(width: 4),
+                              Text('Target: $companyName', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11)),
+                              const SizedBox(width: 16),
+                              Icon(Icons.person_outline_rounded, size: 12, color: AppColors.onSurfaceMuted),
+                              const SizedBox(width: 4),
+                              Text('Role: $role', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
+
+// -------------------------------------------------------------
+// System Branding Tab
+// -------------------------------------------------------------
+class SystemBrandingTab extends ConsumerStatefulWidget {
+  const SystemBrandingTab({super.key});
+
+  @override
+  ConsumerState<SystemBrandingTab> createState() => _SystemBrandingTabState();
+}
+
+class _SystemBrandingTabState extends ConsumerState<SystemBrandingTab> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _taglineController;
+  late TextEditingController _addressController;
+  late TextEditingController _emailController;
+  late TextEditingController _hoursController;
+  late TextEditingController _logoLightController;
+  late TextEditingController _logoDarkController;
+
+  bool _initialized = false;
+  bool _saving = false;
+  bool _uploadingLight = false;
+  bool _uploadingDark = false;
+
+  @override
+  void dispose() {
+    if (_initialized) {
+      _nameController.dispose();
+      _taglineController.dispose();
+      _addressController.dispose();
+      _emailController.dispose();
+      _hoursController.dispose();
+      _logoLightController.dispose();
+      _logoDarkController.dispose();
+    }
+    super.dispose();
+  }
+
+  void _initControllers(PlatformSettings settings) {
+    _nameController = TextEditingController(text: settings.companyName);
+    _taglineController = TextEditingController(text: settings.tagline);
+    _addressController = TextEditingController(text: settings.address ?? '');
+    _emailController = TextEditingController(text: settings.contactEmail);
+    _hoursController = TextEditingController(text: settings.workingTime);
+    _logoLightController = TextEditingController(text: settings.logoLightUrl ?? '');
+    _logoDarkController = TextEditingController(text: settings.logoDarkUrl ?? '');
+    _initialized = true;
+  }
+
+  Future<void> _pickAndUploadLogo(bool isLightLogo) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      
+      final file = result.files.first;
+      if (file.bytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not read file data'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+      
+      setState(() {
+        if (isLightLogo) _uploadingLight = true;
+        else _uploadingDark = true;
+      });
+      
+      final url = await ref.read(platformSettingsProvider.notifier).uploadLogoFile(
+        file.bytes!,
+        file.name,
+      );
+      
+      setState(() {
+        if (isLightLogo) {
+          _uploadingLight = false;
+          if (url != null) _logoLightController.text = url;
+        } else {
+          _uploadingDark = false;
+          if (url != null) _logoDarkController.text = url;
+        }
+      });
+      
+      if (url != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${isLightLogo ? "Light" : "Dark"} logo uploaded successfully!'), backgroundColor: AppColors.success),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to upload logo file'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _uploadingLight = false;
+        _uploadingDark = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    
+    final updated = PlatformSettings(
+      companyName: _nameController.text.trim(),
+      tagline: _taglineController.text.trim(),
+      address: _addressController.text.trim().isNotEmpty ? _addressController.text.trim() : null,
+      contactEmail: _emailController.text.trim(),
+      workingTime: _hoursController.text.trim(),
+      logoLightUrl: _logoLightController.text.trim().isNotEmpty ? _logoLightController.text.trim() : null,
+      logoDarkUrl: _logoDarkController.text.trim().isNotEmpty ? _logoDarkController.text.trim() : null,
+    );
+    
+    final success = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
+    if (mounted) {
+      setState(() => _saving = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('System branding settings saved!'), backgroundColor: AppColors.success),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to save settings to database'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settingsAsync = ref.watch(platformSettingsProvider);
+
+    return settingsAsync.when(
+      data: (settings) {
+        if (!_initialized) {
+          _initControllers(settings);
+        }
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 40),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionHeader(title: 'Configure Platform & System Branding'),
+                const SizedBox(height: 8),
+                Text(
+                  'These settings configure the branding, logos, and support information that reflects across all companies and all employees.',
+                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
+                ),
+                const SizedBox(height: 24),
+                
+                // Name
+                GlassInput(
+                  controller: _nameController,
+                  label: 'Platform / Company Name',
+                  hint: 'e.g. PayPulse',
+                  validator: (v) => v == null || v.isEmpty ? 'Company name is required' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // Tagline
+                GlassInput(
+                  controller: _taglineController,
+                  label: 'Tagline / Slogan',
+                  hint: 'e.g. Manage Gold and Invoices Seamlessly',
+                ),
+                const SizedBox(height: 16),
+
+                // Address
+                GlassInput(
+                  controller: _addressController,
+                  label: 'Physical Address',
+                  hint: 'Enter platform headquarters address...',
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+
+                // Email
+                GlassInput(
+                  controller: _emailController,
+                  label: 'Contact / Support Email',
+                  hint: 'support@paypulse.com',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email address' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // Working Hours
+                GlassInput(
+                  controller: _hoursController,
+                  label: 'Operational / Support Hours',
+                  hint: 'e.g. 10:00 AM - 08:00 PM (Mon - Sat)',
+                ),
+                const SizedBox(height: 24),
+
+                // Company Logos Title
+                Text(
+                  'COMPANY LOGOS',
+                  style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.0),
+                ),
+                const SizedBox(height: 12),
+                
+                // Light & Dark Logos in Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Light Logo Picker
+                    Expanded(
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text('Light Theme Logo', style: AppTextStyles.labelMd),
+                            const SizedBox(height: 12),
+                            if (_logoLightController.text.isNotEmpty)
+                              Container(
+                                height: 50,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Image.network(_logoLightController.text, fit: BoxFit.contain),
+                              )
+                            else
+                              Container(
+                                height: 50,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: Center(child: Text('No logo uploaded', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted))),
+                              ),
+                            ElevatedButton.icon(
+                              onPressed: _uploadingLight ? null : () => _pickAndUploadLogo(true),
+                              icon: _uploadingLight 
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Icon(Icons.upload_rounded, size: 16),
+                              label: const Text('Upload'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                textStyle: AppTextStyles.bodySm.copyWith(fontWeight: FontWeight.bold),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Dark Logo Picker
+                    Expanded(
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text('Dark Theme Logo', style: AppTextStyles.labelMd),
+                            const SizedBox(height: 12),
+                            if (_logoDarkController.text.isNotEmpty)
+                              Container(
+                                height: 50,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Image.network(_logoDarkController.text, fit: BoxFit.contain),
+                              )
+                            else
+                              Container(
+                                height: 50,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: Center(child: Text('No logo uploaded', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted))),
+                              ),
+                            ElevatedButton.icon(
+                              onPressed: _uploadingDark ? null : () => _pickAndUploadLogo(false),
+                              icon: _uploadingDark 
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Icon(Icons.upload_rounded, size: 16),
+                              label: const Text('Upload'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                textStyle: AppTextStyles.bodySm.copyWith(fontWeight: FontWeight.bold),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // Save button
+                ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _saving
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text('Save Branding Settings', style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+      error: (e, _) => SizedBox(
+        height: 200,
+        child: Center(
+          child: Text('Error loading platform settings: $e', style: TextStyle(color: AppColors.error)),
+        ),
+      ),
+    );
+  }
+}
+

@@ -2,8 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../admin/platform_settings_provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/glass_input.dart';
@@ -431,53 +431,37 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
             const SizedBox(height: 16),
             GlassInput(
               controller: _logoUrlController,
-              label: 'QR Code / Maps Link',
+              label: 'QR Code Link',
               hint: 'e.g. https://maps.app.goo.gl/JC4gdmnJizG5NULs5',
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: GlassInput(
-                    controller: _mobileController,
-                    label: 'Contact Mobile',
-                    hint: 'Enter mobile number',
-                    keyboardType: TextInputType.phone,
-                    validator: Validators.validateMobile,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GlassInput(
-                    controller: _emailController,
-                    label: 'Email Address',
-                    hint: 'company@email.com',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: Validators.validateEmail,
-                  ),
-                ),
-              ],
+            GlassInput(
+              controller: _mobileController,
+              label: 'Contact Mobile',
+              hint: 'Enter mobile number',
+              keyboardType: TextInputType.phone,
+              validator: Validators.validateMobile,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: GlassInput(
-                    controller: _gstinController,
-                    label: 'GSTIN',
-                    hint: '22AAAAA0000A1Z5',
-                    validator: Validators.validateGSTIN,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GlassInput(
-                    controller: _stateWithCodeController,
-                    label: 'State With Code',
-                    hint: 'West Bengal (19)',
-                  ),
-                ),
-              ],
+            GlassInput(
+              controller: _emailController,
+              label: 'Email Address',
+              hint: 'company@email.com',
+              keyboardType: TextInputType.emailAddress,
+              validator: Validators.validateEmail,
+            ),
+            const SizedBox(height: 16),
+            GlassInput(
+              controller: _gstinController,
+              label: 'GSTIN',
+              hint: '22AAAAA0000A1Z5',
+              validator: Validators.validateGSTIN,
+            ),
+            const SizedBox(height: 16),
+            GlassInput(
+              controller: _stateWithCodeController,
+              label: 'State With Code',
+              hint: 'West Bengal (19)',
             ),
             const SizedBox(height: 16),
             GlassInput(
@@ -493,41 +477,31 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
               hint: 'Locality, landmark',
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: GlassInput(
-                    controller: _cityController,
-                    label: 'City',
-                    hint: 'City',
-                    validator: (v) => Validators.validateRequired(v, 'City'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GlassInput(
-                    controller: _stateController,
-                    label: 'State',
-                    hint: 'State',
-                    validator: (v) => Validators.validateRequired(v, 'State'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GlassInput(
-                    controller: _postalCodeController,
-                    label: 'Postal Code',
-                    hint: 'PIN Code',
-                    keyboardType: TextInputType.number,
-                    validator: (v) => Validators.validateRequired(v, 'PIN Code'),
-                  ),
-                ),
-              ],
+            GlassInput(
+              controller: _cityController,
+              label: 'City',
+              hint: 'City',
+              validator: (v) => Validators.validateRequired(v, 'City'),
+            ),
+            const SizedBox(height: 16),
+            GlassInput(
+              controller: _stateController,
+              label: 'State',
+              hint: 'State',
+              validator: (v) => Validators.validateRequired(v, 'State'),
+            ),
+            const SizedBox(height: 16),
+            GlassInput(
+              controller: _postalCodeController,
+              label: 'Postal Code',
+              hint: 'PIN Code',
+              keyboardType: TextInputType.number,
+              validator: (v) => Validators.validateRequired(v, 'PIN Code'),
             ),
             const SizedBox(height: 16),
             GlassInput(
               controller: _notesController,
-              label: 'Invoice Footer Note',
+              label: 'Additional Information',
               hint: 'e.g. Goods once sold will not be taken back.',
               maxLines: 2,
             ),
@@ -1267,44 +1241,49 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          if (_showAddForm)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _editingUser != null ? 'Edit Staff Member' : 'Add Staff Member',
+                  style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
+                ),
+                SecondaryButton(
+                  label: 'View List',
+                  isOutlined: true,
+                  icon: Icons.list_rounded,
+                  onPressed: () {
+                    setState(() {
+                      _showAddForm = false;
+                      _editingUser = null;
+                      _nameController.clear();
+                      _emailController.clear();
+                      _passwordController.clear();
+                      _phoneController.clear();
+                      _role = 'STAFF';
+                    });
+                  },
+                ),
+              ],
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  if (_showAddForm)
-                    Text(
-                      _editingUser != null ? 'Edit Staff Member' : 'Add Staff Member',
-                      style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  SecondaryButton(
-                    label: _showAddForm ? 'View List' : '+ Add Staff',
-                    onPressed: () {
-                      setState(() {
-                        _showAddForm = !_showAddForm;
-                        if (!_showAddForm) {
-                          _editingUser = null;
-                          _nameController.clear();
-                          _emailController.clear();
-                          _passwordController.clear();
-                          _phoneController.clear();
-                          _role = 'STAFF';
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              if (!_showAddForm) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SecondaryButton(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      SecondaryButton(
                         label: 'Role Access',
+                        isOutlined: true,
+                        icon: Icons.security_rounded,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -1313,11 +1292,10 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SecondaryButton(
+                      SecondaryButton(
                         label: 'Edit Access',
+                        isOutlined: true,
+                        icon: Icons.edit_rounded,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -1326,12 +1304,21 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                           );
                         },
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
+                    ],
+                  ),
+                  SecondaryButton(
+                    label: '+ Add Staff',
+                    isOutlined: true,
+                    icon: Icons.add_rounded,
+                    onPressed: () {
+                      setState(() {
+                        _showAddForm = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 20),
           if (_showAddForm)
             Form(
@@ -1885,11 +1872,12 @@ class AboutDetailsDialog extends StatelessWidget {
 // -----------------------------------------------------------
 // 7. Help & Support Dialog
 // -----------------------------------------------------------
-class HelpSupportDialog extends StatelessWidget {
+class HelpSupportDialog extends ConsumerWidget {
   const HelpSupportDialog({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final platformSettings = ref.watch(platformSettingsProvider).value;
     return GlassDialogWrapper(
       title: 'Help & Support',
       child: Column(
@@ -1898,9 +1886,9 @@ class HelpSupportDialog extends StatelessWidget {
           Text('Need assistance? Our support desk is available to help you with invoice issues, inventory setup, or system queries.',
               style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground)),
           const SizedBox(height: 24),
-          _supportRow(Icons.email_outlined, 'Email Support', 'contact.shresthraj@gmail.com'),
+          _supportRow(Icons.email_outlined, 'Email Support', platformSettings?.contactEmail ?? 'contact.shresthraj@gmail.com'),
           const SizedBox(height: 16),
-          _supportRow(Icons.access_time_rounded, 'Operational Hours', '10:00 AM - 08:00 PM (Mon - Sat)'),
+          _supportRow(Icons.access_time_rounded, 'Operational Hours', platformSettings?.workingTime ?? '10:00 AM - 08:00 PM (Mon - Sat)'),
           const SizedBox(height: 24),
            Divider(color: AppColors.border),
           const SizedBox(height: 16),

@@ -78,7 +78,7 @@ class _AdminReportsViewState extends ConsumerState<AdminReportsView> {
       if (bytes != null) {
         await FileSaverHelper.saveExcelFile(
           bytes,
-          'PayPulse_Company_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.xlsx',
+          'PayPulse Company Report - ${DateFormat('dd-MM-yyyy').format(DateTime.now())}.xlsx',
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +147,7 @@ class _AdminReportsViewState extends ConsumerState<AdminReportsView> {
       if (bytes != null) {
         await FileSaverHelper.saveExcelFile(
           bytes,
-          'PayPulse_Customer_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.xlsx',
+          'PayPulse Customer Report - ${DateFormat('dd-MM-yyyy').format(DateTime.now())}.xlsx',
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

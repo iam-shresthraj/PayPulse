@@ -112,7 +112,7 @@ class RateManagementScreen extends ConsumerWidget {
                                       style: AppTextStyles.cardTitle.copyWith(color: AppColors.primary),
                                     ),
                                     const SizedBox(width: 8),
-                                    GestureDetector(
+                                                                    GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onTap: () {
                                         showDialog(
@@ -130,6 +130,58 @@ class RateManagementScreen extends ConsumerWidget {
                                         child: Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
                                       ),
                                     ),
+                                    if (rate.id != null) ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              backgroundColor: AppColors.surfaceContainer,
+                                              title: const Text('Delete Rate'),
+                                              content: const Text('Are you sure you want to delete this rate? This cannot be undone.'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: Text('Cancel', style: TextStyle(color: AppColors.onSurfaceDim)),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: Text('Delete', style: TextStyle(color: AppColors.error)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            try {
+                                              await ref.read(dailyRatesProvider.notifier).deleteDailyRate(rate.id!);
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: const Text('Rate deleted successfully!'),
+                                                    backgroundColor: AppColors.success,
+                                                  ),
+                                                );
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Failed to delete rate: $e'),
+                                                    backgroundColor: AppColors.error,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          }
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(4),
+                                          child: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 16),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                                 if (rate.enteredBy != null)

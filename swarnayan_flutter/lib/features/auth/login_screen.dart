@@ -10,6 +10,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_input.dart';
 import '../../core/widgets/primary_button.dart';
 import 'auth_provider.dart';
+import '../admin/platform_settings_provider.dart';
 import '../billing/invoices_provider.dart';
 import '../more/daily_rates_provider.dart';
 import '../customers/customers_provider.dart';
@@ -100,6 +101,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final themeOverride = ref.watch(themeModeProvider);
+    final platformSettings = ref.watch(platformSettingsProvider).value;
+    final contactEmail = platformSettings?.contactEmail ?? 'contact.shresthraj@gmail.com';
     final isWide = MediaQuery.of(context).size.width >= 850;
     final isLight = themeOverride ?? isWide;
 
@@ -275,7 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                                 ),
                                 child: Text(
-                                  'Note: If you are a business and want to use our software, please contact contact.shresthraj@gmail.com',
+                                  'Note: If you are a business and want to use our software, please contact $contactEmail',
                                   style: AppTextStyles.bodySm.copyWith(
                                     color: AppColors.primary,
                                     fontSize: 10,

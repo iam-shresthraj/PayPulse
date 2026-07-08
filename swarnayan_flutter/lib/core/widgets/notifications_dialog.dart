@@ -73,22 +73,29 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
   Widget build(BuildContext context) {
     return GlassDialogWrapper(
       title: 'Notifications',
-        child: SizedBox(
-          width: 480,
-          height: 400,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
+      child: SizedBox(
+        width: 480,
+        child: _loading
+            ? const SizedBox(
+                height: 150,
+                child: Center(child: CircularProgressIndicator()),
+              )
             : _error != null
-                ? Center(
-                    child: Text(
-                      'Notifications are unavailable right now.',
-                      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                      textAlign: TextAlign.center,
+                ? SizedBox(
+                    height: 150,
+                    child: Center(
+                      child: Text(
+                        'Notifications are unavailable right now.',
+                        style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   )
                 : _notifications.isEmpty
-                    ? Center(
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.notifications_none_rounded, size: 48, color: AppColors.onSurfaceMuted),
@@ -98,6 +105,8 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                         ),
                       )
                     : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: _notifications.length,
                         itemBuilder: (context, index) {
                           final item = _notifications[index];

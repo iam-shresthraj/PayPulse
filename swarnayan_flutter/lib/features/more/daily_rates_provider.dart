@@ -99,6 +99,18 @@ class DailyRatesNotifier extends StateNotifier<AsyncValue<List<DailyRate>>> {
           r.date.day == now.day,
     );
   }
+
+  Future<void> deleteDailyRate(String id) async {
+    try {
+      await _client.from('daily_rates').delete().eq('id', id);
+      final list = state.value ?? [];
+      final updated = list.where((r) => r.id != id).toList();
+      state = AsyncValue.data(updated);
+    } catch (e) {
+      await loadRates();
+      rethrow;
+    }
+  }
 }
 
 final dailyRatesProvider =

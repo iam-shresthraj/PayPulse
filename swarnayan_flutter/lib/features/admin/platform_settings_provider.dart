@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PlatformSettings {
   final String companyName;
+  final String tagline;
   final String? gstNo;
   final String? logoLightUrl;
   final String? logoDarkUrl;
@@ -13,6 +14,7 @@ class PlatformSettings {
 
   PlatformSettings({
     required this.companyName,
+    required this.tagline,
     this.gstNo,
     this.logoLightUrl,
     this.logoDarkUrl,
@@ -24,6 +26,7 @@ class PlatformSettings {
   factory PlatformSettings.fromJson(Map<String, dynamic> json) {
     return PlatformSettings(
       companyName: json['company_name'] ?? 'Swarnayan Jewellers',
+      tagline: json['tagline'] ?? '',
       gstNo: json['gst_no'],
       logoLightUrl: json['logo_light_url'],
       logoDarkUrl: json['logo_dark_url'],
@@ -35,6 +38,7 @@ class PlatformSettings {
 
   Map<String, dynamic> toJson() => {
         'company_name': companyName,
+        'tagline': tagline,
         'gst_no': gstNo,
         'logo_light_url': logoLightUrl,
         'logo_dark_url': logoDarkUrl,
@@ -54,6 +58,7 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
   PlatformSettings _fallbackSettings() {
     return PlatformSettings(
       companyName: 'Swarnayan Jewellers',
+      tagline: 'Brilliant Crafts, Eternal Sparkle',
       contactEmail: 'contact.shresthraj@gmail.com',
       workingTime: '10:00 AM - 08:00 PM (Mon - Sat)',
     );

@@ -1242,7 +1242,6 @@ class HomeScreen extends ConsumerWidget {
                 _summaryRow('Taxable Value', '₹${inv.taxableAmount.toStringAsFixed(0)}'),
                 _summaryRow('CGST (1.5%)', '₹${inv.cgst.toStringAsFixed(0)}'),
                 _summaryRow('SGST (1.5%)', '₹${inv.sgst.toStringAsFixed(0)}'),
-                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1253,6 +1252,28 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (inv.status == 'PARTIALLY_PAID') ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Due Amount',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '₹${inv.balanceDue.toStringAsFixed(0)}',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 24),
                 Row(
                   children: [

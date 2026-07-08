@@ -38,7 +38,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void initState() {
     super.initState();
-    NotificationService.instance.init();
+    NotificationService.instance.init().then((_) {
+      NotificationService.instance.requestPermissions();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupNotificationSubscription();
     });

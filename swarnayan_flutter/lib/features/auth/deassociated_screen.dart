@@ -7,6 +7,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/glass_input.dart';
 import 'auth_provider.dart';
+import '../admin/platform_settings_provider.dart';
 
 /// Screen displayed when a user has been deassociated/removed from their company.
 class DeassociatedScreen extends ConsumerStatefulWidget {
@@ -119,6 +120,9 @@ class _DeassociatedScreenState extends ConsumerState<DeassociatedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformSettings = ref.watch(platformSettingsProvider).value;
+    final contactEmail = platformSettings?.contactEmail ?? 'contact.shresthraj@gmail.com';
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -210,7 +214,7 @@ class _DeassociatedScreenState extends ConsumerState<DeassociatedScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'contact.shresthraj@gmail.com',
+                  contactEmail,
                   style: AppTextStyles.bodyMd.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,

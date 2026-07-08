@@ -39,10 +39,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-populate search with default range on load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _performSearch();
-    });
   }
 
   @override
@@ -268,12 +264,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         },
       ),
     );
-
-    final rangeFormatted = '${DateFormat('dd-MM-yyyy').format(_startDate)} to ${DateFormat('dd-MM-yyyy').format(_endDate)}';
     final bytes = await doc.save();
     await FileSaverHelper.savePdfFile(
       bytes,
-      '$companyName Report ($rangeFormatted).pdf',
+      'PayPulse $companyName Report - ${DateFormat('dd-MM-yyyy').format(DateTime.now())}.pdf',
     );
   }
 
@@ -328,10 +322,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final bytes = excel.save();
     if (bytes != null) {
-      final rangeFormatted = '${DateFormat('dd-MM-yyyy').format(_startDate)} to ${DateFormat('dd-MM-yyyy').format(_endDate)}';
       FileSaverHelper.saveExcelFile(
         bytes,
-        '$companyName Report ($rangeFormatted).xlsx',
+        'PayPulse $companyName Report - ${DateFormat('dd-MM-yyyy').format(DateTime.now())}.xlsx',
       );
     }
   }

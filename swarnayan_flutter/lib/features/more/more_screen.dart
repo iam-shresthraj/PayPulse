@@ -60,11 +60,15 @@ class MoreScreen extends ConsumerWidget {
 
     // Visibility checks based on role and feature permissions
     final showCustomers = !isWide && (user?.hasAccess('customers', rolePermissions) ?? true);
-    final showDirectorySection = showCustomers;
+    final showProducts = !isWide && (user?.hasAccess('inventory', rolePermissions) ?? true);
+    final showDirectorySection = showCustomers || showProducts;
 
     final showReports = !isWide && canManage && (user?.hasAccess('reports', rolePermissions) ?? true);
     final showSettings = !isWide && isOwner && (user?.hasAccess('settings', rolePermissions) ?? true);
-    final showBusinessSection = showReports || showSettings;
+    final showRates = user?.hasAccess('rates', rolePermissions) ?? true;
+    final showRecords = !isWide && (user?.hasAccess('records', rolePermissions) ?? true);
+    final showCoupons = user?.hasAccess('coupons', rolePermissions) ?? true;
+    final showBusinessSection = showReports || showSettings || showRates || showRecords || showCoupons;
 
     final showStaffMgmt = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
     final showPending = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
@@ -266,6 +270,14 @@ class MoreScreen extends ConsumerWidget {
                     index: 20,
                     onTap: () => context.go('/customers'),
                   ),
+                if (showProducts)
+                  _buildMenuItem(
+                    icon: Icons.diamond_rounded,
+                    label: 'Products',
+                    subtitle: 'Manage inventory & prices',
+                    index: 21,
+                    onTap: () => context.go('/products'),
+                  ),
                 const SizedBox(height: 24),
               ],
 
@@ -292,6 +304,36 @@ class MoreScreen extends ConsumerWidget {
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const CompanySettingsDialog(),
+                      );
+                    },
+                  ),
+                if (showRates)
+                  _buildMenuItem(
+                    icon: Icons.trending_up_rounded,
+                    label: 'Rate Management',
+                    subtitle: 'Daily gold & silver rates',
+                    index: 2,
+                    onTap: () => context.push('/more/rates'),
+                  ),
+                if (showRecords)
+                  _buildMenuItem(
+                    icon: Icons.book_rounded,
+                    label: 'Record Book',
+                    subtitle: 'Income & expense tracking',
+                    index: 3,
+                    onTap: () => context.push('/more/records'),
+                  ),
+                if (showCoupons)
+                  _buildMenuItem(
+                    icon: Icons.local_offer_rounded,
+                    label: 'Coupons & Offers',
+                    subtitle: 'Manage discount codes',
+                    index: 4,
+                    onTap: () {
+                      showSingleDialog(
+                        context: context,
+                        useRootNavigator: false,
+                        builder: (_) => const CouponsManagementDialog(),
                       );
                     },
                   ),

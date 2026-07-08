@@ -200,6 +200,35 @@ class CouponsNotifier extends StateNotifier<AsyncValue<List<Coupon>>> {
 
     return coupon;
   }
+
+  /// Increments used_count for the given coupon code after a successful invoice save.
+  Future<void> incrementUsage(String code) async {
+    try {
+      // Use a raw RPC or update with current value from DB to avoid race conditions
+      final data = await _client
+          .from('coupons')
+          .select('id, used_count')
+          .eq('code', code.toUpperCase())
+          .maybeSingle();
+      if (data == null) return;
+      final String id = data['id'];
+      final int currentUsed = (data['used_count'] as num?)?.toInt() ?? 0;
+      await _client
+          .from('coupons')
+          .update({'used_count': currentUsed + 1})
+          .eq('id', id);
+      // Refresh local state
+      final list = state.value ?? [];
+      final index = list.indexWhere((c) => c.id == id);
+      if (index != -1) {
+        final updated = List<Coupon>.from(list);
+        updated[index] = updated[index].copyWith(usedCount: currentUsed + 1);
+        state = AsyncValue.data(updated);
+      }
+    } catch (_) {
+      // Non-critical: don't fail the invoice save if this errors
+    }
+  }
 }
 
 final couponsProvider =

@@ -8,6 +8,7 @@ import '../../core/utils/pdf_helper.dart';
 import '../products/products_provider.dart';
 import '../customers/customers_provider.dart';
 import '../more/company_provider.dart';
+import '../more/coupons_provider.dart';
 
 class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
   final Ref _ref;
@@ -222,6 +223,11 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }).eq('id', invoice.customerId!);
       }
       
+      // Increment coupon usage count if a coupon was applied
+      if (invoice.couponCode != null && invoice.couponCode!.isNotEmpty) {
+        await _ref.read(couponsProvider.notifier).incrementUsage(invoice.couponCode!);
+      }
+
       // Trigger reload for products and customers so they get updated stock/spend values
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();

@@ -700,13 +700,13 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
           ? 'Welcome to PayPulse, {name}! Your account has been created successfully.'
           : _welcomeBodyController.text.trim(),
     );
-    final success = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
+    final error = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
     if (mounted) {
       setState(() => _savingWelcome = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'Welcome template saved.' : 'Failed to save welcome template.'),
-          backgroundColor: success ? AppColors.success : AppColors.error,
+          content: Text(error == null ? 'Welcome template saved.' : 'Failed to save welcome template: $error'),
+          backgroundColor: error == null ? AppColors.success : AppColors.error,
         ),
       );
     }

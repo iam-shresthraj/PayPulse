@@ -152,68 +152,6 @@ class AdminBusinessesScreen extends ConsumerWidget {
                                       ],
                                     ),
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        company.renewDate != null
-                                            ? 'Expires: ${DateFormat('dd MMM yyyy').format(company.renewDate!)}'
-                                            : 'Lifetime Access',
-                                        style: AppTextStyles.bodySm.copyWith(
-                                          color: company.renewDate != null && company.renewDate!.isBefore(DateTime.now())
-                                              ? AppColors.error
-                                              : AppColors.onSurfaceMuted,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          await ref.read(adminProvider.notifier).renewCompanySubscription(company.id, company.renewDate);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Validity extended for ${company.name}'),
-                                              backgroundColor: AppColors.success,
-                                            ),
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primary,
-                                          foregroundColor: Colors.white,
-                                          elevation: 0,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        child: Text('+1 Year', style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          final success = await ref.read(adminProvider.notifier).setCompanyLifetimeAccess(company.id);
-                                          if (success) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('${company.name} is now on lifetime access'),
-                                                backgroundColor: AppColors.success,
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.surfaceContainer,
-                                          foregroundColor: AppColors.primary,
-                                          elevation: 0,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        child: Text('Lifetime Access', style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11)),
-                                      ),
-                                    ],
-                                  ),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -387,6 +325,10 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _selectedCompanyId,
+            dropdownColor: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(12),
+            icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.onSurfaceMuted),
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
             items: [
               const DropdownMenuItem(value: 'ALL', child: Text('All Companies')),
               ...state.companies.map(
@@ -402,8 +344,10 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
             },
             decoration: InputDecoration(
               labelText: 'Filter by company',
+              labelStyle: TextStyle(color: AppColors.primary),
               filled: true,
               fillColor: AppColors.surfaceContainer,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primary, width: 1.2)),
@@ -768,6 +712,60 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
     }
   }
 
+  Map<String, int> _calculateNotificationStats(Map<String, dynamic> item, AdminState state) {
+    final targetCompanyId = item['target_company_id']?.toString();
+    final targetRole = (item['target_role'] ?? 'ALL').toString().toUpperCase();
+
+    int deliveredCompanies = 0;
+    int deliveredUsers = 0;
+
+    if (targetCompanyId != null && targetCompanyId.isNotEmpty) {
+      deliveredCompanies = 1;
+    } else {
+      deliveredCompanies = state.companies.length;
+    }
+
+    if (targetCompanyId != null && targetCompanyId.isNotEmpty) {
+      if (targetRole == 'ALL') {
+        deliveredUsers = state.users.where((u) => 
+          u.companyId == targetCompanyId && 
+          u.isActive && 
+          u.approvalStatus.toUpperCase() == 'APPROVED'
+        ).length;
+      } else {
+        deliveredUsers = state.users.where((u) => 
+          u.companyId == targetCompanyId && 
+          u.role.toUpperCase() == targetRole && 
+          u.isActive && 
+          u.approvalStatus.toUpperCase() == 'APPROVED'
+        ).length;
+      }
+    } else {
+      if (targetRole == 'ALL') {
+        deliveredUsers = state.users.where((u) => 
+          u.isActive && 
+          u.approvalStatus.toUpperCase() == 'APPROVED'
+        ).length;
+      } else if (targetRole == 'SUPER_ADMIN') {
+        deliveredUsers = state.users.where((u) => 
+          u.role.toUpperCase() == 'SUPER_ADMIN' && 
+          u.isActive
+        ).length;
+      } else {
+        deliveredUsers = state.users.where((u) => 
+          u.role.toUpperCase() == targetRole && 
+          u.isActive && 
+          u.approvalStatus.toUpperCase() == 'APPROVED'
+        ).length;
+      }
+    }
+
+    return {
+      'companies': deliveredCompanies,
+      'users': deliveredUsers,
+    };
+  }
+
   Future<List<Map<String, dynamic>>> _loadHistory() async {
     try {
       final client = Supabase.instance.client;
@@ -1103,11 +1101,17 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                         final list = snapshot.data ?? [];
                         final totalDeliveredCompanies = list.fold<int>(
                           0,
-                          (sum, item) => sum + ((item['delivered_companies_count'] ?? 0) as num).toInt(),
+                          (sum, item) {
+                            final stats = _calculateNotificationStats(item, state);
+                            return sum + (stats['companies'] ?? 0);
+                          },
                         );
                         final totalDeliveredUsers = list.fold<int>(
                           0,
-                          (sum, item) => sum + ((item['delivered_users_count'] ?? 0) as num).toInt(),
+                          (sum, item) {
+                            final stats = _calculateNotificationStats(item, state);
+                            return sum + (stats['users'] ?? 0);
+                          },
                         );
                         final totalSeen = list.fold<int>(
                           0,
@@ -1183,8 +1187,9 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                                     orElse: () => AdminBusiness(id: '', name: 'Unknown', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
                                   ).name;
                             final seenCount = (item['__seen_count'] ?? 0) as int;
-                            final deliveredUsers = ((item['delivered_users_count'] ?? 0) as num).toInt();
-                            final deliveredCompanies = ((item['delivered_companies_count'] ?? 0) as num).toInt();
+                            final stats = _calculateNotificationStats(item, state);
+                            final deliveredUsers = stats['users'] ?? 0;
+                            final deliveredCompanies = stats['companies'] ?? 0;
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
@@ -1218,7 +1223,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                                       children: [
                                         _buildBadge(Icons.business_rounded, 'Target: $companyName'),
                                         _buildBadge(Icons.person_outline_rounded, 'Role: $role'),
-                                        _buildBadge(Icons.send_rounded, 'Delivered: $deliveredCompanies comp., $deliveredUsers users'),
+                                        _buildBadge(Icons.send_rounded, 'Delivered: $deliveredCompanies companies, $deliveredUsers users'),
                                         _buildBadge(Icons.remove_red_eye_rounded, 'Seen: $seenCount users'),
                                       ],
                                     ),
@@ -1417,16 +1422,16 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
       notifyOnSignup: _notifyOnSignup,
     );
     
-    final success = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
+    final error = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
     if (mounted) {
       setState(() => _saving = false);
-      if (success) {
+      if (error == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: const Text('System branding settings saved!'), backgroundColor: AppColors.success),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to save settings to database'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Failed to save settings: $error'), backgroundColor: AppColors.error),
         );
       }
     }

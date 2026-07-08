@@ -48,19 +48,32 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
           .order('created_at', ascending: false)
           .limit(20);
 
+      // Fetch read receipts for this user
+      List<String> readNotificationIds = [];
+      try {
+        final readsResponse = await Supabase.instance.client
+            .from('notification_reads')
+            .select('notification_id')
+            .eq('user_id', user.id);
+        readNotificationIds = List<String>.from(
+          (readsResponse as List).map((r) => r['notification_id'].toString())
+        );
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
-          _notifications = List<Map<String, dynamic>>.from(response).where((item) => _matchesTarget(item, user)).toList();
+          final rawList = List<Map<String, dynamic>>.from(response)
+              .where((item) => _matchesTarget(item, user))
+              .toList();
+          _notifications = rawList.map((item) {
+            final isRead = readNotificationIds.contains(item['id'].toString());
+            return {
+              ...item,
+              'is_read': isRead,
+            };
+          }).toList();
           _loading = false;
         });
-        
-        // Mark all as read in database
-        try {
-          await Supabase.instance.client.rpc('mark_notifications_as_read');
-        } catch (_) {}
-        
-        // Clear local unread count
-        ref.read(unreadNotificationsProvider.notifier).state = 0;
       }
     } catch (e) {
       final missingTable = e.toString().contains('PGRST205') ||
@@ -84,8 +97,21 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
 
   Future<void> _markAllAsRead() async {
     try {
-      await Supabase.instance.client.rpc('mark_notifications_as_read');
+      try {
+        await Supabase.instance.client.rpc('mark_notifications_as_read');
+      } catch (rpcError) {
+        // Fallback: insert read receipts directly
+        final user = ref.read(authProvider).user;
+        if (user != null && _notifications.isNotEmpty) {
+          final inserts = _notifications.map((n) => {
+            'notification_id': n['id'],
+            'user_id': user.id,
+          }).toList();
+          await Supabase.instance.client.from('notification_reads').upsert(inserts);
+        }
+      }
       ref.read(unreadNotificationsProvider.notifier).state = 0;
+      await _loadNotifications();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: const Text('Marked as read'), backgroundColor: AppColors.success),
@@ -188,9 +214,23 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    dateStr,
-                                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        dateStr,
+                                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
+                                      ),
+                                      if (item['is_read'] == false)
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(height: 6),
                                   Text(

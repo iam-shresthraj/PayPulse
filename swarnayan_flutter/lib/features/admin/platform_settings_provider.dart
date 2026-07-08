@@ -106,17 +106,17 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
     }
   }
 
-  Future<bool> updateSettings(PlatformSettings settings) async {
+  Future<String?> updateSettings(PlatformSettings settings) async {
     try {
       final payload = settings.toJson();
       await _client
           .from('platform_settings')
           .upsert({'id': 'global', ...payload});
       state = AsyncValue.data(settings);
-      return true;
+      return null;
     } catch (e) {
       print('DEBUG: updateSettings failed: $e');
-      return false;
+      return e.toString();
     }
   }
 

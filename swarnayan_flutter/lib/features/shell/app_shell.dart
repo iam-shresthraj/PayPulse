@@ -790,7 +790,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     final user = ref.watch(authProvider).user;
     final rolePermissions = ref.watch(rolePermissionsProvider).value ?? {};
     final canManage = user?.canManage ?? false;
-    final isOwner = user?.isOwner ?? false;
 
     return Container(
       width: 260,

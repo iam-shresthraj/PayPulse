@@ -61,11 +61,7 @@ class User {
 
   bool get isJewellery => companyCategory?.toLowerCase() == 'jewellery';
   bool get hasLifetimeAccess => !isSuperAdmin && companyRenewDate == null;
-  bool get isExpired {
-    if (isSuperAdmin) return false;
-    if (companyRenewDate == null) return false;
-    return DateTime.now().isAfter(companyRenewDate!);
-  }
+  bool get isExpired => false;
 
   /// Manager-level access (manager or owner).
   bool get canManage => isOwner || isManager || isSuperAdmin;

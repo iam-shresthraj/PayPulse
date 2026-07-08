@@ -30,7 +30,7 @@ final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/splash',
+    initialLocation: SplashConfig.hasSeenSplash ? '/' : '/splash',
     redirect: (context, state) {
       final authState = ref.read(authProvider);
 
@@ -38,7 +38,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final location = state.uri.toString();
       final isSplash = location == '/splash';
-      if (isSplash) return null;
+      if (isSplash) {
+        if (SplashConfig.hasSeenSplash) {
+          return '/';
+        }
+        return null;
+      }
 
       final isLoggingIn = location == '/login';
       final isPendingPage = location == '/pending';

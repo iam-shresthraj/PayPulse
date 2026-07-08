@@ -5,10 +5,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/theme_provider.dart';
+import 'features/auth/splash_screen.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await SplashConfig.init();
 
   await Supabase.initialize(
     url: 'https://gnyzctxlqcidubanoiae.supabase.co',

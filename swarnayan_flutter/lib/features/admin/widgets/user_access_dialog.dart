@@ -137,21 +137,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
     }
   }
 
-  Widget _buildSwitchTile(String key, String title, String subtitle) {
-    return SwitchListTile(
-      value: _accessList[key] ?? true,
-      onChanged: (val) {
-        setState(() {
-          _accessList[key] = val;
-        });
-      },
-      title: Text(title, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
-      subtitle: Text(subtitle, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-      activeColor: AppColors.primary,
-      inactiveThumbColor: Colors.grey,
-      contentPadding: EdgeInsets.zero,
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -163,33 +149,43 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
     return GlassDialogWrapper(
       title: 'Manage User & Access',
       actions: [
-        IconButton(
+        OutlinedButton(
           onPressed: (_submitting || _deleting) ? null : _deleteUser,
-          icon: _deleting
-              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-              : Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.error),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.error,
+            side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: _deleting
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.delete_outline_rounded, size: 18),
         ),
         const Spacer(),
         TextButton(
           onPressed: _submitting ? null : () => Navigator.pop(context),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
           child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         ElevatedButton(
           onPressed: _submitting ? null : _save,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.black,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
           ),
           child: _submitting
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
                 )
-              : Text('Save Changes', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold)),
+              : Text('Save Changes', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
         ),
       ],
       child: Column(
@@ -311,21 +307,6 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
             activeColor: AppColors.primary,
             contentPadding: EdgeInsets.zero,
           ),
-          const SizedBox(height: 24),
-
-          // Feature Permissions
-          Text('FEATURE-WISE ACCESS PERMISSIONS', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
-          const SizedBox(height: 8),
-          _buildSwitchTile('dashboard', 'Dashboard', 'Access home screens, business stats, and charts'),
-          _buildSwitchTile('invoices', 'Billing & Invoices', 'Create invoices, calculate payments, and view drafts'),
-          _buildSwitchTile('rates', 'Rate Management', 'Update and configure live gold and silver rates'),
-          _buildSwitchTile('customers', 'Customers Directory', 'Add and view customers, profiles, and histories'),
-          _buildSwitchTile('inventory', 'Inventory Products', 'Manage catalog templates, HUID barcodes, and weights'),
-          _buildSwitchTile('reports', 'Reports Engine', 'Generate custom audits, export PDF and Excel sheets'),
-          _buildSwitchTile('records', 'Record Book', 'Access active and deleted invoices log'),
-          _buildSwitchTile('staff', 'Staff Management', 'Add, edit, approve, and delete staff accounts'),
-          _buildSwitchTile('settings', 'Company Settings', 'Edit invoice prefix, financial year, and business codes'),
-          _buildSwitchTile('coupons', 'Coupons & Promo', 'Configure and toggle discount codes'),
         ],
       ),
     );

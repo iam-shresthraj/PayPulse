@@ -56,7 +56,6 @@ class PlatformSettings {
   Map<String, dynamic> toJson() => {
         'company_name': companyName,
         'tagline': tagline,
-        'gst_no': gstNo,
         'logo_light_url': logoLightUrl,
         'logo_dark_url': logoDarkUrl,
         'address': address,

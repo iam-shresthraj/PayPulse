@@ -105,24 +105,22 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row of KPIs
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: isWide ? 2.5 : 1.3,
+          Row(
             children: [
-              StatCard(
-                title: 'Total Businesses',
-                value: state.companies.length.toString(),
-                icon: Icons.business_rounded,
+              Expanded(
+                child: StatCard(
+                  title: 'Total Businesses',
+                  value: state.companies.length.toString(),
+                  icon: Icons.business_rounded,
+                ),
               ),
-              StatCard(
-                title: 'Total System Users',
-                value: state.users.length.toString(),
-                icon: Icons.people_alt_rounded,
+              const SizedBox(width: 16),
+              Expanded(
+                child: StatCard(
+                  title: 'Total System Users',
+                  value: state.users.length.toString(),
+                  icon: Icons.people_alt_rounded,
+                ),
               ),
             ],
           ),

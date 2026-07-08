@@ -181,6 +181,11 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
+    if (location.startsWith('/admin/businesses')) return 101;
+    if (location.startsWith('/admin/customers')) return 102;
+    if (location.startsWith('/admin/users')) return 103;
+    if (location.startsWith('/admin/notifications')) return 104;
+    if (location.startsWith('/admin/branding')) return 105;
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/more/rates')) return 7;
     if (location.startsWith('/customers')) return 2;

@@ -6,6 +6,26 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SplashConfig {
+  static bool hasSeenSplash = false;
+
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      hasSeenSplash = prefs.getBool('has_seen_splash') ?? false;
+    } catch (_) {}
+  }
+
+  static Future<void> setSeen() async {
+    hasSeenSplash = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_seen_splash', true);
+    } catch (_) {}
+  }
+}
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,6 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    SplashConfig.setSeen();
     Timer(const Duration(seconds: 2), () {
       if (mounted) {
         context.go('/');

@@ -240,6 +240,10 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
               final isCompact = constraints.maxWidth < 540;
               final roleField = DropdownButtonFormField<String>(
                 value: _selectedRole,
+                dropdownColor: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(12),
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.onSurfaceMuted),
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
                 items: roles.map((role) {
                   return DropdownMenuItem(
                     value: role,
@@ -254,12 +258,19 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
                   labelStyle: TextStyle(color: AppColors.primary),
                   filled: true,
                   fillColor: AppColors.surfaceContainer,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primary, width: 1.2)),
                 ),
               );
 
               final statusField = DropdownButtonFormField<String>(
                 value: _selectedStatus,
+                dropdownColor: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(12),
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.onSurfaceMuted),
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
                 items: statuses.map((status) {
                   return DropdownMenuItem(
                     value: status,
@@ -274,7 +285,10 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
                   labelStyle: TextStyle(color: AppColors.primary),
                   filled: true,
                   fillColor: AppColors.surfaceContainer,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primary, width: 1.2)),
                 ),
               );
 
@@ -307,8 +321,39 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
             activeColor: AppColors.primary,
             contentPadding: EdgeInsets.zero,
           ),
+          const SizedBox(height: 24),
+
+          // Feature Permissions
+          Text('FEATURE-WISE ACCESS PERMISSIONS', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          _buildSwitchTile('dashboard', 'Dashboard', 'Access home screens, business stats, and charts'),
+          _buildSwitchTile('invoices', 'Billing & Invoices', 'Create invoices, calculate payments, and view drafts'),
+          _buildSwitchTile('rates', 'Rate Management', 'Update and configure live gold and silver rates'),
+          _buildSwitchTile('customers', 'Customers Directory', 'Add and view customers, profiles, and histories'),
+          _buildSwitchTile('inventory', 'Inventory Products', 'Manage catalog templates, HUID barcodes, and weights'),
+          _buildSwitchTile('reports', 'Reports Engine', 'Generate custom audits, export PDF and Excel sheets'),
+          _buildSwitchTile('records', 'Record Book', 'Access active and deleted invoices log'),
+          _buildSwitchTile('staff', 'Staff Management', 'Add, edit, approve, and delete staff accounts'),
+          _buildSwitchTile('settings', 'Company Settings', 'Edit invoice prefix, financial year, and business codes'),
+          _buildSwitchTile('coupons', 'Coupons & Promo', 'Configure and toggle discount codes'),
         ],
       ),
+    );
+  }
+
+  Widget _buildSwitchTile(String key, String title, String subtitle) {
+    return SwitchListTile(
+      value: _accessList[key] ?? true,
+      onChanged: (val) {
+        setState(() {
+          _accessList[key] = val;
+        });
+      },
+      title: Text(title, style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold)),
+      subtitle: Text(subtitle, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+      activeColor: AppColors.primary,
+      inactiveThumbColor: Colors.grey,
+      contentPadding: EdgeInsets.zero,
     );
   }
 }

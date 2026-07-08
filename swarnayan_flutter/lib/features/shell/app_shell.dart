@@ -19,6 +19,7 @@ import '../../core/router/app_router.dart';
 import '../../core/services/notification_service.dart';
 import '../admin/platform_settings_provider.dart';
 import '../../core/utils/dialog_helper.dart';
+import '../../core/widgets/notifications_dialog.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -69,7 +70,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final body = notification['body'] ?? '';
     final fileUrl = notification['file_url']?.toString();
 
-    showDialog(
+    showSingleDialog(
       context: shellNavigatorKey.currentContext ?? context,
       barrierDismissible: true,
       builder: (context) => BackdropFilter(
@@ -275,7 +276,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (!hasToday) {
         _prompted = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          showDialog(
+          showSingleDialog(
             context: shellNavigatorKey.currentContext ?? context,
             useRootNavigator: false,
             barrierDismissible: true,
@@ -287,7 +288,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showSingleDialog<bool>(
       context: shellNavigatorKey.currentContext ?? context,
       useRootNavigator: false,
       builder: (context) => BackdropFilter(
@@ -899,7 +900,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     label: 'Settings',
                     isActive: false,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: shellNavigatorKey.currentContext ?? context,
                         useRootNavigator: false,
                         builder: (context) => const CompanySettingsDialog(),
@@ -912,7 +913,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     label: 'Help',
                     isActive: false,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: shellNavigatorKey.currentContext ?? context,
                         useRootNavigator: false,
                         builder: (context) => const HelpSupportDialog(),

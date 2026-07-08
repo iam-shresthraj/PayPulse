@@ -94,22 +94,26 @@ class CustomerDetailScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Text('Customer Profile', style: AppTextStyles.titleMd),
-                          const Spacer(),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Customer Profile',
+                              style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
                           IconButton(
-                            icon:  Icon(Icons.edit_outlined, color: AppColors.primary),
+                            icon: Icon(Icons.edit_outlined, color: AppColors.primary),
                             onPressed: () {
                               context.push('/customers/edit', extra: customer);
                             },
                           ),
                           IconButton(
-                            icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                            icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
                             onPressed: () => _confirmDelete(context, ref, customer.name),
                           ),
                         ],
                       ),
-                    ).animate().fadeIn(duration: 300.ms),
+                    ),
 
                     const SizedBox(height: 24),
 

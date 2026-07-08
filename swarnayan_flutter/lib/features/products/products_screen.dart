@@ -73,32 +73,16 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('Products', style: AppTextStyles.titleMd),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Product Catalog',
+                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),
-
-          const SizedBox(height: 16),
-
-          // ── Title ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Product Catalog',
-                  style: AppTextStyles.headlineLgMobile,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Manage your jewellery inventory',
-                  style: AppTextStyles.sectionSubtitle,
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
 
           const SizedBox(height: 20),
 

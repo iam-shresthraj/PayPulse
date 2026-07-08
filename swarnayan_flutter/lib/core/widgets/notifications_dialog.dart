@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/more/widgets/more_dialogs.dart';
+import '../utils/dialog_helper.dart';
 
 final unreadNotificationsProvider = StateProvider<int>((ref) => 0);
 
@@ -196,7 +197,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
 }
 
 void showNotificationsDialog(BuildContext context) {
-  showDialog(
+  showSingleDialog(
     context: context,
     barrierDismissible: true,
     builder: (context) => const NotificationsDialog(),

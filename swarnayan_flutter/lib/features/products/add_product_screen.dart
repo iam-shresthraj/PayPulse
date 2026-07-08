@@ -287,8 +287,13 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(_isEditing ? 'Edit Product' : 'Add Product', style: AppTextStyles.titleMd),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _isEditing ? 'Edit Product' : 'Add Product',
+                      style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             ),

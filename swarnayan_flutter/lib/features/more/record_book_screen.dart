@@ -260,39 +260,23 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.glassBorder),
                     ),
-                    child:  Icon(
+                    child: Icon(
                       Icons.arrow_back_rounded,
                       color: AppColors.onSurface,
                       size: 20,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('Record Book', style: AppTextStyles.titleMd),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Sales Invoice Register',
+                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),
-
-          const SizedBox(height: 24),
-
-          // Title Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Sales Invoice Register',
-                  style: AppTextStyles.headlineLgMobile,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Review transaction histories and audits',
-                  style: AppTextStyles.sectionSubtitle,
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
 
           const SizedBox(height: 20),
 

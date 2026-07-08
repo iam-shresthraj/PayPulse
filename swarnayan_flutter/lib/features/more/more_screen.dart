@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../auth/auth_provider.dart';
+import '../../core/utils/dialog_helper.dart';
 import 'widgets/more_dialogs.dart';
 import 'widgets/team_dialogs.dart';
 import 'company_provider.dart';
@@ -135,7 +136,7 @@ class MoreScreen extends ConsumerWidget {
                 animationIndex: 0,
                 padding: const EdgeInsets.all(20),
                 onTap: () {
-                  showDialog(
+                  showSingleDialog(
                     context: context,
                     useRootNavigator: false,
                     builder: (_) => const EditProfileDialog(),
@@ -299,7 +300,7 @@ class MoreScreen extends ConsumerWidget {
                     subtitle: 'Name, address, GSTIN, logo',
                     index: 1,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const CompanySettingsDialog(),
@@ -329,7 +330,7 @@ class MoreScreen extends ConsumerWidget {
                     subtitle: 'Manage discount codes',
                     index: 4,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const CouponsManagementDialog(),
@@ -350,7 +351,7 @@ class MoreScreen extends ConsumerWidget {
                     subtitle: 'Users, roles & permissions',
                     index: 5,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const StaffManagementDialog(),
@@ -367,7 +368,7 @@ class MoreScreen extends ConsumerWidget {
                     index: 10,
                     badgeCount: pendingCount,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const PendingApprovalsDialog(),
@@ -383,7 +384,7 @@ class MoreScreen extends ConsumerWidget {
                         : 'Staff access code',
                     index: 11,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const CompanyCodesDialog(),
@@ -397,7 +398,7 @@ class MoreScreen extends ConsumerWidget {
                     subtitle: 'Update your credentials',
                     index: 6,
                     onTap: () {
-                      showDialog(
+                      showSingleDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (_) => const ChangePasswordDialog(),
@@ -428,7 +429,7 @@ class MoreScreen extends ConsumerWidget {
               subtitle: 'Version 1.0.0',
               index: 7,
               onTap: () {
-                showDialog(
+                showSingleDialog(
                   context: context,
                   useRootNavigator: false,
                   builder: (_) => const AboutDetailsDialog(),
@@ -442,7 +443,7 @@ class MoreScreen extends ConsumerWidget {
                 subtitle: 'FAQs & contact',
                 index: 8,
                 onTap: () {
-                  showDialog(
+                  showSingleDialog(
                     context: context,
                     useRootNavigator: false,
                     builder: (_) => const HelpSupportDialog(),
@@ -461,7 +462,7 @@ class MoreScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   borderColor: AppColors.error.withValues(alpha: 0.3),
                   onTap: () async {
-                    final confirm = await showDialog<bool>(
+                    final confirm = await showSingleDialog<bool>(
                       context: context,
                       useRootNavigator: false,
                       builder: (context) => BackdropFilter(

@@ -68,32 +68,16 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('Customers', style: AppTextStyles.titleMd),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Customer Directory',
+                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),
-
-          const SizedBox(height: 16),
-
-          // ── Title ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Customer Directory',
-                  style: AppTextStyles.headlineLgMobile,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Manage high-net-worth clientele',
-                  style: AppTextStyles.sectionSubtitle,
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
 
           const SizedBox(height: 20),
 

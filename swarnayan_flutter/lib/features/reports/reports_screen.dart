@@ -432,8 +432,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('Reports', style: AppTextStyles.titleMd),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Reports',
+                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
           ),

@@ -18,6 +18,7 @@ import '../../core/widgets/secondary_button.dart';
 import '../customers/customers_provider.dart';
 import '../customers/add_customer_dialog.dart';
 import '../products/products_provider.dart';
+import '../../core/utils/dialog_helper.dart';
 import '../more/daily_rates_provider.dart';
 import '../more/company_provider.dart';
 import '../more/coupons_provider.dart';
@@ -454,7 +455,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       // Launch choice dialog
       final company = ref.read(companyProvider).value;
       if (mounted) {
-        showDialog(
+        showSingleDialog(
           context: context,
           useRootNavigator: false,
           builder: (context) => BackdropFilter(
@@ -567,7 +568,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Future<bool?> _showDraftDialog(BuildContext context) async {
-    return showDialog<bool?>(
+    return showSingleDialog<bool?>(
       context: context,
       useRootNavigator: false,
       barrierDismissible: true,
@@ -2042,7 +2043,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final defaultNum = billing.customInvoiceNumber ?? getNextInvoiceNumber(companyState.value);
     final controller = TextEditingController(text: defaultNum);
 
-    showDialog(
+    showSingleDialog(
       context: context,
       useRootNavigator: false,
       builder: (context) => BackdropFilter(
@@ -2698,7 +2699,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   void _showBarcodeDialog(BuildContext context) {
-    showDialog(
+    showSingleDialog(
       context: context,
       useRootNavigator: false,
       builder: (context) => const BarcodeScannerDialog(),

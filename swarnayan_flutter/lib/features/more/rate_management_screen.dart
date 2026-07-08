@@ -47,16 +47,20 @@ class RateManagementScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('Rate Management', style: AppTextStyles.titleMd),
-                const Spacer(),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Rate Management',
+                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
                 IconButton(
-                  icon:  Icon(Icons.add_rounded, color: AppColors.primary),
+                  icon: Icon(Icons.add_rounded, color: AppColors.primary),
                   onPressed: () => _showAddRateDialog(context),
                 ),
               ],
             ),
-          ).animate().fadeIn(duration: 300.ms),
+          ),
 
           const SizedBox(height: 12),
 

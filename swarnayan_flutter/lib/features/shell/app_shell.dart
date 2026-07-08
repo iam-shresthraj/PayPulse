@@ -184,7 +184,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (location.startsWith('/admin/businesses')) return 101;
     if (location.startsWith('/admin/customers')) return 102;
     if (location.startsWith('/admin/users')) return 103;
-    if (location.startsWith('/admin/notifications')) return 104;
+    if (location.startsWith('/admin/notifications')) return 8;
     if (location.startsWith('/admin/branding')) return 105;
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/more/rates')) return 7;
@@ -880,13 +880,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                     onTap: () => context.go('/admin/users'),
                   ),
                   _buildSidebarItem(
-                    icon: Icons.campaign_rounded,
-                    label: 'Notifications',
-                    isActive: currentIndex == 104,
-                    badgeCount: unreadCount,
-                    onTap: () => context.go('/admin/notifications'),
-                  ),
-                  _buildSidebarItem(
                     icon: Icons.palette_rounded,
                     label: 'System Branding',
                     isActive: currentIndex == 105,
@@ -953,6 +946,23 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ],
                 const SizedBox(height: 16),
                 _buildSidebarHeader('GENERAL'),
+                _buildSidebarItem(
+                  icon: Icons.notifications_rounded,
+                  label: 'Notifications',
+                  isActive: currentIndex == 8,
+                  badgeCount: unreadCount,
+                  onTap: () {
+                    if (user?.isSuperAdmin ?? false) {
+                      context.go('/admin/notifications');
+                    } else {
+                      showSingleDialog(
+                        context: shellNavigatorKey.currentContext ?? context,
+                        useRootNavigator: false,
+                        builder: (context) => const NotificationsDialog(),
+                      );
+                    }
+                  },
+                ),
                 _buildSidebarItem(
                   icon: isLight ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                   label: isLight ? 'Dark Mode' : 'Light Mode',

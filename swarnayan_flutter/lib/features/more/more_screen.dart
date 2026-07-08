@@ -67,10 +67,9 @@ class MoreScreen extends ConsumerWidget {
 
     final showReports = !isWide && canManage && (user?.hasAccess('reports', rolePermissions) ?? true);
     final showSettings = !isWide && isOwner && (user?.hasAccess('settings', rolePermissions) ?? true);
-    final showRates = user?.hasAccess('rates', rolePermissions) ?? true;
     final showRecords = !isWide && (user?.hasAccess('records', rolePermissions) ?? true);
     final showCoupons = user?.hasAccess('coupons', rolePermissions) ?? true;
-    final showBusinessSection = showReports || showSettings || showRates || showRecords || showCoupons;
+    final showBusinessSection = showReports || showSettings || showRecords || showCoupons;
 
     final showStaffMgmt = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
     final showPending = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
@@ -309,14 +308,7 @@ class MoreScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                if (showRates)
-                  _buildMenuItem(
-                    icon: Icons.trending_up_rounded,
-                    label: 'Rate Management',
-                    subtitle: 'Daily gold & silver rates',
-                    index: 2,
-                    onTap: () => context.push('/more/rates'),
-                  ),
+
                 if (showRecords)
                   _buildMenuItem(
                     icon: Icons.book_rounded,

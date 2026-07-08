@@ -12,6 +12,8 @@ class PlatformSettings {
   final String contactEmail;
   final String workingTime;
   final bool notifyOnSignup;
+  final String welcomeTitle;
+  final String welcomeBody;
 
   PlatformSettings({
     required this.companyName,
@@ -23,19 +25,31 @@ class PlatformSettings {
     required this.contactEmail,
     required this.workingTime,
     this.notifyOnSignup = true,
+    this.welcomeTitle = 'Welcome to PayPulse',
+    this.welcomeBody =
+        'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
   });
 
   factory PlatformSettings.fromJson(Map<String, dynamic> json) {
+    final companyName = (json['company_name'] ?? '').toString().trim().isEmpty
+        ? 'PayPulse'
+        : json['company_name'].toString();
+    final contactEmail = (json['contact_email'] ?? '').toString().trim().isEmpty
+        ? 'contact.shresthraj@gmail.com'
+        : json['contact_email'].toString();
     return PlatformSettings(
-      companyName: json['company_name'] ?? 'Swarnayan Jewellers',
+      companyName: companyName,
       tagline: json['tagline'] ?? '',
       gstNo: json['gst_no'],
       logoLightUrl: json['logo_light_url'],
       logoDarkUrl: json['logo_dark_url'],
       address: json['address'],
-      contactEmail: json['contact_email'] ?? 'contact.shresthraj@gmail.com',
+      contactEmail: contactEmail,
       workingTime: json['working_time'] ?? '10:00 AM - 08:00 PM (Mon - Sat)',
       notifyOnSignup: json['notify_on_signup'] ?? true,
+      welcomeTitle: json['welcome_title'] ?? 'Welcome to PayPulse',
+      welcomeBody: json['welcome_body'] ??
+          'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
     );
   }
 
@@ -49,6 +63,8 @@ class PlatformSettings {
         'contact_email': contactEmail,
         'working_time': workingTime,
         'notify_on_signup': notifyOnSignup,
+        'welcome_title': welcomeTitle,
+        'welcome_body': welcomeBody,
       };
 }
 
@@ -61,11 +77,14 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
 
   PlatformSettings _fallbackSettings() {
     return PlatformSettings(
-      companyName: 'Swarnayan Jewellers',
-      tagline: 'Brilliant Crafts, Eternal Sparkle',
+      companyName: 'PayPulse',
+      tagline: 'Business Management, Simplified',
       contactEmail: 'contact.shresthraj@gmail.com',
       workingTime: '10:00 AM - 08:00 PM (Mon - Sat)',
       notifyOnSignup: true,
+      welcomeTitle: 'Welcome to PayPulse',
+      welcomeBody:
+          'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
     );
   }
 

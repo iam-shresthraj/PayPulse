@@ -92,17 +92,22 @@ class AppHeader extends ConsumerWidget {
                       final count = ref.watch(unreadNotificationsProvider);
                       if (count == 0) return const SizedBox.shrink();
                       return Positioned(
-                        right: 8,
+                        right: 6,
                         top: -2,
                         child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 8,
-                            minHeight: 8,
+                          constraints: const BoxConstraints(minHeight: 16),
+                          child: Text(
+                            count > 99 ? '99+' : count.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       );

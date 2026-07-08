@@ -60,6 +60,7 @@ class User {
   bool get isDeassociated => ((companyId == null || companyId!.isEmpty) && role.toUpperCase() != 'SUPER_ADMIN') || approvalStatus.toUpperCase() == 'DEASSOCIATED';
 
   bool get isJewellery => companyCategory?.toLowerCase() == 'jewellery';
+  bool get hasLifetimeAccess => !isSuperAdmin && companyRenewDate == null;
   bool get isExpired {
     if (isSuperAdmin) return false;
     if (companyRenewDate == null) return false;

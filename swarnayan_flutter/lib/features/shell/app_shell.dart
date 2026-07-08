@@ -458,7 +458,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                               Icon(Icons.home_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
                               const SizedBox(width: 8),
                               Text(
-                                isSuperAdmin ? 'Admin' : 'Dashboard',
+                                'Dashboard',
                                 style: TextStyle(
                                   color: isDark ? Colors.white : Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -520,7 +520,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                             Icon(isSuperAdmin ? Icons.analytics_rounded : Icons.menu_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
                             const SizedBox(width: 8),
                             Text(
-                              isSuperAdmin ? 'Admin Reports' : 'More',
+                              'Management',
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -580,7 +580,13 @@ class _AppShellState extends ConsumerState<AppShell> {
               );
 
               final buttonGesture = GestureDetector(
-                onTap: () => _onBottomBarTap(context, 1),
+                onTap: () {
+                  if (isSuperAdmin) {
+                    context.go('/admin/notifications');
+                  } else {
+                    _onBottomBarTap(context, 1);
+                  }
+                },
                 child: buttonWidget,
               );
 
@@ -712,6 +718,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final currentIndex = _currentIndex(context);
     final themeOverride = ref.watch(themeModeProvider);
     final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
+    final unreadCount = ref.watch(unreadNotificationsProvider);
 
     final user = ref.watch(authProvider).user;
     final rolePermissions = ref.watch(rolePermissionsProvider).value ?? {};
@@ -809,6 +816,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     icon: Icons.campaign_rounded,
                     label: 'Notifications',
                     isActive: currentIndex == 104,
+                    badgeCount: unreadCount,
                     onTap: () => context.go('/admin/notifications'),
                   ),
                   _buildSidebarItem(
@@ -886,27 +894,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ref.read(themeModeProvider.notifier).toggleTheme(isLight);
                   },
                 ),
-                _buildSidebarItem(
-                  icon: Icons.notifications_none_rounded,
-                  label: 'Notifications',
-                  isActive: false,
-                  onTap: () {
-                    showNotificationsDialog(context);
-                  },
-                ),
-                if (isOwner)
-                  _buildSidebarItem(
-                    icon: Icons.settings_rounded,
-                    label: 'Settings',
-                    isActive: false,
-                    onTap: () {
-                      showSingleDialog(
-                        context: shellNavigatorKey.currentContext ?? context,
-                        useRootNavigator: false,
-                        builder: (context) => const CompanySettingsDialog(),
-                      );
-                    },
-                  ),
                 if (!(user?.isSuperAdmin ?? false))
                   _buildSidebarItem(
                     icon: Icons.help_outline_rounded,

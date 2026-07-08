@@ -166,12 +166,11 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
     return GlassDialogWrapper(
       title: 'Manage User & Access',
       actions: [
-        TextButton.icon(
+        IconButton(
           onPressed: (_submitting || _deleting) ? null : _deleteUser,
           icon: _deleting
               ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
               : Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.error),
-          label: Text('Delete User', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
         ),
         const Spacer(),
         TextButton(

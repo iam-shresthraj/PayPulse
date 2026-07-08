@@ -293,6 +293,20 @@ class AdminNotifier extends StateNotifier<AdminState> {
     }
   }
 
+  Future<bool> setCompanyLifetimeAccess(String companyId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      await _client.from('companies').update({
+        'renew_date': null,
+      }).eq('id', companyId);
+      await loadAdminData();
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
   Future<bool> renewCompanySubscription(String companyId, DateTime? currentRenewDate) async {
     DateTime baseDate = DateTime.now();
     if (currentRenewDate != null && currentRenewDate.isAfter(baseDate)) {
@@ -330,4 +344,3 @@ final adminProvider = StateNotifierProvider<AdminNotifier, AdminState>((ref) {
   notifier.loadAdminData();
   return notifier;
 });
-

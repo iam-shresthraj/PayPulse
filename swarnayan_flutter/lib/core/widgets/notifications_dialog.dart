@@ -144,29 +144,28 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(color: AppColors.border, width: 0.5),
                             ),
-                            child: Padding(
+                          child: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          title,
-                                          style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
-                                        ),
-                                      ),
-                                      Text(
-                                        dateStr,
-                                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
-                                      ),
-                                    ],
+                                  Text(
+                                    dateStr,
+                                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                  ),
+                                  const SizedBox(height: 6),
                                   Text(
                                     body,
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
                                     style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
                                   ),
                                   if (fileUrl != null && fileUrl.isNotEmpty) ...[

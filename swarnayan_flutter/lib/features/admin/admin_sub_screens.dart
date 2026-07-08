@@ -162,7 +162,7 @@ class AdminBusinessesScreen extends ConsumerWidget {
                                       Text(
                                         company.renewDate != null
                                             ? 'Expires: ${DateFormat('dd MMM yyyy').format(company.renewDate!)}'
-                                            : 'Expires: N/A',
+                                            : 'Lifetime Access',
                                         style: AppTextStyles.bodySm.copyWith(
                                           color: company.renewDate != null && company.renewDate!.isBefore(DateTime.now())
                                               ? AppColors.error
@@ -191,6 +191,30 @@ class AdminBusinessesScreen extends ConsumerWidget {
                                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         ),
                                         child: Text('+1 Year', style: AppTextStyles.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          final success = await ref.read(adminProvider.notifier).setCompanyLifetimeAccess(company.id);
+                                          if (success) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('${company.name} is now on lifetime access'),
+                                                backgroundColor: AppColors.success,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.surfaceContainer,
+                                          foregroundColor: AppColors.primary,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text('Lifetime Access', style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11)),
                                       ),
                                     ],
                                   ),
@@ -304,6 +328,7 @@ class AdminCustomersScreen extends ConsumerStatefulWidget {
 class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
   final TextEditingController _customerSearchController = TextEditingController();
   String _customerSearchQuery = '';
+  String _selectedCompanyId = 'ALL';
 
   @override
   void initState() {
@@ -326,9 +351,11 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
     final state = ref.watch(adminProvider);
     final filteredCustomers = state.customers.where((c) {
       final query = _customerSearchQuery;
-      return c.name.toLowerCase().contains(query) ||
+      final companyMatches = _selectedCompanyId == 'ALL' || c.companyId == _selectedCompanyId;
+      return companyMatches &&
+             (c.name.toLowerCase().contains(query) ||
              c.mobile.toLowerCase().contains(query) ||
-             (c.email?.toLowerCase().contains(query) ?? false);
+             (c.email?.toLowerCase().contains(query) ?? false));
     }).toList();
 
     return AdminPageWrapper(
@@ -353,6 +380,31 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
                 icon: Icon(Icons.search_rounded, color: AppColors.onSurfaceMuted),
               ),
               style: TextStyle(color: AppColors.onBackground),
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _selectedCompanyId,
+            items: [
+              const DropdownMenuItem(value: 'ALL', child: Text('All Companies')),
+              ...state.companies.map(
+                (company) => DropdownMenuItem(
+                  value: company.id,
+                  child: Text(company.name),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedCompanyId = value);
+            },
+            decoration: InputDecoration(
+              labelText: 'Filter by company',
+              filled: true,
+              fillColor: AppColors.surfaceContainer,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primary, width: 1.2)),
             ),
           ),
           const SizedBox(height: 20),
@@ -398,20 +450,16 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
                                         Icon(Icons.phone_rounded, size: 12, color: AppColors.onSurfaceMuted),
                                         const SizedBox(width: 4),
                                         Text(customer.mobile, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                                        if (customer.email != null && customer.email!.isNotEmpty) ...[
-                                          const SizedBox(width: 12),
-                                          Icon(Icons.email_rounded, size: 12, color: AppColors.onSurfaceMuted),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              customer.email!,
-                                              style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
                                       ],
                                     ),
+                                    if (customer.email != null && customer.email!.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        customer.email!,
+                                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                                        softWrap: true,
+                                      ),
+                                    ],
                                     const SizedBox(height: 6),
                                     Row(
                                       children: [
@@ -665,10 +713,14 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
   final _fileUrlController = TextEditingController();
+  final _welcomeTitleController = TextEditingController();
+  final _welcomeBodyController = TextEditingController();
   
   String? _targetCompanyId;
   String _targetRole = 'ALL';
   bool _submitting = false;
+  bool _savingWelcome = false;
+  bool _welcomeInitialized = false;
 
   @override
   void initState() {
@@ -682,7 +734,89 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
     _titleController.dispose();
     _bodyController.dispose();
     _fileUrlController.dispose();
+    _welcomeTitleController.dispose();
+    _welcomeBodyController.dispose();
     super.dispose();
+  }
+
+  String _applyWelcomeTemplate(String input, {required String name, required String email}) {
+    return input
+        .replaceAll('{name}', name)
+        .replaceAll('{email}', email)
+        .trim();
+  }
+
+  Future<void> _saveWelcomeTemplate() async {
+    final current = ref.read(platformSettingsProvider).value;
+    if (current == null) return;
+
+    setState(() => _savingWelcome = true);
+    final updated = PlatformSettings(
+      companyName: current.companyName,
+      tagline: current.tagline,
+      gstNo: current.gstNo,
+      logoLightUrl: current.logoLightUrl,
+      logoDarkUrl: current.logoDarkUrl,
+      address: current.address,
+      contactEmail: current.contactEmail,
+      workingTime: current.workingTime,
+      notifyOnSignup: current.notifyOnSignup,
+      welcomeTitle: _welcomeTitleController.text.trim().isEmpty
+          ? 'Welcome to PayPulse'
+          : _welcomeTitleController.text.trim(),
+      welcomeBody: _welcomeBodyController.text.trim().isEmpty
+          ? 'Welcome to PayPulse, {name}! Your account has been created successfully.'
+          : _welcomeBodyController.text.trim(),
+    );
+    final success = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
+    if (mounted) {
+      setState(() => _savingWelcome = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Welcome template saved.' : 'Failed to save welcome template.'),
+          backgroundColor: success ? AppColors.success : AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadHistory() async {
+    try {
+      final client = Supabase.instance.client;
+      final rows = await client
+          .from('notifications')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(20);
+      final notifications = List<Map<String, dynamic>>.from(rows as List);
+      if (notifications.isEmpty) return notifications;
+
+      final ids = notifications.map((e) => e['id']?.toString()).whereType<String>().toList();
+      final readCounts = <String, int>{};
+      try {
+        final reads = await client
+            .from('notification_reads')
+            .select('notification_id')
+            .inFilter('notification_id', ids);
+        for (final row in List<Map<String, dynamic>>.from(reads as List)) {
+          final notificationId = row['notification_id']?.toString();
+          if (notificationId == null) continue;
+          readCounts[notificationId] = (readCounts[notificationId] ?? 0) + 1;
+        }
+      } catch (_) {}
+
+      return notifications
+          .map((item) => {
+                ...item,
+                '__seen_count': readCounts[item['id']?.toString()] ?? 0,
+              })
+          .toList();
+    } catch (e) {
+      if (e.toString().contains("Could not find the table 'public.notifications'")) {
+        return [];
+      }
+      rethrow;
+    }
   }
 
   Future<void> _submit() async {
@@ -729,6 +863,13 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(adminProvider);
+    final platformSettingsAsync = ref.watch(platformSettingsProvider);
+    final platformSettings = platformSettingsAsync.value;
+    if (platformSettings != null && !_welcomeInitialized) {
+      _welcomeInitialized = true;
+      _welcomeTitleController.text = platformSettings.welcomeTitle;
+      _welcomeBodyController.text = platformSettings.welcomeBody;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -794,7 +935,6 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    // Tab 1: Send Notification Form
                     SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.only(bottom: 120),
@@ -882,7 +1022,59 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                             ),
                             const SizedBox(height: 32),
 
-                            // Submit Button
+                            GlassCard(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'First Time Message',
+                                    style: AppTextStyles.titleSm.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'This message is sent automatically to a user after signup when signup notifications are enabled.',
+                                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  GlassInput(
+                                    controller: _welcomeTitleController,
+                                    label: 'Welcome Title',
+                                    hint: 'Welcome to PayPulse',
+                                  ),
+                                  const SizedBox(height: 16),
+                                  GlassInput(
+                                    controller: _welcomeBodyController,
+                                    label: 'Welcome Message',
+                                    hint: 'Welcome to PayPulse, {name}!',
+                                    maxLines: 4,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: _savingWelcome ? null : _saveWelcomeTemplate,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.surfaceContainer,
+                                      foregroundColor: AppColors.primary,
+                                      minimumSize: const Size(double.infinity, 48),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    icon: _savingWelcome
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          )
+                                        : const Icon(Icons.save_rounded, size: 18),
+                                    label: Text(
+                                      _savingWelcome ? 'Saving...' : 'Save Welcome Template',
+                                      style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
                             ElevatedButton(
                               onPressed: _submitting ? null : _submit,
                               style: ElevatedButton.styleFrom(
@@ -906,15 +1098,8 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                         ),
                       ),
                     ),
-
-                    // Tab 2: View Broadcast History
                     FutureBuilder<List<Map<String, dynamic>>>(
-                      future: Supabase.instance.client
-                          .from('notifications')
-                          .select('*, notification_reads(count)')
-                          .order('created_at', ascending: false)
-                          .limit(20)
-                          .then((res) => List<Map<String, dynamic>>.from(res as List)),
+                      future: _loadHistory(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator());
@@ -928,35 +1113,90 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                           );
                         }
                         final list = snapshot.data ?? [];
+                        final totalDeliveredCompanies = list.fold<int>(
+                          0,
+                          (sum, item) => sum + ((item['delivered_companies_count'] ?? 0) as num).toInt(),
+                        );
+                        final totalDeliveredUsers = list.fold<int>(
+                          0,
+                          (sum, item) => sum + ((item['delivered_users_count'] ?? 0) as num).toInt(),
+                        );
+                        final totalSeen = list.fold<int>(
+                          0,
+                          (sum, item) => sum + ((item['__seen_count'] ?? 0) as num).toInt(),
+                        );
+                        final totalUnseen = (totalDeliveredUsers - totalSeen).clamp(0, 1 << 30);
                         if (list.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(40.0),
-                              child: Text('No broadcasts sent yet.', style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted)),
-                            ),
+                          return ListView(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.only(bottom: 120),
+                            children: [
+                              GridView.count(
+                                crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 2.8,
+                                children: [
+                                  _buildMetricCard('Delivered', '0 companies / 0 users', Icons.send_rounded),
+                                  _buildMetricCard('Seen', '0 users', Icons.visibility_rounded),
+                                  _buildMetricCard('Unseen', '0 users', Icons.mark_email_unread_rounded),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              Padding(
+                                padding: const EdgeInsets.all(40.0),
+                                child: Text(
+                                  'No broadcasts sent yet.',
+                                  style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
                           );
                         }
                         return ListView.builder(
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.only(bottom: 120),
-                          itemCount: list.length,
+                          itemCount: list.length + 1,
                           itemBuilder: (context, index) {
-                            final item = list[index];
-                            final title = item['title'] ?? '';
-                            final body = item['body'] ?? '';
-                            final created = item['created_at'] != null 
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: GridView.count(
+                                  crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 2.8,
+                                  children: [
+                                    _buildMetricCard('Delivered', '$totalDeliveredCompanies companies / $totalDeliveredUsers users', Icons.send_rounded),
+                                    _buildMetricCard('Seen', '$totalSeen users', Icons.visibility_rounded),
+                                    _buildMetricCard('Unseen', '$totalUnseen users', Icons.mark_email_unread_rounded),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            final item = list[index - 1];
+                            final title = (item['title'] ?? '').toString();
+                            final body = (item['body'] ?? '').toString();
+                            final created = item['created_at'] != null
                                 ? DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.parse(item['created_at'].toString()).toLocal())
                                 : '';
-                            final role = item['target_role'] ?? 'ALL';
-                            final companyId = item['target_company_id'];
-                            final companyName = companyId == null 
+                            final role = (item['target_role'] ?? 'ALL').toString();
+                            final companyId = item['target_company_id']?.toString();
+                            final companyName = companyId == null || companyId.isEmpty
                                 ? 'All Businesses'
-                                : state.companies.firstWhere((c) => c.id == companyId, orElse: () => AdminBusiness(id: '', name: 'Unknown', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now())).name;
-
-                            final notificationReads = item['notification_reads'] as List?;
-                            final seenCount = (notificationReads != null && notificationReads.isNotEmpty)
-                                ? (notificationReads[0]['count'] as num?)?.toInt() ?? 0
-                                : 0;
+                                : state.companies.firstWhere(
+                                    (c) => c.id == companyId,
+                                    orElse: () => AdminBusiness(id: '', name: 'Unknown', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+                                  ).name;
+                            final seenCount = (item['__seen_count'] ?? 0) as int;
+                            final deliveredUsers = ((item['delivered_users_count'] ?? 0) as num).toInt();
+                            final deliveredCompanies = ((item['delivered_companies_count'] ?? 0) as num).toInt();
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
@@ -965,47 +1205,33 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(title, style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                                        ),
-                                        Text(created, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10)),
-                                      ],
+                                    Text(
+                                      created,
+                                      style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
                                     ),
-                                    const SizedBox(height: 8),
-                                    Text(body, style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground)),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.business_rounded, size: 12, color: AppColors.onSurfaceMuted),
-                                        const SizedBox(width: 4),
-                                        Text('Target: $companyName', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11)),
-                                        const SizedBox(width: 16),
-                                        Icon(Icons.person_outline_rounded, size: 12, color: AppColors.onSurfaceMuted),
-                                        const SizedBox(width: 4),
-                                        Text('Role: $role', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11)),
-                                      ],
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      body,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
                                     ),
                                     const SizedBox(height: 12),
-                                    const Divider(height: 1),
-                                    const SizedBox(height: 8),
-                                    Row(
+                                    Wrap(
+                                      spacing: 12,
+                                      runSpacing: 8,
                                       children: [
-                                        Icon(Icons.send_rounded, size: 12, color: AppColors.primary),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Delivered to: ${item['delivered_companies_count'] ?? 0} comp., ${item['delivered_users_count'] ?? 0} users',
-                                          style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Icon(Icons.remove_red_eye_rounded, size: 12, color: AppColors.success),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Seen by: $seenCount users',
-                                          style: AppTextStyles.bodySm.copyWith(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
+                                        _buildBadge(Icons.business_rounded, 'Target: $companyName'),
+                                        _buildBadge(Icons.person_outline_rounded, 'Role: $role'),
+                                        _buildBadge(Icons.send_rounded, 'Delivered: $deliveredCompanies comp., $deliveredUsers users'),
+                                        _buildBadge(Icons.remove_red_eye_rounded, 'Seen: $seenCount users'),
                                       ],
                                     ),
                                   ],
@@ -1025,6 +1251,59 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
       ),
     );
   }
+}
+
+Widget _buildMetricCard(String title, String value, IconData icon) {
+  return GlassCard(
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(title, style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted)),
+              const SizedBox(height: 2),
+              Text(value, style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildBadge(IconData icon, String text) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceContainer,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11),
+        ),
+      ],
+    ),
+  );
 }
 
 // -------------------------------------------------------------

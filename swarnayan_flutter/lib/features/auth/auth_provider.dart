@@ -306,6 +306,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
 
         if (profile != null) {
+          await _sendWelcomeNotification(profile);
           state = AuthState(
             user: profile,
             isAuthenticated: true,
@@ -339,6 +340,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
         errorMessage: msg,
       );
       return false;
+    }
+  }
+
+  Future<void> _sendWelcomeNotification(User profile) async {
+    try {
+      final settings = await _client
+          .from('platform_settings')
+          .select('notify_on_signup, welcome_title, welcome_body')
+          .eq('id', 'global')
+          .maybeSingle();
+      final notifyOnSignup = settings?['notify_on_signup'] ?? true;
+      if (notifyOnSignup != true) return;
+
+      final rawTitle = (settings?['welcome_title'] ?? 'Welcome to PayPulse').toString();
+      final rawBody = (settings?['welcome_body'] ??
+              'Welcome to PayPulse, {name}! Your account has been created successfully.')
+          .toString();
+      final title = rawTitle.trim().isEmpty ? 'Welcome to PayPulse' : rawTitle.trim();
+      final body = rawBody
+          .replaceAll('{name}', profile.name)
+          .replaceAll('{email}', profile.email)
+          .trim();
+
+      await _client.from('notifications').insert({
+        'title': title,
+        'body': body,
+        'target_company_id': profile.companyId,
+        'target_role': 'ALL',
+      });
+    } catch (_) {
+      // Welcome notifications are best-effort and must not block signup.
     }
   }
 

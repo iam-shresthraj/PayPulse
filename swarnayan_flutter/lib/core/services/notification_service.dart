@@ -53,7 +53,7 @@ class NotificationService {
           'paypulse_periodic_notifications',
           'paypulse_fetch_notifications_task',
           frequency: const Duration(minutes: 15),
-          existingWorkPolicy: ExistingWorkPolicy.keep,
+          existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
           constraints: Constraints(
             networkType: NetworkType.connected,
           ),
@@ -263,7 +263,7 @@ void callbackDispatcher() {
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings();
       await localNotifications.initialize(
-        const InitializationSettings(android: androidInit, iOS: iosInit),
+        settings: const InitializationSettings(android: androidInit, iOS: iosInit),
       );
 
       for (final record in reversedNew) {
@@ -284,9 +284,9 @@ void callbackDispatcher() {
         const iosDetails = DarwinNotificationDetails();
 
         await localNotifications.show(
-          DateTime.now().millisecond + (id.hashCode % 10000),
-          title,
-          body,
+          id: DateTime.now().millisecond + (id.hashCode % 10000),
+          title: title,
+          body: body,
           notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
           payload: fileUrl,
         );

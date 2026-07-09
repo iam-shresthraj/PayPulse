@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -384,7 +385,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
             ),
             Text(
               date,
-              style: AppTextStyles.bodyXs.copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted),
             ),
           ],
         ),
@@ -441,7 +442,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
                     const SizedBox(width: 12),
                     Text(
                       'App Settings',
-                      style: (isWide ? AppTextStyles.headlineMd : AppTextStyles.headlineLgMobile)
+                      style: (isWide ? AppTextStyles.headlineLg : AppTextStyles.headlineLgMobile)
                           .copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],

@@ -62,11 +62,13 @@ class GlassContainer extends StatelessWidget {
                 color: borderColor ?? AppColors.glassBorder,
                 width: borderWidth,
               ),
-              gradient:  LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: AppColors.glassGradient,
-              ),
+              gradient: backgroundColor == null
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: AppColors.glassGradient,
+                    )
+                  : null,
             ),
             child: child,
           ),

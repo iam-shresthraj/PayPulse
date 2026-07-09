@@ -35,9 +35,9 @@ class AppColors {
 
   // ── Glassmorphism ──
   static Color get glassBackground => isLight ? const Color(0xE6FFFFFF) : const Color(0xB31A1A1A);
-  static Color get glassBorder => isLight ? const Color(0x1F000000) : const Color(0x14FFFFFF);
+  static Color get glassBorder => isLight ? const Color(0x29000000) : const Color(0x14FFFFFF);
   static Color get glassHighlight => isLight ? const Color(0x0A000000) : const Color(0x0DFFFFFF);
-  static Color get glassShadow => isLight ? const Color(0x0F000000) : const Color(0x66000000);
+  static Color get glassShadow => isLight ? const Color(0x1A000000) : const Color(0x66000000);
 
   // ── Status ──
   static Color get success => const Color(0xFF2ECC71);
@@ -71,8 +71,14 @@ class AppColors {
       : const [Color(0xFF1A1A1A), Color(0xFF000000)];
 
   static List<Color> get glassGradient => isLight
-      ? const [Color(0x0A000000), Color(0x02000000)]
-      : const [Color(0x1AFFFFFF), Color(0x05FFFFFF)];
+      ? [
+          const Color(0xFFFFFFFF),
+          const Color(0xFFFFFFFF).withValues(alpha: 0.9),
+        ]
+      : [
+          const Color(0xFF1A1A1A).withValues(alpha: 0.85),
+          const Color(0xFF0D0D0D).withValues(alpha: 0.7),
+        ];
 
   // ── Glow Effect ──
   static Color get primaryGlow => const Color(0xFF7D0202).withValues(alpha: 0.3);

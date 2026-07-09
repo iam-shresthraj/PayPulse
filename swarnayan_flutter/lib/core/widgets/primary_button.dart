@@ -102,13 +102,13 @@ class _PrimaryButtonState extends State<PrimaryButton>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.icon != null) ...[
-                        Icon(widget.icon, color: Colors.white, size: 20),
+                        Icon(widget.icon, color: isDisabled ? AppColors.onSurfaceDim : Colors.white, size: 20),
                         const SizedBox(width: 8),
                       ],
                       Text(
                         widget.label,
                         style: AppTextStyles.titleSm.copyWith(
-                          color: Colors.white,
+                          color: isDisabled ? AppColors.onSurfaceDim : Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

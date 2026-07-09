@@ -222,7 +222,7 @@ class MoreScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: SizedBox(
-                            height: 100,
+                            height: 125,
                             child: _buildAdminBox(
                               context: context,
                               icon: Icons.business_rounded,
@@ -234,7 +234,7 @@ class MoreScreen extends ConsumerWidget {
                         const SizedBox(width: 16),
                         Expanded(
                           child: SizedBox(
-                            height: 100,
+                            height: 125,
                             child: _buildAdminBox(
                               context: context,
                               icon: Icons.people_alt_rounded,
@@ -250,7 +250,7 @@ class MoreScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: SizedBox(
-                            height: 100,
+                            height: 125,
                             child: _buildAdminBox(
                               context: context,
                               icon: Icons.lock_person_rounded,
@@ -262,7 +262,7 @@ class MoreScreen extends ConsumerWidget {
                         const SizedBox(width: 16),
                         Expanded(
                           child: SizedBox(
-                            height: 100,
+                            height: 125,
                             child: _buildAdminBox(
                               context: context,
                               icon: Icons.campaign_rounded,

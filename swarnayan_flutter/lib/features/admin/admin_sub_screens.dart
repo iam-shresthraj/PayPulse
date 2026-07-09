@@ -1129,118 +1129,6 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
 
                         final totalUnseen = (totalDeliveredUsers - totalSeen).clamp(0, 1 << 30);
 
-                        // Compute fastest and slowest readers
-                        String fastestReaderName = 'No data';
-                        String fastestReaderComp = '';
-                        String fastestReaderSub = '';
-                        
-                        String slowestReaderName = 'No data';
-                        String slowestReaderComp = '';
-                        String slowestReaderSub = '';
-                        
-                        if (list.isNotEmpty && state.users.isNotEmpty) {
-                          final userStats = <String, _UserReadStats>{};
-                          
-                          for (final u in state.users) {
-                            int deliveredCount = 0;
-                            int readCount = 0;
-                            List<Duration> durations = [];
-                            
-                            for (final item in list) {
-                              final targetCompanyId = item['target_company_id']?.toString();
-                              final targetRole = (item['target_role'] ?? 'ALL').toString().toUpperCase();
-                              
-                              bool isDelivered = false;
-                              if (targetCompanyId != null && targetCompanyId.isNotEmpty) {
-                                if (targetCompanyId == u.companyId) {
-                                  if (targetRole == 'ALL' || targetRole == u.role.toUpperCase()) {
-                                    isDelivered = true;
-                                  }
-                                }
-                              } else {
-                                if (targetRole == 'ALL') {
-                                  isDelivered = true;
-                                } else if (targetRole == 'SUPER_ADMIN') {
-                                  isDelivered = u.role.toUpperCase() == 'SUPER_ADMIN';
-                                } else {
-                                  isDelivered = targetRole == u.role.toUpperCase() && u.approvalStatus.toUpperCase() == 'APPROVED';
-                                }
-                              }
-                              
-                              if (isDelivered) {
-                                deliveredCount++;
-                                final rawReads = item['__raw_reads'] as List?;
-                                final readObj = rawReads?.firstWhere(
-                                  (r) => r['user_id']?.toString() == u.id,
-                                  orElse: () => null,
-                                );
-                                if (readObj != null) {
-                                  readCount++;
-                                  final readAtStr = readObj['read_at']?.toString();
-                                  final createdAtStr = item['created_at']?.toString();
-                                  if (readAtStr != null && createdAtStr != null) {
-                                    final readAt = DateTime.tryParse(readAtStr);
-                                    final createdAt = DateTime.tryParse(createdAtStr);
-                                    if (readAt != null && createdAt != null) {
-                                      durations.add(readAt.difference(createdAt));
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                            
-                            if (deliveredCount > 0) {
-                              userStats[u.id] = _UserReadStats(
-                                user: u,
-                                deliveredCount: deliveredCount,
-                                readCount: readCount,
-                                averageDuration: durations.isEmpty
-                                    ? const Duration(days: 999)
-                                    : Duration(
-                                        microseconds: (durations.fold<int>(0, (sum, d) => sum + d.inMicroseconds) / durations.length).round(),
-                                      ),
-                              );
-                            }
-                          }
-                          
-                          final readersWithReads = userStats.values.where((s) => s.readCount > 0).toList();
-                          if (readersWithReads.isNotEmpty) {
-                            readersWithReads.sort((a, b) => a.averageDuration.compareTo(b.averageDuration));
-                            final fastest = readersWithReads.first;
-                            final compName = state.companies.firstWhere(
-                              (c) => c.id == fastest.user.companyId,
-                              orElse: () => AdminBusiness(id: '', name: 'PayPulse', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
-                            ).name;
-                            fastestReaderName = fastest.user.name;
-                            fastestReaderComp = compName;
-                            fastestReaderSub = "Avg response: ${_formatDuration(fastest.averageDuration)}";
-                          }
-                          
-                          final allTargeted = userStats.values.toList();
-                          if (allTargeted.isNotEmpty) {
-                            allTargeted.sort((a, b) {
-                              final rateA = a.readCount / a.deliveredCount;
-                              final rateB = b.readCount / b.deliveredCount;
-                              if (rateA != rateB) return rateA.compareTo(rateB);
-                              
-                              final unreadA = a.deliveredCount - a.readCount;
-                              final unreadB = b.deliveredCount - b.readCount;
-                              if (unreadA != unreadB) return unreadB.compareTo(unreadA);
-                              
-                              return b.averageDuration.compareTo(a.averageDuration);
-                            });
-                            final slowest = allTargeted.first;
-                            final compName = state.companies.firstWhere(
-                              (c) => c.id == slowest.user.companyId,
-                              orElse: () => AdminBusiness(id: '', name: 'PayPulse', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
-                            ).name;
-                            slowestReaderName = slowest.user.name;
-                            slowestReaderComp = compName;
-                            final unreadCount = slowest.deliveredCount - slowest.readCount;
-                            slowestReaderSub = "Unread: $unreadCount / ${slowest.deliveredCount} messages";
-                          }
-                        }
-
                         if (list.isEmpty) {
                           return ListView(
                             physics: const BouncingScrollPhysics(),
@@ -1250,12 +1138,6 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                                 totalDeliveredThisMonth: 0,
                                 totalSeen: 0,
                                 totalUnseen: 0,
-                                fastestReaderName: 'No data',
-                                fastestReaderComp: '',
-                                fastestReaderSub: '',
-                                slowestReaderName: 'No data',
-                                slowestReaderComp: '',
-                                slowestReaderSub: '',
                               ),
                               const SizedBox(height: 24),
                               Padding(
@@ -1281,12 +1163,6 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                                   totalDeliveredThisMonth: totalDeliveredThisMonth,
                                   totalSeen: totalSeen,
                                   totalUnseen: totalUnseen,
-                                  fastestReaderName: fastestReaderName,
-                                  fastestReaderComp: fastestReaderComp,
-                                  fastestReaderSub: fastestReaderSub,
-                                  slowestReaderName: slowestReaderName,
-                                  slowestReaderComp: slowestReaderComp,
-                                  slowestReaderSub: slowestReaderSub,
                                 ),
                               );
                             }
@@ -1368,117 +1244,19 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
     required int totalDeliveredThisMonth,
     required int totalSeen,
     required int totalUnseen,
-    required String fastestReaderName,
-    required String fastestReaderComp,
-    required String fastestReaderSub,
-    required String slowestReaderName,
-    required String slowestReaderComp,
-    required String slowestReaderSub,
   }) {
-    return Column(
+    return GridView.count(
+      crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 2.8,
       children: [
-        GridView.count(
-          crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 2.8,
-          children: [
-            _buildMetricCard('Total No. of Message', '$totalDeliveredThisMonth', Icons.send_rounded, subtitle: 'Delivered this Month'),
-            _buildMetricCard('Messages Seen', '$totalSeen', Icons.visibility_rounded),
-            _buildMetricCard('Unseen Messages', '$totalUnseen', Icons.mark_email_unread_rounded),
-          ],
-        ),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 2 : 1,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: MediaQuery.of(context).size.width >= 700 ? 3.5 : 2.8,
-          children: [
-            _buildAnalyticsCard(
-              'Fastest Reader',
-              fastestReaderName,
-              fastestReaderComp,
-              fastestReaderSub,
-              Icons.bolt_rounded,
-              AppColors.success,
-            ),
-            _buildAnalyticsCard(
-              'Least Active Reader',
-              slowestReaderName,
-              slowestReaderComp,
-              slowestReaderSub,
-              Icons.snooze_rounded,
-              AppColors.warning,
-            ),
-          ],
-        ),
+        _buildMetricCard('Total No. of Message', '$totalDeliveredThisMonth', Icons.send_rounded, subtitle: 'Delivered this Month'),
+        _buildMetricCard('Messages Seen', '$totalSeen', Icons.visibility_rounded),
+        _buildMetricCard('Unseen Messages', '$totalUnseen', Icons.mark_email_unread_rounded),
       ],
-    );
-  }
-
-  Widget _buildAnalyticsCard(
-    String title,
-    String name,
-    String company,
-    String subtitle,
-    IconData icon,
-    Color iconColor,
-  ) {
-    return GlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold),
-                ),
-                if (company.isNotEmpty) ...[
-                  Text(
-                    company,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11),
-                  ),
-                ],
-                if (subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 1),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, fontStyle: FontStyle.italic),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1808,32 +1586,5 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
         ),
       ),
     );
-  }
-}
-
-class _UserReadStats {
-  final User user;
-  final int deliveredCount;
-  final int readCount;
-  final Duration averageDuration;
-
-  _UserReadStats({
-    required this.user,
-    required this.deliveredCount,
-    required this.readCount,
-    required this.averageDuration,
-  });
-}
-
-String _formatDuration(Duration d) {
-  if (d.inDays >= 999) return 'N/A';
-  if (d.inMinutes < 1) {
-    return '${d.inSeconds}s';
-  } else if (d.inHours < 1) {
-    return '${d.inMinutes}m';
-  } else if (d.inDays < 1) {
-    return '${d.inHours}h ${d.inMinutes % 60}m';
-  } else {
-    return '${d.inDays}d ${d.inHours % 24}h';
   }
 }

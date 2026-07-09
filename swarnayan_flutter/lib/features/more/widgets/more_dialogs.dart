@@ -820,29 +820,28 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                       ),
                     ),
                   ),
-                   Row(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _showForm = false;
-                              _editingCoupon = null;
-                            });
-                          },
-                          child: Text(
-                            'Cancel',
-                            style: AppTextStyles.labelLg.copyWith(
-                              color: AppColors.onSurfaceMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _showForm = false;
+                            _editingCoupon = null;
+                          });
+                        },
+                        child: Text(
+                          'Cancel',
+                          style: AppTextStyles.bodyLg.copyWith(
+                            color: AppColors.onSurfaceMuted,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 3,
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 150,
+                        height: 44,
                         child: PrimaryButton(
                           label: 'Apply Changes',
                           isLoading: _isLoading,
@@ -1415,34 +1414,33 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     _buildPermissionToggle('Access Coupon Settings', _accessCoupons, (v) => setState(() => _accessCoupons = v)),
                   ],
                   const SizedBox(height: 24),
-                   Row(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _showAddForm = false;
-                              _editingUser = null;
-                              _nameController.clear();
-                              _emailController.clear();
-                              _passwordController.clear();
-                              _phoneController.clear();
-                              _role = 'STAFF';
-                            });
-                          },
-                          child: Text(
-                            'Cancel',
-                            style: AppTextStyles.labelLg.copyWith(
-                              color: AppColors.onSurfaceMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _showAddForm = false;
+                            _editingUser = null;
+                            _nameController.clear();
+                            _emailController.clear();
+                            _passwordController.clear();
+                            _phoneController.clear();
+                            _role = 'STAFF';
+                          });
+                        },
+                        child: Text(
+                          'Cancel',
+                          style: AppTextStyles.bodyLg.copyWith(
+                            color: AppColors.onSurfaceMuted,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 3,
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 150,
+                        height: 44,
                         child: PrimaryButton(
                           label: 'Apply Changes',
                           isLoading: _isLoading,
@@ -1493,9 +1491,24 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(item.name, style: AppTextStyles.cardTitle),
+                                    Text(
+                                      item.name,
+                                      style: AppTextStyles.cardTitle.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text('${item.email} • ${item.role}', style: AppTextStyles.cardSubtitle),
+                                    Text(
+                                      item.email,
+                                      style: AppTextStyles.cardSubtitle.copyWith(fontSize: 11),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item.role.toUpperCase(),
+                                      style: AppTextStyles.cardSubtitle.copyWith(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary.withValues(alpha: 0.8),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),

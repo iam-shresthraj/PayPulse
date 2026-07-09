@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -107,9 +108,10 @@ class _PrimaryButtonState extends State<PrimaryButton>
                       ],
                       Text(
                         widget.label,
-                        style: AppTextStyles.titleSm.copyWith(
-                          color: isDisabled ? AppColors.onSurfaceDim : Colors.white,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: isDisabled ? AppColors.onSurfaceDim : Colors.white,
                         ),
                       ),
                     ],

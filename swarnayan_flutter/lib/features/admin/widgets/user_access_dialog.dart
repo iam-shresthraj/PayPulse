@@ -174,7 +174,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
           onPressed: _submitting ? null : _save,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: Colors.black,
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 0,
@@ -183,11 +183,11 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                 )
               : Text(
                   MediaQuery.of(context).size.width < 450 ? 'Save' : 'Save Changes',
-                  style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: Colors.black),
+                  style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
                 ),
         ),
       ],

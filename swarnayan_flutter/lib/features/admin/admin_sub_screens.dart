@@ -108,7 +108,7 @@ class AdminBusinessesScreen extends ConsumerWidget {
                 );
               },
               icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-              label: Text('Add Business', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold)),
+              label: Text('Add Business', style: AppTextStyles.labelMd.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

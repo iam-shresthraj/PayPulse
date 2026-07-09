@@ -19,7 +19,7 @@ class CompanyAddress with _$CompanyAddress {
 @freezed
 class InvoiceConfig with _$InvoiceConfig {
   const factory InvoiceConfig({
-    @Default('SW') String prefix,
+    @Default('S') String prefix,
     @Default('') String suffix,
     @Default('/') String separator,
     @Default(5) int paddingLength,

@@ -486,12 +486,11 @@ class PdfHelper {
                     child: pw.Column(
                       children: [
                         _summaryRow('Total Making Charge:', _currencyFormat.format(totalMakingCharge), fontData, fontData),
-                        _summaryRow('Subtotal (Gross):', _currencyFormat.format(invoice.grossAmount), fontData, fontData),
+                        _summaryRow('Subtotal (Gross):', _currencyFormat.format(invoice.grossAmount), fontBold, fontBold),
                         if (invoice.couponDiscount > 0)
                           _summaryRow('Coupon Discount:', '- ${_currencyFormat.format(invoice.couponDiscount)}', fontData, fontData),
                         if (invoice.manualDiscount > 0)
                           _summaryRow('Manual Discount:', '- ${_currencyFormat.format(invoice.manualDiscount)}', fontData, fontData),
-                        _summaryRow('Taxable Value:', _currencyFormat.format(invoice.taxableAmount), fontBold, fontBold),
                         pw.SizedBox(height: 3),
                         
                         // CGST & SGST vs IGST
@@ -506,8 +505,8 @@ class PdfHelper {
                           _summaryRow('Old Gold adjustment:', '- ${_currencyFormat.format(invoice.oldGold!.metalValue)}', fontData, fontData),
                         
                         // Roundoff Calculation
-                        if (invoice.finalPayable - (invoice.netAmount - (invoice.oldGold?.metalValue ?? 0)) != 0)
-                          _summaryRow('Roundoff:', _currencyFormat.format(invoice.finalPayable - (invoice.netAmount - (invoice.oldGold?.metalValue ?? 0))), fontData, fontData),
+                        if ((invoice.finalPayable.roundToDouble() - (invoice.netAmount - (invoice.oldGold?.metalValue ?? 0))).abs() > 0.01)
+                          _summaryRow('Roundoff:', _currencyFormat.format(invoice.finalPayable.roundToDouble() - (invoice.netAmount - (invoice.oldGold?.metalValue ?? 0))), fontData, fontData),
 
                         pw.SizedBox(height: 3),
                         pw.Divider(thickness: 0.5, color: PdfColors.grey400),
@@ -520,7 +519,7 @@ class PdfHelper {
                               style: pw.TextStyle(font: fontBold, fontSize: 11),
                             ),
                             pw.Text(
-                              _currencyFormat.format(invoice.finalPayable),
+                              _currencyFormat.format(invoice.finalPayable.roundToDouble()),
                               style: pw.TextStyle(font: fontBold, fontSize: 12, color: PdfColors.black),
                             ),
                           ],

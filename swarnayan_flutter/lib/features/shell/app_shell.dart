@@ -249,6 +249,8 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     if (location.startsWith('/admin/users')) return 103;
     if (location.startsWith('/admin/notifications')) return 8;
     if (location.startsWith('/admin/branding')) return 105;
+    if (location.startsWith('/admin/app-update')) return 106;
+    if (location.startsWith('/download')) return 9;
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/more/rates')) return 7;
     if (location.startsWith('/customers')) return 2;
@@ -947,6 +949,12 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                     isActive: currentIndex == 105,
                     onTap: () => context.go('/admin/branding'),
                   ),
+                  _buildSidebarItem(
+                    icon: Icons.get_app_rounded,
+                    label: 'App Update Settings',
+                    isActive: currentIndex == 106,
+                    onTap: () => context.go('/admin/app-update'),
+                  ),
                 ] else ...[
                   _buildSidebarHeader('MENU'),
                   if (user?.hasAccess('dashboard', rolePermissions) ?? true)
@@ -1008,23 +1016,25 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                 ],
                 const SizedBox(height: 16),
                 _buildSidebarHeader('GENERAL'),
-                _buildSidebarItem(
-                  icon: Icons.notifications_rounded,
-                  label: 'Notifications',
-                  isActive: currentIndex == 8,
-                  badgeCount: unreadCount,
-                  onTap: () {
-                    if (user?.isSuperAdmin ?? false) {
+                if (user?.isSuperAdmin ?? false)
+                  _buildSidebarItem(
+                    icon: Icons.notifications_rounded,
+                    label: 'Notifications',
+                    isActive: currentIndex == 8,
+                    badgeCount: unreadCount,
+                    onTap: () {
                       context.go('/admin/notifications');
-                    } else {
-                      showSingleDialog(
-                        context: shellNavigatorKey.currentContext ?? context,
-                        useRootNavigator: false,
-                        builder: (context) => const NotificationsDialog(),
-                      );
-                    }
-                  },
-                ),
+                    },
+                  )
+                else
+                  _buildSidebarItem(
+                    icon: Icons.get_app_rounded,
+                    label: 'Download App',
+                    isActive: currentIndex == 9,
+                    onTap: () {
+                      context.go('/download');
+                    },
+                  ),
                 _buildSidebarItem(
                   icon: isLight ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                   label: isLight ? 'Dark Mode' : 'Light Mode',

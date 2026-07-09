@@ -23,6 +23,7 @@ import '../../features/more/role_permissions_provider.dart';
 import '../../models/product.dart';
 import '../../models/customer.dart';
 import '../../features/admin/admin_sub_screens.dart';
+import '../../features/admin/app_update_screens.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -303,6 +304,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/branding',
             pageBuilder: (context, state) => _buildPage(
               const AdminBrandingScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/admin/app-update',
+            pageBuilder: (context, state) => _buildPage(
+              const AdminAppUpdateScreen(),
+              state,
+            ),
+          ),
+          GoRoute(
+            path: '/download',
+            pageBuilder: (context, state) => _buildPage(
+              const DownloadAppScreen(),
               state,
             ),
           ),

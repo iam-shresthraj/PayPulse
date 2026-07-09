@@ -11,6 +11,7 @@ import '../../core/widgets/stat_card.dart';
 import '../../core/widgets/section_header.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/app_header.dart';
+import '../../core/widgets/notifications_dialog.dart';
 import '../billing/invoices_provider.dart';
 import '../billing/billing_provider.dart';
 import '../customers/customers_provider.dart';
@@ -287,6 +288,58 @@ class HomeScreen extends ConsumerWidget {
               ),
               Row(
                 children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      GestureDetector(
+                        onTap: () => showNotificationsDialog(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.surfaceContainer.withValues(alpha: 0.5),
+                            border: Border.all(color: AppColors.border, width: 0.5),
+                          ),
+                          child: Icon(
+                            Icons.notifications_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final count = ref.watch(unreadNotificationsProvider);
+                          if (count == 0) return const SizedBox.shrink();
+                          return Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                count.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
                   ElevatedButton.icon(
                     onPressed: () => context.go('/billing'),
                     icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),

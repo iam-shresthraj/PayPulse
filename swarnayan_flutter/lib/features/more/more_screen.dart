@@ -7,6 +7,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/widgets/glass_card.dart';
 import '../auth/auth_provider.dart';
 import '../../core/utils/dialog_helper.dart';
@@ -208,6 +210,59 @@ class MoreScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            
+            // ── Download App Card for Mobile App or Mobile Web ──
+            if (!isWide && !(user?.isSuperAdmin ?? false)) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GlassCard(
+                  animationIndex: 1,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  onTap: () async {
+                    if (kIsWeb) {
+                      context.push('/download');
+                    } else {
+                      final url = Uri.parse('https://swarnayan-paypulse.vercel.app/download');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.get_app_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Download Mobile App',
+                              style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Get the latest Android APK for your phone',
+                              style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: AppColors.onSurfaceDim, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 32),
 
             if (user?.isSuperAdmin ?? false) ...[

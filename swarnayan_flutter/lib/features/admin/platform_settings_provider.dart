@@ -14,6 +14,12 @@ class PlatformSettings {
   final bool notifyOnSignup;
   final String welcomeTitle;
   final String welcomeBody;
+  
+  // App Download/Update fields
+  final String? appLogoUrl;
+  final String appVersion;
+  final String appUpdateLog;
+  final String? appApkUrl;
 
   PlatformSettings({
     required this.companyName,
@@ -28,6 +34,10 @@ class PlatformSettings {
     this.welcomeTitle = 'Welcome to PayPulse',
     this.welcomeBody =
         'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
+    this.appLogoUrl = '',
+    this.appVersion = '1.0.0',
+    this.appUpdateLog = 'Initial release',
+    this.appApkUrl = '',
   });
 
   factory PlatformSettings.fromJson(Map<String, dynamic> json) {
@@ -50,6 +60,10 @@ class PlatformSettings {
       welcomeTitle: json['welcome_title'] ?? 'Welcome to PayPulse',
       welcomeBody: json['welcome_body'] ??
           'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
+      appLogoUrl: json['app_logo_url'] ?? '',
+      appVersion: json['app_version'] ?? '1.0.0',
+      appUpdateLog: json['app_update_log'] ?? 'Initial release',
+      appApkUrl: json['app_apk_url'] ?? '',
     );
   }
 
@@ -64,6 +78,10 @@ class PlatformSettings {
         'notify_on_signup': notifyOnSignup,
         'welcome_title': welcomeTitle,
         'welcome_body': welcomeBody,
+        'app_logo_url': appLogoUrl,
+        'app_version': appVersion,
+        'app_update_log': appUpdateLog,
+        'app_apk_url': appApkUrl,
       };
 }
 
@@ -84,6 +102,10 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
       welcomeTitle: 'Welcome to PayPulse',
       welcomeBody:
           'Welcome to PayPulse! Your account has been created successfully. Please complete your profile and start exploring the app.',
+      appLogoUrl: '',
+      appVersion: '1.0.0',
+      appUpdateLog: 'Initial release',
+      appApkUrl: '',
     );
   }
 
@@ -123,7 +145,6 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
   Future<String?> uploadLogoFile(Uint8List bytes, String fileName) async {
     try {
       final path = 'logos/${DateTime.now().millisecondsSinceEpoch}_$fileName';
-      // Ensure the public bucket "platform_assets" exists or we fallback to link
       await _client.storage.from('platform_assets').uploadBinary(
         path,
         bytes,
@@ -133,6 +154,22 @@ class PlatformSettingsNotifier extends StateNotifier<AsyncValue<PlatformSettings
       return publicUrl;
     } catch (e) {
       print('DEBUG: uploadLogoFile failed: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadApkFile(Uint8List bytes, String fileName) async {
+    try {
+      final path = 'apks/${DateTime.now().millisecondsSinceEpoch}_$fileName';
+      await _client.storage.from('platform_assets').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(contentType: 'application/vnd.android.package-archive', cacheControl: '3600', upsert: true),
+      );
+      final publicUrl = _client.storage.from('platform_assets').getPublicUrl(path);
+      return publicUrl;
+    } catch (e) {
+      print('DEBUG: uploadApkFile failed: $e');
       return null;
     }
   }

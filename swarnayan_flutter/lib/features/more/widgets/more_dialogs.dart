@@ -1406,6 +1406,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                   Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: SizedBox(
                           height: 52,
                           child: OutlinedButton(
@@ -1433,6 +1434,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
+                        flex: 3,
                         child: PrimaryButton(
                           label: 'Save Changes',
                           isLoading: _isLoading,

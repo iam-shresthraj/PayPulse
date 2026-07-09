@@ -687,14 +687,14 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _showForm ? (_editingCoupon != null ? 'Edit Coupon' : 'Add New Coupon') : 'Coupons',
-                style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
-              ),
-              if (_showForm)
+          if (_showForm) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _editingCoupon != null ? 'Edit Coupon' : 'Add New Coupon',
+                  style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
+                ),
                 SecondaryButton(
                   label: 'View List',
                   onPressed: () {
@@ -704,9 +704,10 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                     });
                   },
                 ),
-            ],
-          ),
-          const SizedBox(height: 20),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
           if (_showForm)
             Form(
               key: _formKey,

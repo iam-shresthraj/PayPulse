@@ -1411,14 +1411,16 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     
+    final currentSettings = ref.read(platformSettingsProvider).value;
+    
     final updated = PlatformSettings(
       companyName: _nameController.text.trim(),
       tagline: _taglineController.text.trim(),
       address: _addressController.text.trim().isNotEmpty ? _addressController.text.trim() : null,
       contactEmail: _emailController.text.trim(),
       workingTime: _hoursController.text.trim(),
-      logoLightUrl: _logoLightController.text.trim().isNotEmpty ? _logoLightController.text.trim() : null,
-      logoDarkUrl: _logoDarkController.text.trim().isNotEmpty ? _logoDarkController.text.trim() : null,
+      logoLightUrl: currentSettings?.logoLightUrl,
+      logoDarkUrl: currentSettings?.logoDarkUrl,
       notifyOnSignup: _notifyOnSignup,
     );
     
@@ -1533,107 +1535,7 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-
-                  // Company Logos Title
-                  Text(
-                    'COMPANY LOGOS',
-                    style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 1.0),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Light & Dark Logos in Row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Light Logo Picker
-                      Expanded(
-                        child: GlassCard(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text('Light Theme Logo', style: AppTextStyles.labelMd),
-                              const SizedBox(height: 12),
-                              if (_logoLightController.text.isNotEmpty)
-                                Container(
-                                  height: 50,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Image.network(_logoLightController.text, fit: BoxFit.contain),
-                                )
-                              else
-                                Container(
-                                  height: 50,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  child: Center(child: Text('No logo', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted))),
-                                ),
-                              ElevatedButton.icon(
-                                onPressed: _uploadingLight ? null : () => _pickAndUploadLogo(true),
-                                icon: _uploadingLight 
-                                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Icon(Icons.upload_rounded, size: 16),
-                                label: const Text('Upload'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: Colors.white,
-                                  textStyle: AppTextStyles.bodySm.copyWith(fontWeight: FontWeight.bold),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Dark Logo Picker
-                      Expanded(
-                        child: GlassCard(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text('Dark Theme Logo', style: AppTextStyles.labelMd),
-                              const SizedBox(height: 12),
-                              if (_logoDarkController.text.isNotEmpty)
-                                Container(
-                                  height: 50,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black87,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Image.network(_logoDarkController.text, fit: BoxFit.contain),
-                                )
-                              else
-                                Container(
-                                  height: 50,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  child: Center(child: Text('No logo', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted))),
-                                ),
-                              ElevatedButton.icon(
-                                onPressed: _uploadingDark ? null : () => _pickAndUploadLogo(false),
-                                icon: _uploadingDark 
-                                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                    : const Icon(Icons.upload_rounded, size: 16),
-                                label: const Text('Upload'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: Colors.white,
-                                  textStyle: AppTextStyles.bodySm.copyWith(fontWeight: FontWeight.bold),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
                   // Save button
                   ElevatedButton(

@@ -126,6 +126,27 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
     }
   }
 
+  Future<void> _markAsRead(String id) async {
+    try {
+      final user = ref.read(authProvider).user;
+      if (user != null) {
+        await Supabase.instance.client.from('notification_reads').upsert({
+          'notification_id': id,
+          'user_id': user.id,
+        });
+      }
+      
+      final currentUnread = ref.read(unreadNotificationsProvider);
+      if (currentUnread > 0) {
+        ref.read(unreadNotificationsProvider.notifier).state = currentUnread - 1;
+      }
+      
+      await _loadNotifications();
+    } catch (e) {
+      print('DEBUG: _markAsRead failed: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassDialogWrapper(
@@ -202,68 +223,77 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                               ? DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.parse(item['created_at'].toString()).toLocal())
                               : '';
 
-                          return Card(
-                            color: AppColors.surfaceContainer,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
+                           return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: InkWell(
+                              onTap: item['is_read'] == false
+                                  ? () => _markAsRead(item['id'].toString())
+                                  : null,
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: AppColors.border, width: 0.5),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              child: Card(
+                                color: AppColors.surfaceContainer,
+                                margin: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: AppColors.border, width: 0.5),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        dateStr,
-                                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
-                                      ),
-                                      if (item['is_read'] == false)
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    body,
-                                    maxLines: 4,
-                                    overflow: TextOverflow.ellipsis,
-                                    softWrap: true,
-                                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
-                                  ),
-                                  if (fileUrl != null && fileUrl.isNotEmpty) ...[
-                                    const SizedBox(height: 12),
-                                    GestureDetector(
-                                      onTap: () => launchUrl(Uri.parse(fileUrl)),
-                                      child: Row(
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Icon(Icons.attachment_rounded, size: 14, color: AppColors.primary),
-                                          const SizedBox(width: 4),
                                           Text(
-                                            'View Attachment',
-                                            style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                            dateStr,
+                                            style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
                                           ),
+                                          if (item['is_read'] == false)
+                                            Container(
+                                              width: 8,
+                                              height: 8,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
                                         ],
                                       ),
-                                    ),
-                                  ],
-                                ],
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        body,
+                                        maxLines: 4,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: true,
+                                        style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                                      ),
+                                      if (fileUrl != null && fileUrl.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        GestureDetector(
+                                          onTap: () => launchUrl(Uri.parse(fileUrl)),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.attachment_rounded, size: 14, color: AppColors.primary),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'View Attachment',
+                                                style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           );

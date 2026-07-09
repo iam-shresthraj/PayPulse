@@ -154,7 +154,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.error,
             side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _deleting
@@ -165,7 +165,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
         TextButton(
           onPressed: _submitting ? null : () => Navigator.pop(context),
           style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
           child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceDim)),
         ),
@@ -175,7 +175,7 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 0,
           ),
@@ -185,50 +185,47 @@ class _UserAccessDialogState extends ConsumerState<UserAccessDialog> {
                   height: 20,
                   child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
                 )
-              : Text('Save Changes', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
+              : Text(
+                  MediaQuery.of(context).size.width < 450 ? 'Save' : 'Save Changes',
+                  style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: Colors.black),
+                ),
         ),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 520;
-              return GlassCard(
-                padding: const EdgeInsets.all(16),
-                child: Flex(
-                  direction: isCompact ? Axis.vertical : Axis.horizontal,
-                  crossAxisAlignment: isCompact ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      child: Text(
-                        widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : 'U',
-                        style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
-                      ),
-                    ),
-                    SizedBox(width: isCompact ? 0 : 16, height: isCompact ? 12 : 0),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(widget.user.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 2),
-                          Text(widget.user.email, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.companyName.isNotEmpty ? 'Company: ${widget.companyName}' : 'No Company (Super Admin)',
-                            style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: Text(
+                    widget.user.name.isNotEmpty ? widget.user.name[0].toUpperCase() : 'U',
+                    style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
+                  ),
                 ),
-              );
-            },
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.user.name, style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(widget.user.email, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.companyName.isNotEmpty ? 'Company: ${widget.companyName}' : 'No Company (Super Admin)',
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 

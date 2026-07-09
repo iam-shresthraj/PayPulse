@@ -20,6 +20,7 @@ import '../../core/services/notification_service.dart';
 import '../admin/platform_settings_provider.dart';
 import '../../core/utils/dialog_helper.dart';
 import '../../core/widgets/notifications_dialog.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Main application shell supporting both mobile bottom navigation bar 
 /// and desktop left-navigation sidebar.
@@ -53,13 +54,55 @@ class _AppShellState extends ConsumerState<AppShell> {
     super.dispose();
   }
 
+  Future<void> _fetchInitialUnreadCount() async {
+    try {
+      final user = ref.read(authProvider).user;
+      if (user == null) return;
+
+      final response = await Supabase.instance.client
+          .from('notifications')
+          .select('id, target_company_id, target_role')
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      final readsResponse = await Supabase.instance.client
+          .from('notification_reads')
+          .select('notification_id')
+          .eq('user_id', user.id);
+      final readIds = Set<String>.from(
+        (readsResponse as List).map((r) => r['notification_id'].toString())
+      );
+
+      int unread = 0;
+      for (final item in response) {
+        final targetCompanyId = item['target_company_id']?.toString();
+        final targetRole = item['target_role']?.toString().toUpperCase() ?? 'ALL';
+        final companyMatches = targetCompanyId == null || targetCompanyId.isEmpty || targetCompanyId == user.companyId;
+        final roleMatches = targetRole == 'ALL' || targetRole == user.role.toUpperCase();
+
+        if (companyMatches && roleMatches) {
+          if (!readIds.contains(item['id'].toString())) {
+            unread++;
+          }
+        }
+      }
+
+      if (mounted) {
+        ref.read(unreadNotificationsProvider.notifier).state = unread;
+      }
+    } catch (e) {
+      print('DEBUG: _fetchInitialUnreadCount failed: $e');
+    }
+  }
+
   void _setupNotificationSubscription() {
     final user = ref.read(authProvider).user;
     if (user != null) {
+      _fetchInitialUnreadCount();
       NotificationService.instance.subscribe(user, (notification) {
         if (mounted) {
           _showNotificationPopup(notification);
-          ref.read(unreadNotificationsProvider.notifier).update((state) => state + 1);
+          _fetchInitialUnreadCount();
         }
       });
     }

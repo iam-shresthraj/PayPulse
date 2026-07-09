@@ -21,6 +21,7 @@ import '../staff_provider.dart';
 import '../role_permissions_provider.dart';
 import '../../auth/auth_provider.dart';
 import '../../../core/widgets/skeleton_widgets.dart';
+import '../../../core/theme/app_spacing.dart';
 
 
 // -----------------------------------------------------------
@@ -1271,6 +1272,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
             Row(
               children: [
                 Expanded(
+                  flex: 6,
                   child: SecondaryButton(
                     label: 'Role Access',
                     isOutlined: true,
@@ -1287,32 +1289,50 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: SecondaryButton(
-                    label: 'Edit Access',
-                    isOutlined: true,
-                    icon: Icons.edit_rounded,
+                  flex: 2,
+                  child: SizedBox(
                     height: 40,
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        useRootNavigator: false,
-                        builder: (ctx) => const BulkAccessDialog(),
-                      );
-                    },
+                    child: OutlinedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          useRootNavigator: false,
+                          builder: (ctx) => const BulkAccessDialog(),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Icon(Icons.edit_rounded, size: 18),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: SecondaryButton(
-                    label: 'Add Staff',
-                    isOutlined: true,
-                    icon: Icons.add_rounded,
+                  flex: 2,
+                  child: SizedBox(
                     height: 40,
-                    onPressed: () {
-                      setState(() {
-                        _showAddForm = true;
-                      });
-                    },
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _showAddForm = true;
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Icon(Icons.person_add_rounded, size: 18),
+                    ),
                   ),
                 ),
               ],

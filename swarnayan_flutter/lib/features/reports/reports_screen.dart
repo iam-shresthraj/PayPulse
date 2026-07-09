@@ -32,8 +32,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   DateTime _endDate = DateTime.now();
   List<Invoice> _filteredInvoices = [];
   bool _hasSearched = false;
-  String _selectedStatusFilter = 'ALL';
+  final Set<String> _selectedStatusFilters = {'ALL'};
   final Set<String> _selectedSearchFields = {'ALL'};
+
+  static const List<({String key, String label})> _statusScopes = [
+    (key: 'ALL', label: 'All Statuses'),
+    (key: 'PAID', label: 'Paid'),
+    (key: 'PARTIAL', label: 'Partial'),
+    (key: 'CANCELLED', label: 'Cancelled'),
+  ];
   final TextEditingController _searchQueryController = TextEditingController();
 
   static const List<({String key, String label})> _searchScopes = [
@@ -74,14 +81,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                  inv.deletedAt == null;
           if (!dateMatch) return false;
 
-          if (_selectedStatusFilter != 'ALL') {
+          if (!_selectedStatusFilters.contains('ALL')) {
             final isPaid = inv.balanceDue <= 0.05 && inv.status != 'CANCELLED';
             final isPartial = inv.balanceDue > 0.05 && inv.status != 'CANCELLED';
             final isCancelled = inv.status == 'CANCELLED';
 
-            if (_selectedStatusFilter == 'PAID' && !isPaid) return false;
-            if (_selectedStatusFilter == 'PARTIAL' && !isPartial) return false;
-            if (_selectedStatusFilter == 'CANCELLED' && !isCancelled) return false;
+            bool match = false;
+            if (_selectedStatusFilters.contains('PAID') && isPaid) match = true;
+            if (_selectedStatusFilters.contains('PARTIAL') && isPartial) match = true;
+            if (_selectedStatusFilters.contains('CANCELLED') && isCancelled) match = true;
+
+            if (!match) return false;
           }
 
           if (query.isNotEmpty) {
@@ -448,6 +458,119 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+  Future<void> _pickStatusFilter() async {
+    final selected = Set<String>.from(_selectedStatusFilters);
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        title: Text('Payment Status', style: AppTextStyles.titleMd),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _statusScopes.map((scope) {
+                    final checked = selected.contains(scope.key);
+                    return CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: checked,
+                      title: Text(scope.label, style: AppTextStyles.bodyMd),
+                      onChanged: (val) {
+                        setStateDialog(() {
+                          if (scope.key == 'ALL') {
+                            selected
+                              ..clear()
+                              ..add('ALL');
+                          } else if (val == true) {
+                            selected.remove('ALL');
+                            selected.add(scope.key);
+                          } else {
+                            selected.remove(scope.key);
+                            if (selected.isEmpty) selected.add('ALL');
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, selected),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _selectedStatusFilters
+          ..clear()
+          ..addAll(result);
+        if (_selectedStatusFilters.isEmpty) _selectedStatusFilters.add('ALL');
+      });
+      _performSearch();
+    }
+  }
+
+  Widget _buildStatusFilterDropdown() {
+    final selectedLabel = _selectedStatusFilters.contains('ALL')
+        ? 'All Statuses'
+        : _selectedStatusFilters.length == 1
+            ? _statusScopes.firstWhere((scope) => scope.key == _selectedStatusFilters.first).label
+            : '${_selectedStatusFilters.length} Statuses';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'PAYMENT STATUS',
+          style: AppTextStyles.labelMd.copyWith(
+            color: AppColors.onSurfaceMuted,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _pickStatusFilter,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedLabel,
+                    style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                  ),
+                ),
+                Icon(Icons.expand_more_rounded, color: AppColors.onSurfaceMuted),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // If the user is a Super Admin, show the Admin Reports view
@@ -657,43 +780,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                           const SizedBox(height: 16),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  physics: const BouncingScrollPhysics(),
-                                  child: Row(
-                                    children: ['ALL', 'PAID', 'PARTIAL', 'CANCELLED'].map((filter) {
-                                      final isSelected = _selectedStatusFilter == filter;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(right: 8),
-                                        child: ChoiceChip(
-                                          label: Text(
-                                            filter,
-                                            style: AppTextStyles.labelMd.copyWith(
-                                              color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          selected: isSelected,
-                                          selectedColor: AppColors.primary,
-                                          backgroundColor: AppColors.surfaceContainer,
-                                          onSelected: (selected) {
-                                            if (selected) {
-                                              setState(() {
-                                                _selectedStatusFilter = filter;
-                                              });
-                                              _performSearch();
-                                            }
-                                          },
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
+                                child: _buildStatusFilterDropdown(),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,

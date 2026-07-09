@@ -33,13 +33,14 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
   bool _prompted = false;
   DateTime? _lastBackPressTime;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     NotificationService.instance.init().then((_) {
       NotificationService.instance.requestPermissions();
     });
@@ -50,8 +51,16 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     NotificationService.instance.unsubscribe();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _fetchInitialUnreadCount();
+    }
   }
 
   Future<void> _fetchInitialUnreadCount() async {
@@ -61,7 +70,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
       final response = await Supabase.instance.client
           .from('notifications')
-          .select('id, target_company_id, target_role')
+          .select('id, target_company_id, target_role, created_at')
           .order('created_at', ascending: false)
           .limit(50);
 
@@ -81,6 +90,16 @@ class _AppShellState extends ConsumerState<AppShell> {
         final roleMatches = targetRole == 'ALL' || targetRole == user.role.toUpperCase();
 
         if (companyMatches && roleMatches) {
+          final createdAtStr = item['created_at'];
+          if (createdAtStr != null) {
+            final notificationTime = DateTime.parse(createdAtStr.toString()).toLocal();
+            final fourDaysAgo = DateTime.now().subtract(const Duration(days: 4));
+            if (notificationTime.isBefore(fourDaysAgo)) continue;
+
+            final userJoined = user.createdAt;
+            if (userJoined != null && notificationTime.isBefore(userJoined)) continue;
+          }
+
           if (!readIds.contains(item['id'].toString())) {
             unread++;
           }
@@ -101,6 +120,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       _fetchInitialUnreadCount();
       NotificationService.instance.subscribe(user, (notification) {
         if (mounted) {
+          HapticFeedback.vibrate();
           _showNotificationPopup(notification);
           _fetchInitialUnreadCount();
         }
@@ -189,8 +209,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                         const SizedBox(height: 14),
                         OutlinedButton.icon(
                           onPressed: () => launchUrl(Uri.parse(fileUrl)),
-                          icon: const Icon(Icons.attachment_rounded),
-                          label: const Text('View Attachment'),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: const Text('Open'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             side: BorderSide(color: AppColors.primary),

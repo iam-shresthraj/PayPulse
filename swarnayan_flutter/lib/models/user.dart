@@ -13,6 +13,7 @@ class User {
   final String? address;
   final String? companyCategory; // 'Jewellery' or others
   final DateTime? companyRenewDate;
+  final DateTime? createdAt;
 
   // Feature-wise Access Control Toggles (10 sections)
   final bool accessDashboard;
@@ -40,6 +41,7 @@ class User {
     this.address,
     this.companyCategory = 'Jewellery',
     this.companyRenewDate,
+    this.createdAt,
     this.accessDashboard = true,
     this.accessInvoices = true,
     this.accessCustomers = true,
@@ -134,6 +136,11 @@ class User {
       address: json['address'],
       companyCategory: category ?? 'Jewellery',
       companyRenewDate: renewDate,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : (json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'].toString())
+              : null),
       accessDashboard: json['accessDashboard'] ?? json['access_dashboard'] ?? true,
       accessInvoices: json['accessInvoices'] ?? json['access_invoices'] ?? true,
       accessCustomers: json['accessCustomers'] ?? json['access_customers'] ?? true,
@@ -161,6 +168,7 @@ class User {
         'address': address,
         'company_category': companyCategory,
         'company_renew_date': companyRenewDate?.toIso8601String(),
+        'created_at': createdAt?.toIso8601String(),
         'access_dashboard': accessDashboard,
         'access_invoices': accessInvoices,
         'access_inventory': accessInventory,
@@ -187,6 +195,7 @@ class User {
     String? address,
     String? companyCategory,
     DateTime? companyRenewDate,
+    DateTime? createdAt,
     bool? accessDashboard,
     bool? accessInvoices,
     bool? accessInventory,
@@ -212,6 +221,7 @@ class User {
       address: address ?? this.address,
       companyCategory: companyCategory ?? this.companyCategory,
       companyRenewDate: companyRenewDate ?? this.companyRenewDate,
+      createdAt: createdAt ?? this.createdAt,
       accessDashboard: accessDashboard ?? this.accessDashboard,
       accessInvoices: accessInvoices ?? this.accessInvoices,
       accessInventory: accessInventory ?? this.accessInventory,

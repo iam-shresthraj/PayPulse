@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../models/user.dart';
@@ -103,6 +104,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (session != null) {
         final profile = await _fetchProfile(session.user.id);
         if (profile != null) {
+          if (profile.isSuperAdmin) {
+            await _client.auth.signOut();
+            state = const AuthState(isAuthenticated: false, isLoading: false);
+            return;
+          }
           state = AuthState(
             user: profile,
             isAuthenticated: true,
@@ -166,6 +172,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (uid == null) return;
     final profile = await _fetchProfile(uid);
     if (profile != null) {
+      if (profile.isSuperAdmin) {
+        await _client.auth.signOut();
+        state = const AuthState(isAuthenticated: false, isLoading: false);
+        return;
+      }
       state = AuthState(
         user: profile,
         isAuthenticated: true,
@@ -188,6 +199,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
           state = state.copyWith(
             isLoading: false,
             errorMessage: 'Failed to retrieve user profile.',
+          );
+          return false;
+        }
+
+        if (profile.isSuperAdmin && !kIsWeb) {
+          await _client.auth.signOut();
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: 'PayPulse employees must use the website or the "PayPulse Control" App.',
           );
           return false;
         }

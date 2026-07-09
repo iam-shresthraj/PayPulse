@@ -8,6 +8,7 @@ import '../theme/app_text_styles.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/more/widgets/more_dialogs.dart';
 import '../utils/dialog_helper.dart';
+import 'primary_button.dart';
 
 final unreadNotificationsProvider = StateProvider<int>((ref) => 0);
 
@@ -63,7 +64,20 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
       if (mounted) {
         setState(() {
           final rawList = List<Map<String, dynamic>>.from(response)
-              .where((item) => _matchesTarget(item, user))
+              .where((item) {
+                if (!_matchesTarget(item, user)) return false;
+                
+                final createdAtStr = item['created_at'];
+                if (createdAtStr == null) return false;
+                final notificationTime = DateTime.parse(createdAtStr.toString()).toLocal();
+                final fourDaysAgo = DateTime.now().subtract(const Duration(days: 4));
+                if (notificationTime.isBefore(fourDaysAgo)) return false;
+
+                final userJoined = user.createdAt;
+                if (userJoined != null && notificationTime.isBefore(userJoined)) return false;
+
+                return true;
+              })
               .toList();
           _notifications = rawList.map((item) {
             final isRead = readNotificationIds.contains(item['id'].toString());
@@ -151,6 +165,12 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
   Widget build(BuildContext context) {
     return GlassDialogWrapper(
       title: 'Notifications',
+      showCloseIcon: false,
+      headerAction: IconButton(
+        icon: Icon(Icons.check_circle_outline_rounded, color: AppColors.error, size: 24),
+        tooltip: 'Mark all as read',
+        onPressed: _notifications.isEmpty ? null : _markAllAsRead,
+      ),
       child: _loading
           ? const SizedBox(
               height: 150,
@@ -159,150 +179,141 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
           : SizedBox(
               height: MediaQuery.of(context).size.height * 0.65,
               child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton.icon(
-                            onPressed: _notifications.isEmpty ? null : _markAllAsRead,
-                            icon: const Icon(Icons.done_all_rounded, size: 18),
-                            label: const Text('Mark as read'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: _error != null
-                          ? Center(
-                              child: Text(
-                                'Notifications are unavailable right now.',
-                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          : _notifications.isEmpty
-                              ? Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 40),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.notifications_none_rounded, size: 56, color: AppColors.onSurfaceMuted.withValues(alpha: 0.5)),
-                                        const SizedBox(height: 14),
-                                        Text(
-                                          'No notifications yet',
-                                          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'You\'ll see alerts and updates here',
-                                          style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted.withValues(alpha: 0.6)),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : ScrollConfiguration(
-                                  behavior: const ScrollBehavior().copyWith(scrollbars: false),
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const BouncingScrollPhysics(),
-                                    itemCount: _notifications.length,
-                                    itemBuilder: (context, index) {
-                          final item = _notifications[index];
-                          final title = item['title'] ?? 'Alert';
-                          final body = item['body'] ?? '';
-                          final fileUrl = item['file_url']?.toString();
-                          final dateStr = item['created_at'] != null
-                              ? DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.parse(item['created_at'].toString()).toLocal())
-                              : '';
-
-                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: InkWell(
-                              onTap: item['is_read'] == false
-                                  ? () => _markAsRead(item['id'].toString())
-                                  : null,
-                              borderRadius: BorderRadius.circular(12),
-                              child: Card(
-                                color: AppColors.surfaceContainer,
-                                margin: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: AppColors.border, width: 0.5),
-                                ),
+                children: [
+                  Expanded(
+                    child: _error != null
+                        ? Center(
+                            child: Text(
+                              'Notifications are unavailable right now.',
+                              style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : _notifications.isEmpty
+                            ? Center(
                                 child: Padding(
-                                  padding: const EdgeInsets.all(14),
+                                  padding: const EdgeInsets.symmetric(vertical: 40),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            dateStr,
-                                            style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
-                                          ),
-                                          if (item['is_read'] == false)
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
+                                      Icon(Icons.notifications_none_rounded, size: 56, color: AppColors.onSurfaceMuted.withValues(alpha: 0.5)),
+                                      const SizedBox(height: 14),
                                       Text(
-                                        title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                        'No notifications yet',
+                                        style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: 4),
                                       Text(
-                                        body,
-                                        maxLines: 4,
-                                        overflow: TextOverflow.ellipsis,
-                                        softWrap: true,
-                                        style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                                        'You\'ll see alerts and updates here',
+                                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted.withValues(alpha: 0.6)),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      if (fileUrl != null && fileUrl.isNotEmpty) ...[
-                                        const SizedBox(height: 12),
-                                        GestureDetector(
-                                          onTap: () => launchUrl(Uri.parse(fileUrl)),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.attachment_rounded, size: 14, color: AppColors.primary),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'View Attachment',
-                                                style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                          );
-                        },
-                                  ),
+                              )
+                            : ScrollConfiguration(
+                                behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const BouncingScrollPhysics(),
+                                  itemCount: _notifications.length,
+                                  itemBuilder: (context, index) {
+                                    final item = _notifications[index];
+                                    final title = item['title'] ?? 'Alert';
+                                    final body = item['body'] ?? '';
+                                    final fileUrl = item['file_url']?.toString();
+                                    final dateStr = item['created_at'] != null
+                                        ? DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.parse(item['created_at'].toString()).toLocal())
+                                        : '';
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: Card(
+                                        color: AppColors.surfaceContainer,
+                                        margin: EdgeInsets.zero,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          side: BorderSide(color: AppColors.border, width: 0.5),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(14),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    dateStr,
+                                                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
+                                                  ),
+                                                  IconButton(
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(),
+                                                    icon: Icon(
+                                                      item['is_read'] == true
+                                                          ? Icons.check_circle_rounded
+                                                          : Icons.check_circle_outline_rounded,
+                                                      color: item['is_read'] == true ? Colors.green : AppColors.error,
+                                                      size: 20,
+                                                    ),
+                                                    onPressed: item['is_read'] == false
+                                                        ? () => _markAsRead(item['id'].toString())
+                                                        : null,
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                body,
+                                                maxLines: 4,
+                                                overflow: TextOverflow.ellipsis,
+                                                softWrap: true,
+                                                style: AppTextStyles.bodyMd.copyWith(color: AppColors.onBackground),
+                                              ),
+                                              if (fileUrl != null && fileUrl.isNotEmpty) ...[
+                                                const SizedBox(height: 12),
+                                                GestureDetector(
+                                                  onTap: () => launchUrl(Uri.parse(fileUrl)),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.attachment_rounded, size: 14, color: AppColors.primary),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'View Attachment',
+                                                        style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                    ),
-                  ],
-                ),
+                              ),
+                  ),
+                  const SizedBox(height: 16),
+                  PrimaryButton(
+                    label: 'Close',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
             ),
     );
   }

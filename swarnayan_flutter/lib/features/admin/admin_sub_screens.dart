@@ -1099,13 +1099,10 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                           );
                         }
                         final list = snapshot.data ?? [];
-                        final totalDeliveredCompanies = list.fold<int>(
-                          0,
-                          (sum, item) {
-                            final stats = _calculateNotificationStats(item, state);
-                            return sum + (stats['companies'] ?? 0);
-                          },
-                        );
+                        final now = DateTime.now();
+                        final startOfMonth = DateTime(now.year, now.month, 1);
+                        
+                        // Calculate metrics
                         final totalDeliveredUsers = list.fold<int>(
                           0,
                           (sum, item) {
@@ -1113,28 +1110,152 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                             return sum + (stats['users'] ?? 0);
                           },
                         );
+
+                        final totalDeliveredThisMonth = list.where((item) {
+                          final createdAtStr = item['created_at']?.toString();
+                          if (createdAtStr == null) return false;
+                          final createdAt = DateTime.tryParse(createdAtStr);
+                          if (createdAt == null) return false;
+                          return createdAt.isAfter(startOfMonth) || createdAt.isAtSameMomentAs(startOfMonth);
+                        }).fold<int>(0, (sum, item) {
+                          final stats = _calculateNotificationStats(item, state);
+                          return sum + (stats['users'] ?? 0);
+                        });
+
                         final totalSeen = list.fold<int>(
                           0,
                           (sum, item) => sum + ((item['__seen_count'] ?? 0) as num).toInt(),
                         );
+
                         final totalUnseen = (totalDeliveredUsers - totalSeen).clamp(0, 1 << 30);
+
+                        // Compute fastest and slowest readers
+                        String fastestReaderName = 'No data';
+                        String fastestReaderComp = '';
+                        String fastestReaderSub = '';
+                        
+                        String slowestReaderName = 'No data';
+                        String slowestReaderComp = '';
+                        String slowestReaderSub = '';
+                        
+                        if (list.isNotEmpty && state.users.isNotEmpty) {
+                          final userStats = <String, _UserReadStats>{};
+                          
+                          for (final u in state.users) {
+                            int deliveredCount = 0;
+                            int readCount = 0;
+                            List<Duration> durations = [];
+                            
+                            for (final item in list) {
+                              final targetCompanyId = item['target_company_id']?.toString();
+                              final targetRole = (item['target_role'] ?? 'ALL').toString().toUpperCase();
+                              
+                              bool isDelivered = false;
+                              if (targetCompanyId != null && targetCompanyId.isNotEmpty) {
+                                if (targetCompanyId == u.companyId) {
+                                  if (targetRole == 'ALL' || targetRole == u.role.toUpperCase()) {
+                                    isDelivered = true;
+                                  }
+                                }
+                              } else {
+                                if (targetRole == 'ALL') {
+                                  isDelivered = true;
+                                } else if (targetRole == 'SUPER_ADMIN') {
+                                  isDelivered = u.role.toUpperCase() == 'SUPER_ADMIN';
+                                } else {
+                                  isDelivered = targetRole == u.role.toUpperCase() && u.approvalStatus.toUpperCase() == 'APPROVED';
+                                }
+                              }
+                              
+                              if (isDelivered) {
+                                deliveredCount++;
+                                final rawReads = item['__raw_reads'] as List?;
+                                final readObj = rawReads?.firstWhere(
+                                  (r) => r['user_id']?.toString() == u.id,
+                                  orElse: () => null,
+                                );
+                                if (readObj != null) {
+                                  readCount++;
+                                  final readAtStr = readObj['read_at']?.toString();
+                                  final createdAtStr = item['created_at']?.toString();
+                                  if (readAtStr != null && createdAtStr != null) {
+                                    final readAt = DateTime.tryParse(readAtStr);
+                                    final createdAt = DateTime.tryParse(createdAtStr);
+                                    if (readAt != null && createdAt != null) {
+                                      durations.add(readAt.difference(createdAt));
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            
+                            if (deliveredCount > 0) {
+                              userStats[u.id] = _UserReadStats(
+                                user: u,
+                                deliveredCount: deliveredCount,
+                                readCount: readCount,
+                                averageDuration: durations.isEmpty
+                                    ? const Duration(days: 999)
+                                    : Duration(
+                                        microseconds: (durations.fold<int>(0, (sum, d) => sum + d.inMicroseconds) / durations.length).round(),
+                                      ),
+                              );
+                            }
+                          }
+                          
+                          final readersWithReads = userStats.values.where((s) => s.readCount > 0).toList();
+                          if (readersWithReads.isNotEmpty) {
+                            readersWithReads.sort((a, b) => a.averageDuration.compareTo(b.averageDuration));
+                            final fastest = readersWithReads.first;
+                            final compName = state.companies.firstWhere(
+                              (c) => c.id == fastest.user.companyId,
+                              orElse: () => AdminBusiness(id: '', name: 'PayPulse', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+                            ).name;
+                            fastestReaderName = fastest.user.name;
+                            fastestReaderComp = compName;
+                            fastestReaderSub = "Avg response: ${_formatDuration(fastest.averageDuration)}";
+                          }
+                          
+                          final allTargeted = userStats.values.toList();
+                          if (allTargeted.isNotEmpty) {
+                            allTargeted.sort((a, b) {
+                              final rateA = a.readCount / a.deliveredCount;
+                              final rateB = b.readCount / b.deliveredCount;
+                              if (rateA != rateB) return rateA.compareTo(rateB);
+                              
+                              final unreadA = a.deliveredCount - a.readCount;
+                              final unreadB = b.deliveredCount - b.readCount;
+                              if (unreadA != unreadB) return unreadB.compareTo(unreadA);
+                              
+                              return b.averageDuration.compareTo(a.averageDuration);
+                            });
+                            final slowest = allTargeted.first;
+                            final compName = state.companies.firstWhere(
+                              (c) => c.id == slowest.user.companyId,
+                              orElse: () => AdminBusiness(id: '', name: 'PayPulse', category: '', staffCode: '', managerCode: '', ownerCode: '', createdAt: DateTime.now()),
+                            ).name;
+                            slowestReaderName = slowest.user.name;
+                            slowestReaderComp = compName;
+                            final unreadCount = slowest.deliveredCount - slowest.readCount;
+                            slowestReaderSub = "Unread: $unreadCount / ${slowest.deliveredCount} messages";
+                          }
+                        }
+
                         if (list.isEmpty) {
                           return ListView(
                             physics: const BouncingScrollPhysics(),
                             padding: const EdgeInsets.only(bottom: 120),
                             children: [
-                              GridView.count(
-                                crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 2.8,
-                                children: [
-                                  _buildMetricCard('Delivered', '0 companies / 0 users', Icons.send_rounded),
-                                  _buildMetricCard('Seen', '0 users', Icons.visibility_rounded),
-                                  _buildMetricCard('Unseen', '0 users', Icons.mark_email_unread_rounded),
-                                ],
+                              _buildDashboardHeader(
+                                totalDeliveredThisMonth: 0,
+                                totalSeen: 0,
+                                totalUnseen: 0,
+                                fastestReaderName: 'No data',
+                                fastestReaderComp: '',
+                                fastestReaderSub: '',
+                                slowestReaderName: 'No data',
+                                slowestReaderComp: '',
+                                slowestReaderSub: '',
                               ),
                               const SizedBox(height: 24),
                               Padding(
@@ -1156,18 +1277,16 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                             if (index == 0) {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
-                                child: GridView.count(
-                                  crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 2.8,
-                                  children: [
-                                    _buildMetricCard('Delivered', '$totalDeliveredCompanies companies / $totalDeliveredUsers users', Icons.send_rounded),
-                                    _buildMetricCard('Seen', '$totalSeen users', Icons.visibility_rounded),
-                                    _buildMetricCard('Unseen', '$totalUnseen users', Icons.mark_email_unread_rounded),
-                                  ],
+                                child: _buildDashboardHeader(
+                                  totalDeliveredThisMonth: totalDeliveredThisMonth,
+                                  totalSeen: totalSeen,
+                                  totalUnseen: totalUnseen,
+                                  fastestReaderName: fastestReaderName,
+                                  fastestReaderComp: fastestReaderComp,
+                                  fastestReaderSub: fastestReaderSub,
+                                  slowestReaderName: slowestReaderName,
+                                  slowestReaderComp: slowestReaderComp,
+                                  slowestReaderSub: slowestReaderSub,
                                 ),
                               );
                             }
@@ -1244,9 +1363,127 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
       ),
     );
   }
+
+  Widget _buildDashboardHeader({
+    required int totalDeliveredThisMonth,
+    required int totalSeen,
+    required int totalUnseen,
+    required String fastestReaderName,
+    required String fastestReaderComp,
+    required String fastestReaderSub,
+    required String slowestReaderName,
+    required String slowestReaderComp,
+    required String slowestReaderSub,
+  }) {
+    return Column(
+      children: [
+        GridView.count(
+          crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 3 : 1,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 2.8,
+          children: [
+            _buildMetricCard('Total No. of Message', '$totalDeliveredThisMonth', Icons.send_rounded, subtitle: 'Delivered this Month'),
+            _buildMetricCard('Messages Seen', '$totalSeen', Icons.visibility_rounded),
+            _buildMetricCard('Unseen Messages', '$totalUnseen', Icons.mark_email_unread_rounded),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: MediaQuery.of(context).size.width >= 700 ? 2 : 1,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: MediaQuery.of(context).size.width >= 700 ? 3.5 : 2.8,
+          children: [
+            _buildAnalyticsCard(
+              'Fastest Reader',
+              fastestReaderName,
+              fastestReaderComp,
+              fastestReaderSub,
+              Icons.bolt_rounded,
+              AppColors.success,
+            ),
+            _buildAnalyticsCard(
+              'Least Active Reader',
+              slowestReaderName,
+              slowestReaderComp,
+              slowestReaderSub,
+              Icons.snooze_rounded,
+              AppColors.warning,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnalyticsCard(
+    String title,
+    String name,
+    String company,
+    String subtitle,
+    IconData icon,
+    Color iconColor,
+  ) {
+    return GlassCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold),
+                ),
+                if (company.isNotEmpty) ...[
+                  Text(
+                    company,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 11),
+                  ),
+                ],
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-Widget _buildMetricCard(String title, String value, IconData icon) {
+Widget _buildMetricCard(String title, String value, IconData icon, {String? subtitle}) {
   return GlassCard(
     padding: const EdgeInsets.all(16),
     child: Row(
@@ -1269,6 +1506,13 @@ Widget _buildMetricCard(String title, String value, IconData icon) {
               Text(title, style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted)),
               const SizedBox(height: 2),
               Text(value, style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold)),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10),
+                ),
+              ],
             ],
           ),
         ),
@@ -1564,5 +1808,32 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
         ),
       ),
     );
+  }
+}
+
+class _UserReadStats {
+  final User user;
+  final int deliveredCount;
+  final int readCount;
+  final Duration averageDuration;
+
+  _UserReadStats({
+    required this.user,
+    required this.deliveredCount,
+    required this.readCount,
+    required this.averageDuration,
+  });
+}
+
+String _formatDuration(Duration d) {
+  if (d.inDays >= 999) return 'N/A';
+  if (d.inMinutes < 1) {
+    return '${d.inSeconds}s';
+  } else if (d.inHours < 1) {
+    return '${d.inMinutes}m';
+  } else if (d.inDays < 1) {
+    return '${d.inHours}h ${d.inMinutes % 60}m';
+  } else {
+    return '${d.inDays}d ${d.inHours % 24}h';
   }
 }

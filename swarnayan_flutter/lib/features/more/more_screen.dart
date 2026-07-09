@@ -88,7 +88,7 @@ class MoreScreen extends ConsumerWidget {
         backgroundColor: AppColors.surface,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 120),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 32),
           child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -216,43 +216,74 @@ class MoreScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.3,
+                child: Column(
                   children: [
-                    _buildAdminBox(
-                      context: context,
-                      icon: Icons.business_rounded,
-                      label: 'Businesses & Codes',
-                      onTap: () => context.push('/admin/businesses'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 100,
+                            child: _buildAdminBox(
+                              context: context,
+                              icon: Icons.business_rounded,
+                              label: 'Businesses & Codes',
+                              onTap: () => context.push('/admin/businesses'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: SizedBox(
+                            height: 100,
+                            child: _buildAdminBox(
+                              context: context,
+                              icon: Icons.people_alt_rounded,
+                              label: 'Customer Directory',
+                              onTap: () => context.push('/admin/customers'),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    _buildAdminBox(
-                      context: context,
-                      icon: Icons.people_alt_rounded,
-                      label: 'Customer Directory',
-                      onTap: () => context.push('/admin/customers'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 100,
+                            child: _buildAdminBox(
+                              context: context,
+                              icon: Icons.lock_person_rounded,
+                              label: 'User Access Control',
+                              onTap: () => context.push('/admin/users'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: SizedBox(
+                            height: 100,
+                            child: _buildAdminBox(
+                              context: context,
+                              icon: Icons.campaign_rounded,
+                              label: 'Notifications',
+                              onTap: () => context.push('/admin/notifications'),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    _buildAdminBox(
-                      context: context,
-                      icon: Icons.lock_person_rounded,
-                      label: 'User Access Control',
-                      onTap: () => context.push('/admin/users'),
-                    ),
-                    _buildAdminBox(
-                      context: context,
-                      icon: Icons.campaign_rounded,
-                      label: 'Notifications',
-                      onTap: () => context.push('/admin/notifications'),
-                    ),
-                    _buildAdminBox(
-                      context: context,
-                      icon: Icons.palette_rounded,
-                      label: 'System Branding',
-                      onTap: () => context.push('/admin/branding'),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 80,
+                      width: double.infinity,
+                      child: _buildAdminBox(
+                        context: context,
+                        icon: Icons.palette_rounded,
+                        label: 'System Branding',
+                        onTap: () => context.push('/admin/branding'),
+                        isHorizontal: true,
+                      ),
                     ),
                   ],
                 ),
@@ -298,7 +329,7 @@ class MoreScreen extends ConsumerWidget {
                   _buildMenuItem(
                     icon: Icons.business_rounded,
                     label: 'Company Settings',
-                    subtitle: 'Name, address, GSTIN, logo',
+                    subtitle: 'Name, address, GSTIN & more',
                     index: 1,
                     onTap: () {
                       showSingleDialog(

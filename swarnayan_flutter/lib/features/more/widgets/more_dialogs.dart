@@ -32,6 +32,7 @@ class GlassDialogWrapper extends StatelessWidget {
   final Widget child;
   final List<Widget>? actions;
   final bool? showCloseIcon;
+  final Widget? headerAction;
 
   const GlassDialogWrapper({
     super.key,
@@ -39,6 +40,7 @@ class GlassDialogWrapper extends StatelessWidget {
     required this.child,
     this.actions,
     this.showCloseIcon,
+    this.headerAction,
   });
 
   @override
@@ -77,7 +79,9 @@ class GlassDialogWrapper extends StatelessWidget {
                         title,
                         style: AppTextStyles.titleLg.copyWith(color: AppColors.primary),
                       ),
-                      if (shouldShowClose)
+                      if (headerAction != null)
+                        headerAction!
+                      else if (shouldShowClose)
                         IconButton(
                           icon: Icon(Icons.close_rounded, color: AppColors.onSurfaceMuted),
                           onPressed: () => Navigator.pop(context),
@@ -690,18 +694,16 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                 _showForm ? (_editingCoupon != null ? 'Edit Coupon' : 'Add New Coupon') : 'Coupons',
                 style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
               ),
-              SecondaryButton(
-                label: _showForm ? 'View List' : '+ Add Coupon',
-                onPressed: () {
-                  if (_showForm) {
-                    _showForm = false;
-                    _editingCoupon = null;
-                    setState(() {});
-                  } else {
-                    _beginCreate();
-                  }
-                },
-              ),
+              if (_showForm)
+                SecondaryButton(
+                  label: 'View List',
+                  onPressed: () {
+                    setState(() {
+                      _showForm = false;
+                      _editingCoupon = null;
+                    });
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 20),
@@ -848,168 +850,177 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                   return _couponStatus(item) == _statusFilter;
                 }).toList();
 
-                if (filtered.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Text('No coupons available.', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
-                    ),
-                  );
-                }
-
                 final chips = const ['ALL', 'ACTIVE', 'INACTIVE', 'UPCOMING'];
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filtered.length + 1,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: chips.map((chip) {
-                          final isSelected = chip == _statusFilter;
-                          return GestureDetector(
-                            onTap: () => setState(() => _statusFilter = chip),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primary : AppColors.glassBackground,
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: isSelected ? AppColors.primary : AppColors.glassBorder),
-                              ),
-                              child: Text(
-                                chip,
-                                style: AppTextStyles.labelSm.copyWith(
-                                  color: isSelected ? Colors.black : AppColors.onSurfaceMuted,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    }
-
-                    final item = filtered[index - 1];
-                    final status = _couponStatus(item);
-                    return GlassCard(
-                      animationIndex: index - 1,
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                item.code,
-                                style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: status == 'ACTIVE'
-                                      ? AppColors.success.withValues(alpha: 0.12)
-                                      : status == 'UPCOMING'
-                                          ? AppColors.warning.withValues(alpha: 0.12)
-                                          : AppColors.error.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  status,
-                                  style: AppTextStyles.labelSm.copyWith(
-                                    color: status == 'ACTIVE'
-                                        ? AppColors.success
-                                        : status == 'UPCOMING'
-                                            ? AppColors.warning
-                                            : AppColors.error,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
+                
+                final filterChips = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: chips.map((chip) {
+                    final isSelected = chip == _statusFilter;
+                    return GestureDetector(
+                      onTap: () => setState(() => _statusFilter = chip),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primary : AppColors.glassBackground,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: isSelected ? AppColors.primary : AppColors.glassBorder),
+                        ),
+                        child: Text(
+                          chip,
+                          style: AppTextStyles.labelSm.copyWith(
+                            color: isSelected ? Colors.black : AppColors.onSurfaceMuted,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                           ),
-                          const SizedBox(height: 12),
-                          _couponDetail('Discount', item.discountType == 'FIXED' ? '₹${item.discountValue}' : '${item.discountValue}%'),
-                          _couponDetail('Min Purchase', '₹${item.minBillAmount}'),
-                          _couponDetail('Max Discount', '₹${item.maxDiscount}'),
-                          _couponDetail('Limit / Used', '${item.usageLimit == 0 ? 'Unlimited' : item.usageLimit} / ${item.usedCount}'),
-                          _couponDetail('Starts At', item.startsAt == null ? 'Immediate' : DateFormat('dd MMM yyyy').format(item.startsAt!)),
-                          _couponDetail('Expiry', DateFormat('dd MMM yyyy').format(item.expiryDate)),
-                          const SizedBox(height: 8),
-                          // Active/Inactive toggle row
-                          Row(
-                            children: [
-                              Switch(
-                                value: item.isActive,
-                                activeColor: AppColors.success,
-                                onChanged: (val) async {
-                                  if (val) {
-                                    await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
-                                  } else {
-                                    await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
-                                  }
-                                },
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                item.isActive ? 'Active' : 'Inactive',
-                                style: AppTextStyles.bodySm.copyWith(
-                                  color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
-                                onPressed: () => setState(() => _beginEdit(item)),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                              const SizedBox(width: 16),
-                              IconButton(
-                                icon: Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    useRootNavigator: false,
-                                    builder: (ctx) => AlertDialog(
-                                      backgroundColor: AppColors.surfaceContainer,
-                                      title: Text('Delete Coupon', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
-                                      content: Text('Are you sure you want to permanently delete coupon "${item.code}"?', style: AppTextStyles.bodyMd),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx, false),
-                                          child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
-                                        ),
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx, true),
-                                          child: Text('Delete', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true) {
-                                    await ref.read(couponsProvider.notifier).deleteCoupon(item.id!);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Coupon deleted successfully'), duration: Duration(seconds: 1)),
-                                      );
-                                    }
-                                  }
-                                },
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     );
-                  },
+                  }).toList(),
+                );
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    filterChips,
+                    const SizedBox(height: 16),
+                    if (filtered.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Text('No coupons available.', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final item = filtered[index];
+                          final status = _couponStatus(item);
+                          return GlassCard(
+                            animationIndex: index,
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      item.code,
+                                      style: AppTextStyles.titleSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: status == 'ACTIVE'
+                                            ? AppColors.success.withValues(alpha: 0.12)
+                                            : status == 'UPCOMING'
+                                                ? AppColors.warning.withValues(alpha: 0.12)
+                                                : AppColors.error.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        status,
+                                        style: AppTextStyles.labelSm.copyWith(
+                                          color: status == 'ACTIVE'
+                                              ? AppColors.success
+                                              : status == 'UPCOMING'
+                                                  ? AppColors.warning
+                                                  : AppColors.error,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                _couponDetail('Discount', item.discountType == 'FIXED' ? '₹${item.discountValue}' : '${item.discountValue}%'),
+                                _couponDetail('Min Purchase', '₹${item.minBillAmount}'),
+                                _couponDetail('Max Discount', '₹${item.maxDiscount}'),
+                                _couponDetail('Limit / Used', '${item.usageLimit == 0 ? 'Unlimited' : item.usageLimit} / ${item.usedCount}'),
+                                _couponDetail('Starts At', item.startsAt == null ? 'Immediate' : DateFormat('dd MMM yyyy').format(item.startsAt!)),
+                                _couponDetail('Expiry', DateFormat('dd MMM yyyy').format(item.expiryDate)),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Switch(
+                                      value: item.isActive,
+                                      activeColor: AppColors.success,
+                                      onChanged: (val) async {
+                                        if (val) {
+                                          await ref.read(couponsProvider.notifier).activateCoupon(item.id!);
+                                        } else {
+                                          await ref.read(couponsProvider.notifier).deactivateCoupon(item.id!);
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      item.isActive ? 'Active' : 'Inactive',
+                                      style: AppTextStyles.bodySm.copyWith(
+                                        color: item.isActive ? AppColors.success : AppColors.onSurfaceMuted,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.primary),
+                                      onPressed: () => setState(() => _beginEdit(item)),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    IconButton(
+                                      icon: Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          useRootNavigator: false,
+                                          builder: (ctx) => AlertDialog(
+                                            backgroundColor: AppColors.surfaceContainer,
+                                            title: Text('Delete Coupon', style: AppTextStyles.titleLg.copyWith(color: AppColors.error)),
+                                            content: Text('Are you sure you want to permanently delete coupon "${item.code}"?', style: AppTextStyles.bodyMd),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, false),
+                                                child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, true),
+                                                child: Text('Delete', style: AppTextStyles.bodyMd.copyWith(color: AppColors.error)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await ref.read(couponsProvider.notifier).deleteCoupon(item.id!);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Coupon deleted successfully'), duration: Duration(seconds: 1)),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 24),
+                    PrimaryButton(
+                      label: 'Add',
+                      onPressed: _beginCreate,
+                    ),
+                  ],
                 );
               },
               loading: () => Column(
@@ -1243,30 +1254,9 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_showAddForm)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _editingUser != null ? 'Edit Staff Member' : 'Add Staff Member',
-                  style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
-                ),
-                SecondaryButton(
-                  label: 'View List',
-                  isOutlined: true,
-                  icon: Icons.list_rounded,
-                  onPressed: () {
-                    setState(() {
-                      _showAddForm = false;
-                      _editingUser = null;
-                      _nameController.clear();
-                      _emailController.clear();
-                      _passwordController.clear();
-                      _phoneController.clear();
-                      _role = 'STAFF';
-                    });
-                  },
-                ),
-              ],
+            Text(
+              _editingUser != null ? 'Edit Staff Member' : 'Add Staff Member',
+              style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
             )
           else
             Row(
@@ -1274,7 +1264,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                 Expanded(
                   flex: 6,
                   child: SecondaryButton(
-                    label: 'Role Access',
+                    label: 'Role',
                     isOutlined: true,
                     icon: Icons.security_rounded,
                     height: 40,
@@ -1413,10 +1403,43 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     _buildPermissionToggle('Access Coupon Settings', _accessCoupons, (v) => setState(() => _accessCoupons = v)),
                   ],
                   const SizedBox(height: 24),
-                  PrimaryButton(
-                    label: 'Save Changes',
-                    isLoading: _isLoading,
-                    onPressed: _submitStaff,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _showAddForm = false;
+                                _editingUser = null;
+                                _nameController.clear();
+                                _emailController.clear();
+                                _passwordController.clear();
+                                _phoneController.clear();
+                                _role = 'STAFF';
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.onSurfaceMuted,
+                              side: BorderSide(color: AppColors.border, width: 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                              ),
+                            ),
+                            child: Text('Cancel', style: AppTextStyles.labelLg),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: PrimaryButton(
+                          label: 'Save Changes',
+                          isLoading: _isLoading,
+                          onPressed: _submitStaff,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

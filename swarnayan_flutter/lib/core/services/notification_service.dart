@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/user.dart' as app_models;
+import 'web_notification_helper.dart';
 
 class NotificationService {
   NotificationService._();
@@ -27,6 +30,15 @@ class NotificationService {
 
       await _localNotifications.initialize(
         settings: const InitializationSettings(android: androidInit, iOS: iosInit),
+        onDidReceiveNotificationResponse: (response) async {
+          final payload = response.payload;
+          if (payload != null && payload.isNotEmpty) {
+            try {
+              final uri = Uri.parse(payload);
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            } catch (_) {}
+          }
+        },
       );
     }
     _initialized = true;
@@ -38,7 +50,10 @@ class NotificationService {
   }
 
   Future<void> requestPermissions() async {
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      await WebNotificationHelper.requestPermission();
+      return;
+    }
     if (defaultTargetPlatform == TargetPlatform.android) {
       final androidImplementation = _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -68,8 +83,27 @@ class NotificationService {
             final matchesRole = targetRole == 'ALL' || targetRole == user.role.toUpperCase();
 
             if (matchesCompany && matchesRole) {
-              onMatchedNotification(record);
-              _showLocalNotification(record['title'] ?? 'Notification', record['body'] ?? '');
+              final lifecycle = WidgetsBinding.instance.lifecycleState;
+              final isForeground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
+
+              if (isForeground) {
+                // Opened: show popup dialog on screen (no push notification)
+                onMatchedNotification(record);
+              } else {
+                // Closed/Backgrounded: show native/web push notification
+                if (kIsWeb) {
+                  WebNotificationHelper.showNotification(
+                    record['title'] ?? 'Notification',
+                    record['body'] ?? '',
+                  );
+                } else {
+                  _showLocalNotification(
+                    record['title'] ?? 'Notification',
+                    record['body'] ?? '',
+                    record['file_url']?.toString(),
+                  );
+                }
+              }
             }
           },
         )
@@ -90,18 +124,29 @@ class NotificationService {
     }
   }
 
-  Future<void> _showLocalNotification(String title, String body) async {
+  Future<void> _showLocalNotification(String title, String body, String? fileUrl) async {
     if (kIsWeb) return;
     if (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS) return;
 
     await requestPermissions();
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'paypulse_notifications',
       'PayPulse Alerts',
       channelDescription: 'Push notifications from PayPulse Super Admin',
       importance: Importance.max,
       priority: Priority.high,
+      enableVibration: true,
+      playSound: true,
+      actions: fileUrl != null && fileUrl.isNotEmpty
+          ? <AndroidNotificationAction>[
+              const AndroidNotificationAction(
+                'open_url',
+                'Open',
+                showsUserInterface: true,
+              ),
+            ]
+          : null,
     );
     const iosDetails = DarwinNotificationDetails();
 
@@ -109,7 +154,8 @@ class NotificationService {
       id: DateTime.now().millisecond,
       title: title,
       body: body,
-      notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
+      payload: fileUrl,
+      notificationDetails: NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
   }
 }

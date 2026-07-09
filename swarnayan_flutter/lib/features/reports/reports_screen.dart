@@ -411,52 +411,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
-  Widget _buildSearchFieldDropdown() {
-    final selectedLabel = _selectedSearchFields.contains('ALL')
-        ? 'All Columns'
-        : _selectedSearchFields.length == 1
-            ? _searchScopes.firstWhere((scope) => scope.key == _selectedSearchFields.first).label
-            : '${_selectedSearchFields.length} Columns';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'SEARCH IN',
-          style: AppTextStyles.labelMd.copyWith(
-            color: AppColors.onSurfaceMuted,
-            letterSpacing: 1.0,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: _pickSearchScopes,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedLabel,
-                    style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
-                  ),
-                ),
-                Icon(Icons.expand_more_rounded, color: AppColors.onSurfaceMuted),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Future<void> _pickStatusFilter() async {
     final selected = Set<String>.from(_selectedStatusFilters);
@@ -735,13 +690,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ],
                               );
 
-                              final dropdownWidget = _buildSearchFieldDropdown();
+                              final selectedLabel = _selectedSearchFields.contains('ALL')
+                                  ? 'All Columns'
+                                  : _selectedSearchFields.length == 1
+                                      ? _searchScopes.firstWhere((scope) => scope.key == _selectedSearchFields.first).label
+                                      : '${_selectedSearchFields.length} Columns';
 
                               final inputWidget = GlassInput(
                                 controller: _searchQueryController,
-                                label: 'Search Query',
+                                label: 'Search Query ($selectedLabel)',
                                 hint: 'Type search text...',
                                 prefixIcon: Icon(Icons.search, color: AppColors.primary, size: 20),
+                                suffixIcon: InkWell(
+                                  onTap: _pickSearchScopes,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary, size: 24),
+                                ),
                                 onChanged: (_) => _performSearch(),
                               );
 
@@ -757,8 +721,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 12),
-                                    dropdownWidget,
-                                    const SizedBox(height: 12),
                                     inputWidget,
                                   ],
                                 );
@@ -771,9 +733,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(flex: 2, child: endWidget),
                                   const SizedBox(width: 12),
-                                  Expanded(flex: 2, child: dropdownWidget),
-                                  const SizedBox(width: 12),
-                                  Expanded(flex: 3, child: inputWidget),
+                                  Expanded(flex: 5, child: inputWidget),
                                 ],
                               );
                             },

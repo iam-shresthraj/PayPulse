@@ -688,23 +688,9 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_showForm) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _editingCoupon != null ? 'Edit Coupon' : 'Add New Coupon',
-                  style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
-                ),
-                SecondaryButton(
-                  label: 'View List',
-                  onPressed: () {
-                    setState(() {
-                      _showForm = false;
-                      _editingCoupon = null;
-                    });
-                  },
-                ),
-              ],
+            Text(
+              _editingCoupon != null ? 'Edit Coupon' : 'Add New Coupon',
+              style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
             ),
             const SizedBox(height: 20),
           ],
@@ -834,11 +820,36 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  PrimaryButton(
-                    label: 'Save Changes',
-                    isLoading: _isLoading,
-                    onPressed: _submitCoupon,
+                   Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _showForm = false;
+                              _editingCoupon = null;
+                            });
+                          },
+                          child: Text(
+                            'Cancel',
+                            style: AppTextStyles.labelLg.copyWith(
+                              color: AppColors.onSurfaceMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 3,
+                        child: PrimaryButton(
+                          label: 'Apply Changes',
+                          isLoading: _isLoading,
+                          onPressed: _submitCoupon,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1404,32 +1415,28 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     _buildPermissionToggle('Access Coupon Settings', _accessCoupons, (v) => setState(() => _accessCoupons = v)),
                   ],
                   const SizedBox(height: 24),
-                  Row(
+                   Row(
                     children: [
                       Expanded(
                         flex: 2,
-                        child: SizedBox(
-                          height: 52,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                _showAddForm = false;
-                                _editingUser = null;
-                                _nameController.clear();
-                                _emailController.clear();
-                                _passwordController.clear();
-                                _phoneController.clear();
-                                _role = 'STAFF';
-                              });
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.onSurfaceMuted,
-                              side: BorderSide(color: AppColors.border, width: 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                              ),
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _showAddForm = false;
+                              _editingUser = null;
+                              _nameController.clear();
+                              _emailController.clear();
+                              _passwordController.clear();
+                              _phoneController.clear();
+                              _role = 'STAFF';
+                            });
+                          },
+                          child: Text(
+                            'Cancel',
+                            style: AppTextStyles.labelLg.copyWith(
+                              color: AppColors.onSurfaceMuted,
+                              fontWeight: FontWeight.w600,
                             ),
-                            child: Text('Cancel', style: AppTextStyles.labelLg),
                           ),
                         ),
                       ),
@@ -1437,7 +1444,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                       Expanded(
                         flex: 3,
                         child: PrimaryButton(
-                          label: 'Save Changes',
+                          label: 'Apply Changes',
                           isLoading: _isLoading,
                           onPressed: _submitStaff,
                         ),

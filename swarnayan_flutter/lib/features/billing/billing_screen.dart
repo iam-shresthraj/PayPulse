@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -593,6 +594,23 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleBackPress(BillingState billing) async {
+    if (_hasUnsavedChanges(billing)) {
+      final res = await _showDraftDialog(context);
+      if (res == null) return; // User cancelled
+      if (res == false) {
+        ref.read(billingProvider.notifier).reset(); // Discard draft
+      }
+    }
+    if (context.mounted) {
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      } else {
+        context.go('/');
+      }
+    }
   }
 
   @override
@@ -1891,34 +1909,59 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          GestureDetector(
-            onTap: isEditing ? null : () => _showEditInvoiceNumberDialog(context, billing),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainer.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.glassBorder, width: 0.5),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    invoiceTag,
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.onBackground,
-                      fontWeight: FontWeight.w600,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (kIsWeb && MediaQuery.of(context).size.width >= 850) ...[
+                GestureDetector(
+                  onTap: () => _handleBackPress(billing),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.glassBorder, width: 0.5),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.primary,
+                      size: 16,
                     ),
                   ),
-                  if (!isEditing) ...[
-                    const SizedBox(width: 6),
-                    Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
-                  ],
-                ],
+                ),
+                const SizedBox(width: 8),
+              ],
+              GestureDetector(
+                onTap: isEditing ? null : () => _showEditInvoiceNumberDialog(context, billing),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.glassBorder, width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        invoiceTag,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.onBackground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (!isEditing) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.edit_rounded, color: AppColors.primary, size: 12),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
           Row(
             mainAxisSize: MainAxisSize.min,

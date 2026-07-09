@@ -44,7 +44,7 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> {
               
               // Title Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).size.width >= 850 ? 28 : 8, 20, 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

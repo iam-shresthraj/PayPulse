@@ -35,7 +35,6 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
   bool _prompted = false;
-  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -407,6 +406,61 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
         });
       }
     }
+  }
+
+  Future<bool> _showExitDialog(BuildContext context) async {
+    final result = await showSingleDialog<bool>(
+      context: context,
+      useRootNavigator: false,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        title: Text(
+          'Exit App',
+          style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Do you really want to exit the app?',
+          style: AppTextStyles.bodyLg,
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          // No Button (Normal text button)
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'No',
+              style: AppTextStyles.labelLg.copyWith(
+                color: AppColors.onSurfaceDim,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Yes Button (Red box button)
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Yes',
+              style: AppTextStyles.labelLg.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _handleLogout(BuildContext context) async {
@@ -822,23 +876,18 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
           final location = GoRouterState.of(context).uri.toString();
-          if (location != '/' && location != '/login' && location != '/pending') {
-            context.go('/');
-          } else {
-            final now = DateTime.now();
-            if (_lastBackPressTime == null ||
-                now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
-              _lastBackPressTime = now;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Press back again to exit PayPulse'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            } else {
+          if (location == '/' || location == '/billing' || location == '/more') {
+            final exit = await _showExitDialog(context);
+            if (exit) {
               await SystemNavigator.pop();
             }
+          } else if (location != '/login' && location != '/pending') {
+            context.go('/');
           }
         },
         child: mainContent,
@@ -850,7 +899,6 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     final currentIndex = _currentIndex(context);
     final themeOverride = ref.watch(themeModeProvider);
     final isLight = themeOverride ?? (MediaQuery.of(context).size.width >= 850);
-    final unreadCount = ref.watch(unreadNotificationsProvider);
 
     final user = ref.watch(authProvider).user;
     final rolePermissions = ref.watch(rolePermissionsProvider).value ?? {};
@@ -951,7 +999,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                   ),
                   _buildSidebarItem(
                     icon: Icons.get_app_rounded,
-                    label: 'App Update Settings',
+                    label: 'App Settings',
                     isActive: currentIndex == 106,
                     onTap: () => context.go('/admin/app-update'),
                   ),

@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user.dart' as app_models;
 import 'web_notification_helper.dart';
 
@@ -40,6 +42,25 @@ class NotificationService {
           }
         },
       );
+
+      // Register Workmanager background task
+      try {
+        await Workmanager().initialize(
+          callbackDispatcher,
+          isInDebugMode: kDebugMode,
+        );
+        await Workmanager().registerPeriodicTask(
+          'paypulse_periodic_notifications',
+          'paypulse_fetch_notifications_task',
+          frequency: const Duration(minutes: 15),
+          existingWorkPolicy: ExistingWorkPolicy.keep,
+          constraints: Constraints(
+            networkType: NetworkType.connected,
+          ),
+        );
+      } catch (e) {
+        debugPrint('Workmanager init error: $e');
+      }
     }
     _initialized = true;
   }
@@ -158,4 +179,133 @@ class NotificationService {
       notificationDetails: NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
   }
+}
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((taskName, inputData) async {
+    try {
+      // 1. Initialize Supabase in background isolate
+      await Supabase.initialize(
+        url: 'https://gnyzctxlqcidubanoiae.supabase.co',
+        publishableKey: 'sb_publishable_h-fS9Q3g4ucAfmvD9btgWg_NwH4PKbH',
+      );
+
+      final client = Supabase.instance.client;
+      final currentUser = client.auth.currentUser;
+      if (currentUser == null) {
+        return true; // Not logged in
+      }
+
+      // 2. Fetch User Profile
+      final profileData = await client
+          .from('profiles')
+          .select()
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+      if (profileData == null) {
+        return true;
+      }
+
+      final role = profileData['role']?.toString().toUpperCase() ?? 'STAFF';
+      final companyId = profileData['company_id']?.toString();
+      final approvalStatus = profileData['approval_status']?.toString().toUpperCase() ?? 'PENDING';
+
+      if (approvalStatus != 'APPROVED') {
+        return true; // Not approved
+      }
+
+      // 3. Fetch latest notifications
+      final notifications = await client
+          .from('notifications')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(10);
+
+      if (notifications.isEmpty) {
+        return true;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final lastCheckedId = prefs.getString('last_checked_notification_id');
+
+      // 4. Find new notifications that match target company & role
+      String? newLatestId;
+      bool hasLastChecked = lastCheckedId != null && lastCheckedId.isNotEmpty;
+
+      final newNotifications = <Map<String, dynamic>>[];
+      for (final raw in notifications) {
+        final record = raw as Map<String, dynamic>;
+        final id = record['id']?.toString();
+        if (id == null) continue;
+
+        // Stop if we hit the last checked notification
+        if (hasLastChecked && id == lastCheckedId) {
+          break;
+        }
+
+        final targetRole = record['target_role']?.toString().toUpperCase() ?? 'ALL';
+        final targetCompanyId = record['target_company_id']?.toString();
+
+        final matchesCompany = targetCompanyId == null || targetCompanyId.isEmpty || targetCompanyId == companyId;
+        final matchesRole = targetRole == 'ALL' || targetRole == role;
+
+        if (matchesCompany && matchesRole) {
+          newNotifications.add(record);
+        }
+      }
+
+      final reversedNew = newNotifications.reversed.toList();
+
+      // Show notifications
+      final localNotifications = FlutterLocalNotificationsPlugin();
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosInit = DarwinInitializationSettings();
+      await localNotifications.initialize(
+        const InitializationSettings(android: androidInit, iOS: iosInit),
+      );
+
+      for (final record in reversedNew) {
+        final title = record['title'] ?? 'Notification';
+        final body = record['body'] ?? '';
+        final fileUrl = record['file_url']?.toString();
+        final id = record['id']?.toString();
+
+        const androidDetails = AndroidNotificationDetails(
+          'paypulse_notifications',
+          'PayPulse Alerts',
+          channelDescription: 'Push notifications from PayPulse Super Admin',
+          importance: Importance.max,
+          priority: Priority.high,
+          enableVibration: true,
+          playSound: true,
+        );
+        const iosDetails = DarwinNotificationDetails();
+
+        await localNotifications.show(
+          DateTime.now().millisecond + (id.hashCode % 10000),
+          title,
+          body,
+          notificationDetails: const NotificationDetails(android: androidDetails, iOS: iosDetails),
+          payload: fileUrl,
+        );
+
+        newLatestId = id;
+      }
+
+      if (!hasLastChecked && notifications.isNotEmpty) {
+        newLatestId = notifications.first['id']?.toString();
+      }
+
+      if (newLatestId != null) {
+        await prefs.setString('last_checked_notification_id', newLatestId);
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Background Worker Error: $e');
+      return false;
+    }
+  });
 }

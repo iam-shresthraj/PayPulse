@@ -247,3 +247,32 @@ BEGIN
   END;
 END;
 $$;
+
+-- 9. Add columns for Download App feature to platform_settings
+ALTER TABLE public.platform_settings
+ADD COLUMN IF NOT EXISTS app_logo_url TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS app_version TEXT DEFAULT '1.0.0',
+ADD COLUMN IF NOT EXISTS app_update_log TEXT DEFAULT 'Initial release',
+ADD COLUMN IF NOT EXISTS app_apk_url TEXT DEFAULT '';
+
+-- 10. Automatic notification trigger when app update is published
+CREATE OR REPLACE FUNCTION public.trg_push_app_update_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (OLD.app_version IS DISTINCT FROM NEW.app_version) OR (OLD.app_apk_url IS DISTINCT FROM NEW.app_apk_url) THEN
+    INSERT INTO public.notifications (title, body, target_role)
+    VALUES (
+      'New App Update Available: v' || NEW.app_version,
+      NEW.app_update_log,
+      'ALL'
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_app_update_notification ON public.platform_settings;
+CREATE TRIGGER trg_app_update_notification
+  AFTER UPDATE ON public.platform_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trg_push_app_update_notification();

@@ -211,6 +211,51 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
             
+            // ── App Settings Card for Super Admin (Mobile Web) ──
+            if (!isWide && (user?.isSuperAdmin ?? false)) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GlassCard(
+                  animationIndex: 1,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  onTap: () {
+                    context.push('/admin/app-update');
+                  },
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.settings_cell_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'App Settings',
+                              style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Configure mobile app download, version, and logs',
+                              style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: AppColors.onSurfaceDim, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
             // ── Download App Card for Mobile App or Mobile Web ──
             if (!isWide && !(user?.isSuperAdmin ?? false)) ...[
               const SizedBox(height: 16),
@@ -223,7 +268,7 @@ class MoreScreen extends ConsumerWidget {
                     if (kIsWeb) {
                       context.push('/download');
                     } else {
-                      final url = Uri.parse('https://swarnayan-paypulse.vercel.app/download');
+                      final url = Uri.parse('https://paypulse-software.vercel.app/#/download');
                       if (await canLaunchUrl(url)) {
                         await launchUrl(url, mode: LaunchMode.externalApplication);
                       }
@@ -245,12 +290,12 @@ class MoreScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Download Mobile App',
+                              kIsWeb ? 'Download Mobile App' : 'Update App',
                               style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Get the latest Android APK for your phone',
+                              kIsWeb ? 'Get the latest Android APK for your phone' : 'Update your Android app to the latest version',
                               style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
                             ),
                           ],

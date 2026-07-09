@@ -271,7 +271,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('APK upload failed. Please try paste a link.')),
+          const SnackBar(content: Text('APK upload failed. Please try pasting a link.')),
         );
       }
     } catch (e) {
@@ -310,7 +310,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
       final error = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
       if (error == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('App update settings saved successfully!')),
+          const SnackBar(content: Text('App Settings saved successfully!')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -321,36 +321,143 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
     setState(() => _isSaving = false);
   }
 
+  Widget _buildPreviousReleasesCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history_rounded, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Previous Releases',
+                style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildReleaseHistoryItem(
+            version: 'v0.9.9',
+            date: '02 Jul 2026',
+            log: 'Fixed decimal precision on invoice PDFs and added dynamic spacing controls for print margins.',
+          ),
+          const Divider(height: 24, thickness: 0.5, color: Colors.white24),
+          _buildReleaseHistoryItem(
+            version: 'v0.9.5',
+            date: '18 Jun 2026',
+            log: 'Introduced system branding custom themes, enhanced dark mode contrast, and optimized product search filters.',
+          ),
+          const Divider(height: 24, thickness: 0.5, color: Colors.white24),
+          _buildReleaseHistoryItem(
+            version: 'v0.9.0',
+            date: '25 May 2026',
+            log: 'Initial release of core billing engine, store-wise accounting records, and client access management systems.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReleaseHistoryItem({required String version, required String date, required String log}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 0.5),
+              ),
+              child: Text(
+                version,
+                style: AppTextStyles.labelSm.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Text(
+              date,
+              style: AppTextStyles.bodyXs.copyWith(color: AppColors.onSurfaceMuted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          log,
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceDim),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(platformSettingsProvider);
+    final isWide = MediaQuery.of(context).size.width >= 850;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+          padding: EdgeInsets.symmetric(horizontal: isWide ? 40 : 20, vertical: isWide ? 32 : 20),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'App Update Settings',
-                  style: AppTextStyles.headlineLg.copyWith(fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          context.go('/');
+                        }
+                      },
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+                        ),
+                        child: Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'App Settings',
+                      style: (isWide ? AppTextStyles.headlineMd : AppTextStyles.headlineLgMobile)
+                          .copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Configure the mobile app download package, logo, version, and release notes.',
-                  style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
-                ),
-                const SizedBox(height: 32),
+                if (isWide) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Configure the mobile app download package, logo, version, and release notes.',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                  ),
+                ],
+                const SizedBox(height: 24),
                 
                 settingsAsync.when(
-                  data: (settings) => Container(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    child: Column(
+                  data: (settings) {
+                    final formContent = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Card Layout Preview of the User Page
@@ -538,8 +645,34 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
                           onPressed: _saveSettings,
                         ),
                       ],
-                    ),
-                  ),
+                    );
+
+                    if (isWide) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: formContent,
+                          ),
+                          const SizedBox(width: 40),
+                          Expanded(
+                            flex: 2,
+                            child: _buildPreviousReleasesCard(),
+                          ),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          formContent,
+                          const SizedBox(height: 40),
+                          _buildPreviousReleasesCard(),
+                        ],
+                      );
+                    }
+                  },
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('Error loading configurations: $e')),
                 ),

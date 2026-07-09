@@ -52,10 +52,6 @@ class _AdminDashboardViewState extends ConsumerState<AdminDashboardView> {
                       'Admin Dashboard',
                       style: AppTextStyles.headlineLgMobile.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.refresh_rounded, color: AppColors.primary),
-                      onPressed: () => ref.read(adminProvider.notifier).loadAdminData(),
-                    ),
                   ],
                 ),
               ),

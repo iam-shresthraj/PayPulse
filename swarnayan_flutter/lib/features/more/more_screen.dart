@@ -740,7 +740,10 @@ class MoreScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   label,
-                  style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.labelMd.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.onBackground,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],

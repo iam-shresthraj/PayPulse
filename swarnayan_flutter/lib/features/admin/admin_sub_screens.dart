@@ -657,7 +657,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -834,7 +834,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
             backgroundColor: AppColors.success,
           ),
         );
-        _tabController.animateTo(1); // Switch to View History tab
+        _tabController.animateTo(2); // Switch to View History tab
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -902,11 +902,12 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
               ),
             ),
             
-            // Two tabs header
+            // Three tabs header
             TabBar(
               controller: _tabController,
               tabs: const [
                 Tab(text: 'Send Notification'),
+                Tab(text: 'First Time Message'),
                 Tab(text: 'View Notifications'),
               ],
               labelColor: AppColors.primary,
@@ -1008,59 +1009,6 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                             ),
                             const SizedBox(height: 32),
 
-                            GlassCard(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'First Time Message',
-                                    style: AppTextStyles.titleSm.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'This message is sent automatically to a user after signup when signup notifications are enabled.',
-                                    style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  GlassInput(
-                                    controller: _welcomeTitleController,
-                                    label: 'Welcome Title',
-                                    hint: 'Welcome to PayPulse',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  GlassInput(
-                                    controller: _welcomeBodyController,
-                                    label: 'Welcome Message',
-                                    hint: 'Welcome to PayPulse, {name}!',
-                                    maxLines: 4,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: _savingWelcome ? null : _saveWelcomeTemplate,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.surfaceContainer,
-                                      foregroundColor: AppColors.primary,
-                                      minimumSize: const Size(double.infinity, 48),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                    icon: _savingWelcome
-                                        ? const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
-                                          )
-                                        : const Icon(Icons.save_rounded, size: 18),
-                                    label: Text(
-                                      _savingWelcome ? 'Saving...' : 'Save Welcome Template',
-                                      style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
                             ElevatedButton(
                               onPressed: _submitting ? null : _submit,
                               style: ElevatedButton.styleFrom(
@@ -1082,6 +1030,76 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 120),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'First Time Message / Welcome Template',
+                            style: AppTextStyles.titleMd.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Configure the automatic welcome message sent to new users upon registering in PayPulse.',
+                            style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted),
+                          ),
+                          const SizedBox(height: 24),
+                          GlassCard(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Welcome Template Settings',
+                                  style: AppTextStyles.titleSm.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'This message is sent automatically to a user after signup when signup notifications are enabled.',
+                                  style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                                ),
+                                const SizedBox(height: 16),
+                                GlassInput(
+                                  controller: _welcomeTitleController,
+                                  label: 'Welcome Title',
+                                  hint: 'Welcome to PayPulse',
+                                ),
+                                const SizedBox(height: 16),
+                                GlassInput(
+                                  controller: _welcomeBodyController,
+                                  label: 'Welcome Message',
+                                  hint: 'Welcome to PayPulse, {name}!',
+                                  maxLines: 4,
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton.icon(
+                                  onPressed: _savingWelcome ? null : _saveWelcomeTemplate,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.surfaceContainer,
+                                    foregroundColor: AppColors.primary,
+                                    minimumSize: const Size(double.infinity, 48),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: _savingWelcome
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      : const Icon(Icons.save_rounded, size: 18),
+                                  label: Text(
+                                    _savingWelcome ? 'Saving...' : 'Save Welcome Template',
+                                    style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     FutureBuilder<List<Map<String, dynamic>>>(
@@ -1130,44 +1148,23 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                         final totalUnseen = (totalDeliveredUsers - totalSeen).clamp(0, 1 << 30);
 
                         if (list.isEmpty) {
-                          return ListView(
-                            physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.only(bottom: 120),
-                            children: [
-                              _buildDashboardHeader(
-                                totalDeliveredThisMonth: 0,
-                                totalSeen: 0,
-                                totalUnseen: 0,
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(40.0),
+                              child: Text(
+                                'No broadcasts sent yet.',
+                                style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
+                                textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 24),
-                              Padding(
-                                padding: const EdgeInsets.all(40.0),
-                                child: Text(
-                                  'No broadcasts sent yet.',
-                                  style: AppTextStyles.bodyLg.copyWith(color: AppColors.onSurfaceMuted),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
+                            ),
                           );
                         }
                         return ListView.builder(
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.only(bottom: 120),
-                          itemCount: list.length + 1,
+                          itemCount: list.length,
                           itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _buildDashboardHeader(
-                                  totalDeliveredThisMonth: totalDeliveredThisMonth,
-                                  totalSeen: totalSeen,
-                                  totalUnseen: totalUnseen,
-                                ),
-                              );
-                            }
-
-                            final item = list[index - 1];
+                            final item = list[index];
                             final title = (item['title'] ?? '').toString();
                             final body = (item['body'] ?? '').toString();
                             final created = item['created_at'] != null

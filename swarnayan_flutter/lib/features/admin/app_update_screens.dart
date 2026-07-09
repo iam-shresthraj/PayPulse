@@ -84,7 +84,7 @@ class DownloadAppScreen extends ConsumerWidget {
                             // App Version Title
                             Text(
                               'PayPulse Mobile v$version',
-                              style: AppTextStyles.headlineMd.copyWith(fontWeight: FontWeight.bold),
+                              style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
@@ -218,7 +218,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
 
   Future<void> _pickAndUploadLogo() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.image,
         withData: true,
       );
@@ -251,7 +251,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
 
   Future<void> _pickAndUploadApk() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['apk'],
         withData: true,

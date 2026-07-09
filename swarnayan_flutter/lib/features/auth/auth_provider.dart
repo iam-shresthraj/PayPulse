@@ -104,7 +104,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (session != null) {
         final profile = await _fetchProfile(session.user.id);
         if (profile != null) {
-          if (profile.isSuperAdmin) {
+          if (profile.isSuperAdmin && !kIsWeb) {
             await _client.auth.signOut();
             state = const AuthState(isAuthenticated: false, isLoading: false);
             return;
@@ -172,7 +172,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (uid == null) return;
     final profile = await _fetchProfile(uid);
     if (profile != null) {
-      if (profile.isSuperAdmin) {
+      if (profile.isSuperAdmin && !kIsWeb) {
         await _client.auth.signOut();
         state = const AuthState(isAuthenticated: false, isLoading: false);
         return;

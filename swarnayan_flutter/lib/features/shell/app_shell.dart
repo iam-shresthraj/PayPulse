@@ -1021,7 +1021,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                     icon: Icons.notifications_rounded,
                     label: 'Notifications',
                     isActive: currentIndex == 8,
-                    badgeCount: unreadCount,
+                    badgeCount: null,
                     onTap: () {
                       context.go('/admin/notifications');
                     },

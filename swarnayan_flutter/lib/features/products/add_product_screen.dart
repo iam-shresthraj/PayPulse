@@ -265,7 +265,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
         key: _formKey,
         child: Column(
           children: [
-            SizedBox(height: topPadding + 8),
+            SizedBox(height: topPadding > 0 ? topPadding + 20 : 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(

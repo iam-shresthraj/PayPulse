@@ -43,7 +43,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: topPadding + 8),
+          SizedBox(height: topPadding > 0 ? topPadding + 20 : 20),
 
           // ── Top Bar ──
           Padding(

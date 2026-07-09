@@ -33,7 +33,7 @@ class AdminPageWrapper extends StatelessWidget {
           children: [
             // Top Bar with Back Button
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
               child: Row(
                 children: [
                   GestureDetector(
@@ -865,7 +865,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
           children: [
             // Top Bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
               child: Row(
                 children: [
                   GestureDetector(

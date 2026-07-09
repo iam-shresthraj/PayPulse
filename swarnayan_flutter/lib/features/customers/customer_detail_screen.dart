@@ -70,7 +70,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: topPadding + 8),
+                    SizedBox(height: topPadding > 0 ? topPadding + 20 : 20),
 
                     // ── Back + Title + Delete ──
                     Padding(

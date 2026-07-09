@@ -25,20 +25,21 @@ class GlassDropdown<T> extends StatelessWidget {
   });
 
   String _displayText() {
-    if (value == null) return hint ?? 'Select...';
     for (final item in items) {
       if (item.value == value) {
         final child = item.child;
         if (child is Text) return child.data ?? '';
-        return value.toString();
+        return value?.toString() ?? '';
       }
     }
+    if (value == null) return hint ?? 'Select...';
     return value.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isPlaceholder = value == null;
+    final hasNullItem = items.any((item) => item.value == null);
+    final isPlaceholder = value == null && !hasNullItem;
     final effectiveFocusNode = focusNode ?? FocusNode();
     final GlobalKey triggerKey = GlobalKey();
 

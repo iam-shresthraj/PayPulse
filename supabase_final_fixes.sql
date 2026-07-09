@@ -107,9 +107,11 @@ CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'SUPER_ADMIN' AND approval_status = 'APPROVED'
+    WHERE id = auth.uid() AND role = 'SUPER_ADMIN'
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+UPDATE public.profiles SET approval_status = 'APPROVED' WHERE role = 'SUPER_ADMIN';
 
 GRANT EXECUTE ON FUNCTION public.is_super_admin() TO authenticated;
 

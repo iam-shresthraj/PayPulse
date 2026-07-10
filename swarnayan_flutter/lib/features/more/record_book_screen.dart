@@ -664,7 +664,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
               child: Text(
                 f,
                 style: AppTextStyles.labelSm.copyWith(
-                  color: isSel ? Colors.black : AppColors.onSurfaceMuted,
+                  color: isSel ? Colors.white : AppColors.onSurfaceMuted,
                   fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                 ),
               ),

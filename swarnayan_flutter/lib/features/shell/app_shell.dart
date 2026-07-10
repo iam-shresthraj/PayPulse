@@ -970,6 +970,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     final user = ref.watch(authProvider).user;
     final rolePermissions = ref.watch(rolePermissionsProvider).value ?? {};
     final canManage = user?.canManage ?? false;
+    final isOwner = user?.isOwner ?? false;
 
     return Container(
       width: 260,
@@ -1141,7 +1142,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                       context.go('/admin/notifications');
                     },
                   )
-                else
+                else ...[
                   _buildSidebarItem(
                     icon: Icons.get_app_rounded,
                     label: 'Download App',
@@ -1150,6 +1151,20 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                       context.go('/download');
                     },
                   ),
+                  if (isOwner && (user?.hasAccess('settings', rolePermissions) ?? true))
+                    _buildSidebarItem(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings',
+                      isActive: false,
+                      onTap: () {
+                        showSingleDialog(
+                          context: shellNavigatorKey.currentContext ?? context,
+                          useRootNavigator: false,
+                          builder: (context) => const CompanySettingsDialog(),
+                        );
+                      },
+                    ),
+                ],
                 _buildSidebarItem(
                   icon: isLight ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                   label: isLight ? 'Dark Mode' : 'Light Mode',

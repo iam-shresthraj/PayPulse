@@ -882,7 +882,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                         child: Text(
                           chip,
                           style: AppTextStyles.labelSm.copyWith(
-                            color: isSelected ? Colors.black : AppColors.onSurfaceMuted,
+                            color: isSelected ? Colors.white : AppColors.onSurfaceMuted,
                             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                           ),
                         ),

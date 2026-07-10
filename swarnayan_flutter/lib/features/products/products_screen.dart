@@ -86,17 +86,46 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 
           const SizedBox(height: 20),
 
-          // ── Search Bar ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: SearchBarWidget(
-              controller: _searchController,
-              hint: 'Search by name, code, or category..',
-              onChanged: (v) {
-                setState(() {
-                  _searchQuery = v.toLowerCase().trim();
-                });
-              },
+            child: Row(
+              children: [
+                Expanded(
+                  child: SearchBarWidget(
+                    controller: _searchController,
+                    hint: 'Search by name, code, or category..',
+                    onChanged: (v) {
+                      setState(() {
+                        _searchQuery = v.toLowerCase().trim();
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => context.push('/products/add'),
+                  child: Container(
+                    height: 48,
+                    width: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
 
@@ -287,21 +316,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72),
-        child: FloatingActionButton(
-          onPressed: () => context.push('/products/add'),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          child: const Icon(Icons.add_rounded, color: Colors.white),
-        ).animate().scale(
-              begin: const Offset(0, 0),
-              end: const Offset(1, 1),
-              duration: 400.ms,
-              delay: 300.ms,
-              curve: Curves.elasticOut,
-            ),
       ),
     );
   }

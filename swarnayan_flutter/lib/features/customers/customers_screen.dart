@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/search_bar_widget.dart';
+import '../../core/theme/app_spacing.dart';
 
 import 'customers_provider.dart';
 import '../../core/widgets/skeleton_widgets.dart';
@@ -84,14 +85,44 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           // ── Search Bar ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: SearchBarWidget(
-              controller: _searchController,
-              hint: 'Search by name, phone, or client ID..',
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val.toLowerCase().trim();
-                });
-              },
+            child: Row(
+              children: [
+                Expanded(
+                  child: SearchBarWidget(
+                    controller: _searchController,
+                    hint: 'Search by name, phone, or client ID..',
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val.toLowerCase().trim();
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => context.push('/customers/add'),
+                  child: Container(
+                    height: 48,
+                    width: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
 
@@ -246,21 +277,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72),
-        child: FloatingActionButton(
-          onPressed: () => context.push('/customers/add'),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          child: const Icon(Icons.person_add_rounded, color: Colors.white),
-        ).animate().scale(
-              begin: const Offset(0, 0),
-              end: const Offset(1, 1),
-              duration: 400.ms,
-              delay: 300.ms,
-              curve: Curves.elasticOut,
-            ),
       ),
     );
   }

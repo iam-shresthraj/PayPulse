@@ -63,7 +63,7 @@ class DownloadAppScreen extends ConsumerWidget {
                                   margin: const EdgeInsets.only(right: 12),
                                   decoration: BoxDecoration(
                                     color: AppColors.surfaceContainer,
-                                    borderRadius: BorderRadius.circular(8),
+                                    shape: BoxShape.circle,
                                     border: Border.all(color: AppColors.glassBorder),
                                   ),
                                   child: Icon(

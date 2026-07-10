@@ -58,7 +58,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                     height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      shape: BoxShape.circle,
                       border: Border.all(color: AppColors.glassBorder),
                     ),
                     child: Icon(

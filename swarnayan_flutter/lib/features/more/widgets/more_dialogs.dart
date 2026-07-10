@@ -820,6 +820,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [

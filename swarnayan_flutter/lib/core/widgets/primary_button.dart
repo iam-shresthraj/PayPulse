@@ -80,7 +80,7 @@ class _PrimaryButtonState extends State<PrimaryButton>
                     end: Alignment.centerRight,
                   ),
             color: isDisabled ? AppColors.surfaceContainerHigh : null,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
             boxShadow: isDisabled
                 ? null
                 : [

@@ -170,12 +170,19 @@ class DownloadAppScreen extends ConsumerWidget {
                               onPressed: apkUrl.isNotEmpty
                                   ? () async {
                                       final url = Uri.parse(apkUrl);
-                                      if (await canLaunchUrl(url)) {
+                                      try {
                                         await launchUrl(url, mode: LaunchMode.externalApplication);
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Could not launch download URL')),
-                                        );
+                                      } catch (e) {
+                                        debugPrint('Could not launch URL: $e');
+                                        try {
+                                          await launchUrl(url);
+                                        } catch (_) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Could not launch download URL')),
+                                            );
+                                          }
+                                        }
                                       }
                                     }
                                   : null,

@@ -269,8 +269,13 @@ class MoreScreen extends ConsumerWidget {
                       context.push('/download');
                     } else {
                       final url = Uri.parse('https://paypulse-software.vercel.app/#/download');
-                      if (await canLaunchUrl(url)) {
+                      try {
                         await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        debugPrint('Could not launch URL: $e');
+                        try {
+                          await launchUrl(url);
+                        } catch (_) {}
                       }
                     }
                   },

@@ -35,6 +35,8 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
   bool _prompted = false;
+  bool _isExitDialogOpen = false;
+  final List<String> _navigationHistory = ['/'];
 
   @override
   void initState() {
@@ -416,51 +418,81 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
       context: context,
       useRootNavigator: false,
       barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainer,
-        title: Text(
-          'Exit App',
-          style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Do you really want to exit the app?',
-          style: AppTextStyles.bodyLg,
-        ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        actions: [
-          // No Button (Normal text button)
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'No',
-              style: AppTextStyles.labelLg.copyWith(
-                color: AppColors.onSurfaceDim,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+      builder: (context) => PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          await SystemNavigator.pop();
+        },
+        child: AlertDialog(
+          backgroundColor: const Color(0xFF141414),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(width: 8),
-          // Yes Button (Red box button)
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          contentPadding: const EdgeInsets.only(left: 24, right: 24, top: 28, bottom: 20),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Do you really want to close the app?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  height: 1.3,
+                ),
               ),
-              elevation: 0,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Yes',
-              style: AppTextStyles.labelLg.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // No Button
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF242424),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: const Text(
+                      'No',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Yes Button
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB30C0C),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: const Text(
+                      'Yes',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
     return result ?? false;
@@ -512,6 +544,26 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    if (location == '/') {
+      _navigationHistory.clear();
+      _navigationHistory.add('/');
+    } else {
+      if (_navigationHistory.isEmpty) {
+        _navigationHistory.add('/');
+      }
+      if (_navigationHistory.last != location) {
+        if (_navigationHistory.length > 1 && _navigationHistory[_navigationHistory.length - 2] == location) {
+          _navigationHistory.removeLast();
+        } else {
+          _navigationHistory.add(location);
+          if (_navigationHistory.length > 20) {
+            _navigationHistory.removeAt(1); // Keep '/' at index 0
+          }
+        }
+      }
+    }
+
     ref.listen(authProvider, (previous, next) {
       if (previous?.user?.id != next.user?.id) {
         if (next.user != null) {
@@ -884,15 +936,25 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
             return;
           }
           final location = GoRouterState.of(context).uri.toString();
-          // Dashboard is the exit gate. Any other tab navigates back to dashboard first.
           if (location == '/') {
-            final exit = await _showExitDialog(context);
-            if (exit) {
+            if (_isExitDialogOpen) {
               await SystemNavigator.pop();
+            } else {
+              _isExitDialogOpen = true;
+              final exit = await _showExitDialog(context);
+              _isExitDialogOpen = false;
+              if (exit) {
+                await SystemNavigator.pop();
+              }
             }
-          } else if (location != '/login' && location != '/pending') {
-            // From Billing, More, or any other sub-page: go to Dashboard
-            context.go('/');
+          } else if (location != '/login' && location != '/pending' && location != '/deassociated' && location != '/expired') {
+            if (_navigationHistory.length > 1) {
+              _navigationHistory.removeLast();
+              final prevLocation = _navigationHistory.last;
+              context.go(prevLocation);
+            } else {
+              context.go('/');
+            }
           }
         },
         child: mainContent,

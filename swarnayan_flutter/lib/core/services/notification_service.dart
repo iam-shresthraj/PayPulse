@@ -234,6 +234,9 @@ void callbackDispatcher() {
       String? newLatestId;
       bool hasLastChecked = lastCheckedId != null && lastCheckedId.isNotEmpty;
 
+      final now = DateTime.now().toUtc();
+      final threshold = now.subtract(const Duration(minutes: 20));
+
       final newNotifications = <Map<String, dynamic>>[];
       for (final raw in notifications) {
         final record = raw as Map<String, dynamic>;
@@ -243,6 +246,17 @@ void callbackDispatcher() {
         // Stop if we hit the last checked notification
         if (hasLastChecked && id == lastCheckedId) {
           break;
+        }
+
+        // Skip if notification is older than 20 minutes (since task runs every 15 min)
+        final createdAtStr = record['created_at']?.toString();
+        if (createdAtStr != null) {
+          try {
+            final createdAt = DateTime.parse(createdAtStr).toUtc();
+            if (createdAt.isBefore(threshold)) {
+              continue;
+            }
+          } catch (_) {}
         }
 
         final targetRole = record['target_role']?.toString().toUpperCase() ?? 'ALL';
@@ -257,6 +271,12 @@ void callbackDispatcher() {
       }
 
       final reversedNew = newNotifications.reversed.toList();
+
+      if (!hasLastChecked && notifications.isNotEmpty) {
+        // First run initialization: just set lastCheckedId to latest notification ID and show nothing
+        newLatestId = notifications.first['id']?.toString();
+        reversedNew.clear();
+      }
 
       // Show notifications
       final localNotifications = FlutterLocalNotificationsPlugin();
@@ -292,10 +312,6 @@ void callbackDispatcher() {
         );
 
         newLatestId = id;
-      }
-
-      if (!hasLastChecked && notifications.isNotEmpty) {
-        newLatestId = notifications.first['id']?.toString();
       }
 
       if (newLatestId != null) {

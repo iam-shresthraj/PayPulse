@@ -257,7 +257,7 @@ class MoreScreen extends ConsumerWidget {
             ],
 
             // ── Download App Card for Mobile App or Mobile Web ──
-            if (!isWide && !(user?.isSuperAdmin ?? false)) ...[
+            if (!(user?.isSuperAdmin ?? false)) ...[
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),

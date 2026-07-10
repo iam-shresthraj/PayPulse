@@ -288,9 +288,12 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
             child: const Text('Discard', style: TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(context, true), // Save Draft
-            child: const Text('Save Draft', style: TextStyle(color: Colors.black)),
+            child: const Text('Save Draft', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -881,12 +884,14 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
             return;
           }
           final location = GoRouterState.of(context).uri.toString();
-          if (location == '/' || location == '/billing' || location == '/more') {
+          // Dashboard is the exit gate. Any other tab navigates back to dashboard first.
+          if (location == '/') {
             final exit = await _showExitDialog(context);
             if (exit) {
               await SystemNavigator.pop();
             }
           } else if (location != '/login' && location != '/pending') {
+            // From Billing, More, or any other sub-page: go to Dashboard
             context.go('/');
           }
         },

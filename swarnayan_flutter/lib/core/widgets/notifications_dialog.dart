@@ -166,10 +166,25 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
     return GlassDialogWrapper(
       title: 'Notifications',
       showCloseIcon: false,
-      headerAction: IconButton(
-        icon: Icon(Icons.check_circle_outline_rounded, color: AppColors.error, size: 24),
-        tooltip: 'Mark all as read',
-        onPressed: _notifications.isEmpty ? null : _markAllAsRead,
+      headerAction: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(Icons.check_circle_outline_rounded, color: AppColors.error, size: 24),
+            tooltip: 'Mark all as read',
+            onPressed: _notifications.isEmpty ? null : _markAllAsRead,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(Icons.close_rounded, color: AppColors.error, size: 24),
+            tooltip: 'Close',
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
       child: _loading
           ? const SizedBox(
@@ -306,11 +321,6 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog> {
                                   },
                                 ),
                               ),
-                  ),
-                  const SizedBox(height: 16),
-                  PrimaryButton(
-                    label: 'Close',
-                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),

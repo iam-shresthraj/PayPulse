@@ -13,6 +13,7 @@ class PrimaryButton extends StatefulWidget {
   final IconData? icon;
   final double? width;
   final double height;
+  final double? fontSize;
 
   const PrimaryButton({
     super.key,
@@ -22,6 +23,7 @@ class PrimaryButton extends StatefulWidget {
     this.icon,
     this.width,
     this.height = 52,
+    this.fontSize,
   });
 
   @override
@@ -109,7 +111,7 @@ class _PrimaryButtonState extends State<PrimaryButton>
                       Text(
                         widget.label,
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
+                          fontSize: widget.fontSize ?? 16,
                           fontWeight: FontWeight.w600,
                           color: isDisabled ? AppColors.onSurfaceDim : Colors.white,
                         ),

@@ -840,11 +840,12 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                       ),
                       const SizedBox(width: 16),
                       SizedBox(
-                        width: 150,
-                        height: 44,
+                        width: 130,
+                        height: 38,
                         child: PrimaryButton(
                           label: 'Apply Changes',
                           isLoading: _isLoading,
+                          fontSize: 13,
                           onPressed: _submitCoupon,
                         ),
                       ),
@@ -1439,11 +1440,12 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                       ),
                       const SizedBox(width: 16),
                       SizedBox(
-                        width: 150,
-                        height: 44,
+                        width: 130,
+                        height: 38,
                         child: PrimaryButton(
                           label: 'Apply Changes',
                           isLoading: _isLoading,
+                          fontSize: 13,
                           onPressed: _submitStaff,
                         ),
                       ),
@@ -1473,68 +1475,70 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                     return GlassCard(
                       animationIndex: index,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      onTap: () => _beginEdit(item),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                                child: Text(
-                                  item.name.isNotEmpty ? item.name.substring(0, 1).toUpperCase() : 'S',
-                                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.name,
-                                      style: AppTextStyles.cardTitle.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      item.email,
-                                      style: AppTextStyles.cardSubtitle.copyWith(fontSize: 11),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      item.role.toUpperCase(),
-                                      style: AppTextStyles.cardSubtitle.copyWith(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primary.withValues(alpha: 0.8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Switch(
-                                value: item.isActive,
-                                activeColor: AppColors.primary,
-                                onChanged: (val) async {
-                                  await ref.read(staffProvider.notifier).toggleUserStatus(item);
-                                },
-                              ),
-                            ],
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                            child: Text(
+                              item.name.isNotEmpty ? item.name.substring(0, 1).toUpperCase() : 'S',
+                              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  item.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.cardTitle.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  item.email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.cardSubtitle.copyWith(fontSize: 11),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  item.role.toUpperCase(),
+                                  style: AppTextStyles.cardSubtitle.copyWith(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              TextButton.icon(
-                                icon: Icon(Icons.edit_rounded, size: 16, color: AppColors.primary),
-                                label: Text('Edit', style: TextStyle(color: AppColors.primary, fontSize: 12)),
-                                onPressed: () => _beginEdit(item),
-                              ),
-                              const SizedBox(width: 12),
-                              TextButton.icon(
-                                icon: Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.error),
-                                label: Text('Delete', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                icon: Icon(Icons.delete_outline_rounded, size: 20, color: AppColors.error),
+                                tooltip: 'Delete',
                                 onPressed: () => _confirmDelete(item),
+                              ),
+                              Transform.scale(
+                                scale: 0.85,
+                                child: Switch(
+                                  value: item.isActive,
+                                  activeColor: AppColors.primary,
+                                  onChanged: (val) async {
+                                    await ref.read(staffProvider.notifier).toggleUserStatus(item);
+                                  },
+                                ),
                               ),
                             ],
                           ),
@@ -1656,11 +1660,16 @@ class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
           child: Text('Cancel', style: AppTextStyles.bodyMd.copyWith(color: AppColors.onSurfaceMuted)),
         ),
         const SizedBox(width: 12),
-        PrimaryButton(
-          width: 150,
-          label: 'Apply Changes',
-          isLoading: _isLoading,
-          onPressed: _submitBulk,
+        SizedBox(
+          height: 38,
+          child: PrimaryButton(
+            width: 130,
+            height: 38,
+            fontSize: 13,
+            label: 'Apply Changes',
+            isLoading: _isLoading,
+            onPressed: _submitBulk,
+          ),
         ),
       ],
       child: Column(

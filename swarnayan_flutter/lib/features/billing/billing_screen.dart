@@ -587,9 +587,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             child: const Text('Discard', style: TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(context, true), // Save Draft
-            child: const Text('Save Draft', style: TextStyle(color: Colors.black)),
+            child: const Text('Save Draft', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -2361,7 +2364,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         ],
       ),
     );
-  }  Widget _buildPaymentRow({
+  }
+  Widget _buildPaymentRow({
     required TextEditingController controller,
     required String label,
     required void Function(String) onChanged,

@@ -11,7 +11,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/app_header.dart';
 import 'platform_settings_provider.dart';
 
 /// ────────────────────────────────────────────────────────────────────────────
@@ -46,8 +45,42 @@ class DownloadAppScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       if (!isWide) ...[
-                        const AppHeader(showBackButton: true),
-                        const SizedBox(height: 24),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (Navigator.canPop(context)) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    context.go('/');
+                                  }
+                                },
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppColors.glassBorder),
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_back_rounded,
+                                    color: AppColors.onSurface,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'Download App',
+                                style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                       ],
                       GlassCard(
                         padding: const EdgeInsets.all(32),

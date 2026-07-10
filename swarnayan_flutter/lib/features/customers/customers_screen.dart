@@ -252,7 +252,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         child: FloatingActionButton(
           onPressed: () => context.push('/customers/add'),
           backgroundColor: AppColors.primary,
-          child: const Icon(Icons.person_add_rounded, color: Colors.black),
+          foregroundColor: Colors.white,
+          child: const Icon(Icons.person_add_rounded, color: Colors.white),
         ).animate().scale(
               begin: const Offset(0, 0),
               end: const Offset(1, 1),

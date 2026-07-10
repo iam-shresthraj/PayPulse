@@ -156,7 +156,6 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
         ),
       ),
 
@@ -327,7 +326,6 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
         ),
       ),
 

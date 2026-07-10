@@ -199,7 +199,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   String _getProductDetails(Invoice invoice) {
-    return invoice.items.map((item) => '${item.productName} (${item.purity}, ${item.netWeight}g, x${item.quantity})').join(', ');
+    return invoice.items.map((item) {
+      final huidStr = item.huidNumber != null && item.huidNumber!.isNotEmpty ? ' (HUID:${item.huidNumber})' : '';
+      return '${item.productName}$huidStr (${item.purity}, ${item.netWeight}g, x${item.quantity})';
+    }).join(', ');
   }
 
   Future<void> _exportToPdf(String companyName) async {
@@ -503,7 +506,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
             decoration: BoxDecoration(
               color: AppColors.surfaceContainer.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -618,7 +623,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     onTap: () => _selectDate(context, true),
                                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      height: 50,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      alignment: Alignment.centerLeft,
                                       decoration: BoxDecoration(
                                         color: AppColors.surfaceContainer.withValues(alpha: 0.4),
                                         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -662,7 +669,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     onTap: () => _selectDate(context, false),
                                     borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      height: 50,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      alignment: Alignment.centerLeft,
                                       decoration: BoxDecoration(
                                         color: AppColors.surfaceContainer.withValues(alpha: 0.4),
                                         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -750,7 +759,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  minimumSize: const Size(0, 50),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 onPressed: _performSearch,

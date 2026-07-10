@@ -376,7 +376,7 @@ class PdfHelper {
                     return pw.TableRow(
                       children: [
                         _tableDataCell(
-                          '${item.huidNumber != null && item.huidNumber!.isNotEmpty ? 'HUID: ${item.huidNumber} - ' : ''}${item.productName}',
+                          '${item.productName}${item.huidNumber != null && item.huidNumber!.isNotEmpty ? ' (HUID:${item.huidNumber})' : ''}',
                           fontData,
                           align: pw.TextAlign.left,
                         ),

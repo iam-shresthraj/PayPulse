@@ -95,6 +95,56 @@ class _GlassInputState extends State<GlassInput> {
 
   @override
   Widget build(BuildContext context) {
+    Widget inputField = TextFormField(
+      controller: widget.controller,
+      focusNode: _effectiveFocusNode,
+      keyboardType: widget.keyboardType,
+      obscureText: widget.obscureText,
+      readOnly: widget.readOnly,
+      maxLines: widget.maxLines,
+      validator: widget.validator,
+      onChanged: widget.onChanged,
+      onTap: widget.onTap,
+      textInputAction: widget.textInputAction ?? (widget.maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
+      onFieldSubmitted: widget.onFieldSubmitted ?? (value) {
+        FocusScope.of(context).nextFocus();
+      },
+      textAlign: widget.textAlign,
+      style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        prefixIcon: widget.prefixIcon,
+        suffixIcon: widget.suffixIcon,
+        isDense: widget.maxLines == 1,
+        contentPadding: widget.contentPadding ??
+            (widget.maxLines == 1
+                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+                : const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+        filled: true,
+        fillColor: AppColors.surfaceContainer.withValues(alpha: 0.4),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          borderSide:  BorderSide(color: AppColors.glassBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          borderSide:  BorderSide(color: AppColors.glassBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          borderSide:
+               BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+    );
+
+    if (widget.maxLines == 1) {
+      inputField = SizedBox(
+        height: 50,
+        child: inputField,
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -109,45 +159,7 @@ class _GlassInputState extends State<GlassInput> {
           ),
           const SizedBox(height: 8),
         ],
-        TextFormField(
-          controller: widget.controller,
-          focusNode: _effectiveFocusNode,
-          keyboardType: widget.keyboardType,
-          obscureText: widget.obscureText,
-          readOnly: widget.readOnly,
-          maxLines: widget.maxLines,
-          validator: widget.validator,
-          onChanged: widget.onChanged,
-          onTap: widget.onTap,
-          textInputAction: widget.textInputAction ?? (widget.maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
-          onFieldSubmitted: widget.onFieldSubmitted ?? (value) {
-            FocusScope.of(context).nextFocus();
-          },
-          textAlign: widget.textAlign,
-          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            prefixIcon: widget.prefixIcon,
-            suffixIcon: widget.suffixIcon,
-            contentPadding: widget.contentPadding ??
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            filled: true,
-            fillColor: AppColors.surfaceContainer.withValues(alpha: 0.4),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide:  BorderSide(color: AppColors.glassBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide:  BorderSide(color: AppColors.glassBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              borderSide:
-                   BorderSide(color: AppColors.primary, width: 1.5),
-            ),
-          ),
-        ),
+        inputField,
       ],
     );
   }

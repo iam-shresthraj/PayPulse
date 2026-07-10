@@ -347,6 +347,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         return InvoiceItem(
           productId: bp.productId,
           productName: bp.name,
+          huidNumber: bp.huidNumber,
           hsnCode: bp.hsnCode,
           category: bp.category,
           purity: bp.purity,

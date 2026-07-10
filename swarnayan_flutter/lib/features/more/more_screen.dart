@@ -79,8 +79,16 @@ class MoreScreen extends ConsumerWidget {
     final showChangePassword = true; // Always visible
     final showTeamSection = showStaffMgmt || showPending || showCompanyCodes || showChangePassword;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (context.mounted) {
+          context.go('/');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
           await ref.read(companyProvider.notifier).loadCompanySettings();
@@ -657,6 +665,7 @@ class MoreScreen extends ConsumerWidget {
           ],
         ),
       ),
+    ),
     ),
   );
 }

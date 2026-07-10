@@ -2186,7 +2186,9 @@ class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
         ),
         const SizedBox(width: 12),
         PrimaryButton(
-          width: 150,
+          width: 100,
+          height: 38,
+          fontSize: 13,
           label: 'Apply',
           isLoading: _isLoading,
           onPressed: _save,

@@ -414,83 +414,86 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
   }
 
   Future<bool> _showExitDialog(BuildContext context) async {
+    bool allowPop = false;
     final result = await showSingleDialog<bool>(
       context: context,
       useRootNavigator: false,
-      barrierDismissible: true,
-      builder: (context) => PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          await SystemNavigator.pop();
-        },
-        child: AlertDialog(
-          backgroundColor: const Color(0xFF141414),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          contentPadding: const EdgeInsets.only(left: 24, right: 24, top: 28, bottom: 20),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Do you really want to close the app?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  height: 1.3,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => PopScope(
+          canPop: allowPop,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+          },
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF141414),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            contentPadding: const EdgeInsets.only(left: 24, right: 24, top: 28, bottom: 20),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Do you really want to close the app?',
+                  style: AppTextStyles.titleLg.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.3,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // No Button
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF242424),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // No Button
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() => allowPop = true);
+                        Future.microtask(() => Navigator.pop(context, false));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF242424),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Text(
+                        'No',
+                        style: AppTextStyles.labelLg.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    child: const Text(
-                      'No',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(width: 12),
+                    // Yes Button
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() => allowPop = true);
+                        Future.microtask(() => Navigator.pop(context, true));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFB30C0C),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: Text(
+                        'Yes',
+                        style: AppTextStyles.labelLg.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Yes Button
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFB30C0C),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    child: const Text(
-                      'Yes',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -544,7 +547,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    final location = GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
     if (location == '/') {
       _navigationHistory.clear();
       _navigationHistory.add('/');
@@ -617,17 +620,17 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
             final int currentIndex = _bottomBarIndex(context); // 0 (Dashboard), 1 (Invoice), 4 (More)
             
             if (velocity < -300) {
-              // Swipe right-to-left -> Next Page
+              // Swipe right-to-left -> Next Page: Dashboard (0) -> Management (4) -> Invoice (1)
               if (currentIndex == 0) {
+                _onBottomBarTap(context, 4); // Go to Management
+              } else if (currentIndex == 4) {
                 _onBottomBarTap(context, 1); // Go to Invoice
-              } else if (currentIndex == 1) {
-                _onBottomBarTap(context, 4); // Go to More
               }
             } else if (velocity > 300) {
-              // Swipe left-to-right -> Previous Page
-              if (currentIndex == 4) {
-                _onBottomBarTap(context, 1); // Go to Invoice
-              } else if (currentIndex == 1) {
+              // Swipe left-to-right -> Previous Page: Invoice (1) -> Management (4) -> Dashboard (0)
+              if (currentIndex == 1) {
+                _onBottomBarTap(context, 4); // Go to Management
+              } else if (currentIndex == 4) {
                 _onBottomBarTap(context, 0); // Go to Dashboard
               }
             }
@@ -935,17 +938,14 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
             context.pop();
             return;
           }
-          final location = GoRouterState.of(context).uri.toString();
+          final location = GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
           if (location == '/') {
-            if (_isExitDialogOpen) {
+            if (_isExitDialogOpen) return;
+            _isExitDialogOpen = true;
+            final exit = await _showExitDialog(context);
+            _isExitDialogOpen = false;
+            if (exit) {
               await SystemNavigator.pop();
-            } else {
-              _isExitDialogOpen = true;
-              final exit = await _showExitDialog(context);
-              _isExitDialogOpen = false;
-              if (exit) {
-                await SystemNavigator.pop();
-              }
             }
           } else if (location != '/login' && location != '/pending' && location != '/deassociated' && location != '/expired') {
             if (_navigationHistory.length > 1) {

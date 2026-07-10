@@ -263,7 +263,7 @@ class _DailyRatePromptDialogState extends ConsumerState<DailyRatePromptDialog> {
                   ),
                   const SizedBox(height: 32),
                   PrimaryButton(
-                    label: 'Save Changes',
+                    label: 'Save',
                     icon: Icons.check_rounded,
                     isLoading: _isSaving,
                     onPressed: _submit,

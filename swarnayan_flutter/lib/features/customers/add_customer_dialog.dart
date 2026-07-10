@@ -468,7 +468,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
               return KeyEventResult.ignored;
             },
             child: PrimaryButton(
-              label: 'Save Changes',
+              label: 'Save',
               icon: Icons.check_rounded,
               isLoading: _isSaving,
               onPressed: _save,

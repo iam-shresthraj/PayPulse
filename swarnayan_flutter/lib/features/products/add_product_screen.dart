@@ -494,7 +494,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
               return KeyEventResult.ignored;
             },
             child: PrimaryButton(
-              label: 'Save Changes',
+              label: 'Save',
               icon: Icons.check_rounded,
               isLoading: _isSaving,
               onPressed: _save,

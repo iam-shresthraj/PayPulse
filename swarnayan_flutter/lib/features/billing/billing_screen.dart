@@ -592,7 +592,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(context, true), // Save Draft
-            child: const Text('Save Draft', style: TextStyle(color: Colors.white)),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -2164,7 +2164,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 }
                 Navigator.pop(context);
               },
-              child: const Text('Save Changes'),
+              child: const Text('Save'),
             ),
           ],
         ),

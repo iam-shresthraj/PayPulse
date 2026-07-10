@@ -1092,7 +1092,7 @@ class _AdminNotificationsScreenState extends ConsumerState<AdminNotificationsScr
                                         )
                                       : const Icon(Icons.save_rounded, size: 18),
                                   label: Text(
-                                    _savingWelcome ? 'Saving...' : 'Save Welcome Template',
+                                    _savingWelcome ? 'Saving...' : 'Save',
                                     style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -1567,7 +1567,7 @@ class _AdminBrandingScreenState extends ConsumerState<AdminBrandingScreen> {
                     ),
                     child: _saving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text('Save Branding Settings', style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold)),
+                        : Text('Save', style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

@@ -205,7 +205,7 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
         const SizedBox(width: 12),
         PrimaryButton(
           width: 150,
-          label: 'Save Changes',
+          label: 'Save',
           isLoading: _isLoading,
           onPressed: _submit,
         ),
@@ -412,7 +412,7 @@ class _CompanySettingsDialogState extends ConsumerState<CompanySettingsDialog> {
         const SizedBox(width: 12),
         PrimaryButton(
           width: 150,
-          label: 'Save Changes',
+          label: 'Save',
           isLoading: _isLoading,
           onPressed: _submit,
         ),
@@ -844,7 +844,7 @@ class _CouponsManagementDialogState extends ConsumerState<CouponsManagementDialo
                         width: 130,
                         height: 38,
                         child: PrimaryButton(
-                          label: 'Apply Changes',
+                          label: 'Apply',
                           isLoading: _isLoading,
                           fontSize: 13,
                           onPressed: _submitCoupon,
@@ -1444,7 +1444,7 @@ class _StaffManagementDialogState extends ConsumerState<StaffManagementDialog> {
                         width: 130,
                         height: 38,
                         child: PrimaryButton(
-                          label: 'Apply Changes',
+                          label: 'Apply',
                           isLoading: _isLoading,
                           fontSize: 13,
                           onPressed: _submitStaff,
@@ -1667,7 +1667,7 @@ class _BulkAccessDialogState extends ConsumerState<BulkAccessDialog> {
             width: 130,
             height: 38,
             fontSize: 13,
-            label: 'Apply Changes',
+            label: 'Apply',
             isLoading: _isLoading,
             onPressed: _submitBulk,
           ),
@@ -1854,7 +1854,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
         const SizedBox(width: 12),
         PrimaryButton(
           width: 150,
-          label: 'Save Changes',
+          label: 'Save',
           isLoading: _isLoading,
           onPressed: _submit,
         ),
@@ -2187,7 +2187,7 @@ class _RoleAccessDialogState extends ConsumerState<RoleAccessDialog> {
         const SizedBox(width: 12),
         PrimaryButton(
           width: 150,
-          label: 'Apply to Role',
+          label: 'Apply',
           isLoading: _isLoading,
           onPressed: _save,
         ),

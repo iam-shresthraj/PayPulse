@@ -295,7 +295,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(context, true), // Save Draft
-            child: const Text('Save Draft', style: TextStyle(color: Colors.white)),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

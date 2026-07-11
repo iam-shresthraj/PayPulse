@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/product.dart';
+import '../../core/utils/formatters.dart';
 
 class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
   ProductsNotifier() : super(const AsyncValue.loading()) {
@@ -30,7 +31,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
 
   Map<String, dynamic> _unmapProduct(Product product) {
     return {
-      'name': product.name,
+      'name': Formatters.toTitleCase(product.name),
       'category': product.category,
       'purity': product.purity,
       if (product.serialNumber != null) 'serial_number': product.serialNumber,

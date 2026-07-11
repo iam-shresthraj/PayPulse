@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../../core/utils/pdf_helper.dart';
+import '../../core/utils/formatters.dart';
 import '../products/products_provider.dart';
 import '../customers/customers_provider.dart';
 import '../more/company_provider.dart';
@@ -75,7 +76,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
     return {
       'invoice_number': invoice.invoiceNumber,
       'customer_id': (invoice.customerId != null && invoice.customerId!.isNotEmpty) ? invoice.customerId : null,
-      'temp_customer_name': invoice.tempCustomerName ?? '',
+      'temp_customer_name': invoice.tempCustomerName != null ? Formatters.toTitleCase(invoice.tempCustomerName!) : '',
       'temp_customer_mobile': invoice.tempCustomerMobile ?? '',
       'temp_customer_address': invoice.tempCustomerAddress ?? '',
       'temp_customer_pincode': invoice.tempCustomerPincode ?? '',
@@ -231,38 +232,8 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       // Trigger reload for products and customers so they get updated stock/spend values
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
-      _ref.read(companyProvider.notifier).loadCompanySettings();
-
       // 6. Generate and save PDF Base64 to database
-      Invoice finalInvoice = savedInvoice;
-      try {
-        final customersList = _ref.read(customersProvider).value ?? [];
-        final customerIndex = customersList.indexWhere((c) => c.id == invoice.customerId);
-        final Customer customer = customerIndex != -1 
-            ? customersList[customerIndex]
-            : Customer(
-                id: '',
-                name: invoice.tempCustomerName ?? 'Customer',
-                mobile: invoice.tempCustomerMobile ?? '',
-                address: invoice.tempCustomerAddress ?? '',
-              );
-        final companySettings = _ref.read(companyProvider).value;
-        final pdfBytes = await PdfHelper.generateInvoicePdfBytes(
-          invoice: savedInvoice,
-          customer: customer,
-          company: companySettings,
-        );
-        final pdfBase64 = base64Encode(pdfBytes);
-        
-        await _client
-            .from('invoices')
-            .update({'pdf_base64': pdfBase64})
-            .eq('id', savedInvoice.id!);
-            
-        finalInvoice = savedInvoice.copyWith(pdfBase64: pdfBase64);
-      } catch (e) {
-        debugPrint('Failed to save PDF to database: $e');
-      }
+      final finalInvoice = await _generateAndSavePdf(savedInvoice);
 
       final list = state.value ?? [];
       state = AsyncValue.data([finalInvoice, ...list]);
@@ -314,6 +285,8 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }).eq('id', cancelledInvoice.customerId!);
       }
       
+      final invoiceWithPdf = await _generateAndSavePdf(cancelledInvoice);
+
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
@@ -322,8 +295,10 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       final index = list.indexWhere((inv) => inv.id == id);
       if (index != -1) {
         final updatedList = List<Invoice>.from(list);
-        updatedList[index] = cancelledInvoice;
+        updatedList[index] = invoiceWithPdf;
         state = AsyncValue.data(updatedList);
+      } else {
+        await loadInvoices();
       }
     } catch (e) {
       await loadInvoices();
@@ -510,13 +485,14 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .single();
       final restoredInvoice = _mapInvoice(data);
       
+      final restoredWithPdf = await _generateAndSavePdf(restoredInvoice);
+      
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
-      _ref.read(companyProvider.notifier).loadCompanySettings();
 
       final list = state.value ?? [];
-      state = AsyncValue.data([restoredInvoice, ...list]);
+      state = AsyncValue.data([restoredWithPdf, ...list]);
       
       // Force refresh the deleted invoices provider
       _ref.invalidate(deletedInvoicesProvider);
@@ -602,6 +578,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .single();
           
       final updatedInvoice = _mapInvoice(data);
+      final updatedWithPdf = await _generateAndSavePdf(updatedInvoice);
       
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
@@ -610,12 +587,12 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       final index = list.indexWhere((inv) => inv.id == id);
       if (index != -1) {
         final updatedList = List<Invoice>.from(list);
-        updatedList[index] = updatedInvoice;
+        updatedList[index] = updatedWithPdf;
         state = AsyncValue.data(updatedList);
       } else {
         await loadInvoices();
       }
-      return updatedInvoice;
+      return updatedWithPdf;
     } catch (e) {
       await loadInvoices();
       rethrow;
@@ -727,6 +704,41 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .eq('id', settingsData['id']);
           
     } catch (_) {}
+  }
+
+  Future<Invoice> _generateAndSavePdf(Invoice invoice) async {
+    try {
+      final customersList = _ref.read(customersProvider).value ?? [];
+      final customerIndex = customersList.indexWhere((c) => c.id == invoice.customerId);
+      final Customer customer = customerIndex != -1 
+          ? customersList[customerIndex]
+          : Customer(
+              id: '',
+              name: invoice.tempCustomerName ?? 'Customer',
+              mobile: invoice.tempCustomerMobile ?? '',
+              address: invoice.tempCustomerAddress ?? '',
+            );
+
+      await _ref.read(companyProvider.notifier).loadCompanySettings();
+      final companySettings = _ref.read(companyProvider).value;
+
+      final pdfBytes = await PdfHelper.generateInvoicePdfBytes(
+        invoice: invoice,
+        customer: customer,
+        company: companySettings,
+      );
+      final pdfBase64 = base64Encode(pdfBytes);
+      
+      await _client
+          .from('invoices')
+          .update({'pdf_base64': pdfBase64})
+          .eq('id', invoice.id!);
+          
+      return invoice.copyWith(pdfBase64: pdfBase64);
+    } catch (e) {
+      debugPrint('Failed to save PDF to database: $e');
+      return invoice;
+    }
   }
 }
 

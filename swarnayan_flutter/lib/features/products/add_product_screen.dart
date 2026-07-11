@@ -10,6 +10,7 @@ import '../../core/widgets/glass_dropdown.dart';
 import '../../core/widgets/glass_input.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/utils/validators.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/product.dart';
 import 'products_provider.dart';
 
@@ -152,7 +153,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
     try {
       final product = Product(
         id: widget.product?.id,
-        name: _nameController.text.trim(),
+        name: Formatters.toTitleCase(_nameController.text.trim()),
         category: _selectedCategory!,
         purity: _selectedPurity!,
         serialNumber: _serialController.text.trim().isEmpty ? widget.product?.serialNumber : _serialController.text.trim(),

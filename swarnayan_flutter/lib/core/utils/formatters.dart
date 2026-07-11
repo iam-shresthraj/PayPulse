@@ -25,4 +25,16 @@ class Formatters {
   static String formatDateTime(DateTime date) {
     return DateFormat('dd MMM yyyy, hh:mm a').format(date);
   }
+
+  static String toTitleCase(String text) {
+    if (text.isEmpty) return '';
+    return text
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((word) {
+          if (word.isEmpty) return '';
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
+  }
 }

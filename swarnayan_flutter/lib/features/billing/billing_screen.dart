@@ -27,6 +27,7 @@ import 'billing_provider.dart';
 import 'invoices_provider.dart';
 import '../../core/utils/pdf_helper.dart';
 import '../../core/utils/whatsapp_helper.dart';
+import '../../core/utils/formatters.dart';
 import '../../models/invoice.dart';
 import '../../models/product.dart';
 import '../../models/coupon.dart';
@@ -314,7 +315,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         final newCust = Customer(
           id: '',
           mobile: billing.customerPhone ?? _phoneController.text.trim(),
-          name: billing.customerName ?? _nameController.text.trim(),
+          name: Formatters.toTitleCase(billing.customerName ?? _nameController.text.trim()),
           address: _addressController.text.trim(),
           panCard: _panController.text.trim(),
           email: _emailController.text.trim(),
@@ -1755,7 +1756,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       setState(() => _isSavingProduct = true);
       try {
         final product = Product(
-          name: name,
+          name: Formatters.toTitleCase(name),
           category: _newProductCategory,
           purity: _newProductPurity,
           huidNumber: huid.isEmpty ? null : huid,
@@ -1768,7 +1769,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         await ref.read(productsProvider.notifier).addProduct(product);
         final updatedList = ref.read(productsProvider).value ?? [];
         if (updatedList.isNotEmpty) {
-          selected = updatedList.firstWhere((p) => p.name == name, orElse: () => updatedList.first);
+          selected = updatedList.firstWhere((p) => p.name.toLowerCase() == name.toLowerCase(), orElse: () => updatedList.first);
         }
         // Cleanup inline product form
         _newProductNameController.clear();
@@ -2238,6 +2239,18 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   Widget _buildCouponSection(BillingState billing) {
+    final couponsAsync = ref.watch(couponsProvider);
+    final couponsList = couponsAsync.value ?? [];
+    final now = DateTime.now();
+    final eligibleCoupons = couponsList.where((coupon) {
+      if (!coupon.isActive) return false;
+      if (coupon.expiryDate.isBefore(now)) return false;
+      if (coupon.startsAt != null && coupon.startsAt!.isAfter(now)) return false;
+      if (coupon.usageLimit != null && coupon.usageLimit! > 0 && coupon.usedCount >= coupon.usageLimit!) return false;
+      if (billing.subtotal < coupon.minBillAmount) return false;
+      return true;
+    }).toList();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -2320,6 +2333,121 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               _couponError!,
               style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
             ),
+          ],
+          if (eligibleCoupons.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              'Eligible Coupons Available',
+              style: AppTextStyles.bodySm.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...eligibleCoupons.map((coupon) {
+              final isApplied = billing.couponCode == coupon.code;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.local_offer_rounded,
+                        color: isApplied ? AppColors.success : AppColors.primary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  coupon.code,
+                                  style: AppTextStyles.cardTitle.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: isApplied ? AppColors.success : AppColors.onBackground,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: (isApplied ? AppColors.success : AppColors.primary).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    coupon.discountType == 'FIXED'
+                                        ? '₹${coupon.discountValue.toStringAsFixed(0)} OFF'
+                                        : '${coupon.discountValue.toStringAsFixed(0)}% OFF',
+                                    style: AppTextStyles.labelSm.copyWith(
+                                      color: isApplied ? AppColors.success : AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 9,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              coupon.discountType == 'FIXED'
+                                  ? 'Save ₹${coupon.discountValue.toStringAsFixed(0)} on your order'
+                                  : 'Save ${coupon.discountValue.toStringAsFixed(0)}% up to ₹${coupon.maxDiscount.toStringAsFixed(0)}',
+                              style: AppTextStyles.cardSubtitle.copyWith(fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      if (isApplied)
+                        Row(
+                          children: [
+                            Text(
+                              'Applied',
+                              style: AppTextStyles.bodySm.copyWith(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16),
+                          ],
+                        )
+                      else
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          onPressed: () {
+                            ref.read(billingProvider.notifier).applyCoupon(coupon);
+                            _couponController.text = coupon.code;
+                            setState(() {
+                              _couponError = null;
+                            });
+                          },
+                          child: Text(
+                            'Apply',
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.1, end: 0, duration: 200.ms);
+            }).toList(),
           ],
           if (billing.appliedCoupon != null) ...[
             const SizedBox(height: 12),

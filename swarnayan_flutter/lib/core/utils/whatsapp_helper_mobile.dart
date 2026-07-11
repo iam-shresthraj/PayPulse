@@ -38,7 +38,7 @@ class WhatsAppHelper {
     final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PayPulse';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cFeedback = company?.logoUrl.isNotEmpty == true ? company!.logoUrl : 'https://bit.ly/swarnayan-jewellers-feedback';
-    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903090776';
+    final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';
 
     String cAddressLine = '';
     if (company != null) {

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/customer.dart';
+import '../../core/utils/formatters.dart';
 
 class CustomersNotifier extends StateNotifier<AsyncValue<List<Customer>>> {
   CustomersNotifier() : super(const AsyncValue.loading()) {
@@ -32,7 +33,7 @@ class CustomersNotifier extends StateNotifier<AsyncValue<List<Customer>>> {
   Map<String, dynamic> _unmapCustomer(Customer customer) {
     return {
       'mobile': customer.mobile,
-      'name': customer.name,
+      'name': Formatters.toTitleCase(customer.name),
       'email': customer.email ?? '',
       'address': customer.address ?? '',
       'pincode': customer.pincode ?? '',

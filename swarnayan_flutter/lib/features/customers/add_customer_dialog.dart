@@ -155,7 +155,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
       final isEditing = widget.customerToEdit != null;
       final customer = Customer(
         id: isEditing ? widget.customerToEdit!.id : 'CUST-${DateTime.now().millisecondsSinceEpoch}',
-        name: _nameController.text.trim(),
+        name: Formatters.toTitleCase(_nameController.text.trim()),
         mobile: _mobileController.text.trim(),
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
         address: _addressController.text.trim(),

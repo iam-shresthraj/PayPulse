@@ -365,6 +365,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                             controller: _huidController,
                             label: 'HUID Number (Optional)',
                             hint: 'Enter HUID number',
+                            inputFormatters: [UpperCaseTextInputFormatter()],
                             onFieldSubmitted: (_) => _hsnFocusNode.requestFocus(),
                           ),
                         ),

@@ -312,25 +312,40 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       String? customerIdForInvoice = billing.customerId;
       
       if (isTemporary) {
-        final newCust = Customer(
-          id: '',
-          mobile: billing.customerPhone ?? _phoneController.text.trim(),
-          name: Formatters.toTitleCase(billing.customerName ?? _nameController.text.trim()),
-          address: _addressController.text.trim(),
-          panCard: _panController.text.trim(),
-          email: _emailController.text.trim(),
-          gstNumber: _gstController.text.trim().toUpperCase(),
-          totalPurchaseAmount: 0.0,
-          totalInvoices: 0,
-        );
-        final savedCust = await ref.read(customersProvider.notifier).addCustomer(newCust);
-        customer = savedCust;
-        customerIdForInvoice = savedCust.id;
-        // Select this customer
-        ref.read(billingProvider.notifier).setCustomer(savedCust);
+        final mobile = billing.customerPhone ?? _phoneController.text.trim();
+        final customersList = ref.read(customersProvider).value ?? [];
+        Customer? existingCustomer;
+        for (final c in customersList) {
+          if (c.mobile == mobile) {
+            existingCustomer = c;
+            break;
+          }
+        }
+
+        if (existingCustomer != null) {
+          customer = existingCustomer;
+          customerIdForInvoice = existingCustomer.id;
+          ref.read(billingProvider.notifier).setCustomer(existingCustomer);
+        } else {
+          final newCust = Customer(
+            id: '',
+            mobile: mobile,
+            name: Formatters.toTitleCase(billing.customerName ?? _nameController.text.trim()),
+            address: _addressController.text.trim(),
+            panCard: _panController.text.trim(),
+            email: _emailController.text.trim(),
+            gstNumber: _gstController.text.trim().toUpperCase(),
+            totalPurchaseAmount: 0.0,
+            totalInvoices: 0,
+          );
+          final savedCust = await ref.read(customersProvider.notifier).addCustomer(newCust);
+          customer = savedCust;
+          customerIdForInvoice = savedCust.id;
+          ref.read(billingProvider.notifier).setCustomer(savedCust);
+        }
       } else {
-        final customers = ref.read(customersProvider).value!;
-        customer = customers.firstWhere((c) => c.id == billing.customerId);
+        final customersList = ref.read(customersProvider).value!;
+        customer = customersList.firstWhere((c) => c.id == billing.customerId);
         customerIdForInvoice = customer.id;
       }
 
@@ -399,10 +414,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       final invoice = Invoice(
         id: invoiceId,
         invoiceNumber: invoiceNum,
-        customerId: isTemporary && !_registerNewCustomer ? null : customerIdForInvoice,
-        tempCustomerName: isTemporary && !_registerNewCustomer ? (billing.customerName ?? _nameController.text.trim()) : null,
-        tempCustomerMobile: isTemporary && !_registerNewCustomer ? (billing.customerPhone ?? _phoneController.text.trim()) : null,
-        tempCustomerAddress: isTemporary && !_registerNewCustomer ? _addressController.text.trim() : null,
+        customerId: customerIdForInvoice,
+        tempCustomerName: null,
+        tempCustomerMobile: null,
+        tempCustomerAddress: null,
         items: invoiceItems,
         grossAmount: billing.subtotal,
         couponDiscount: _getCouponDiscountOnly(billing),
@@ -966,6 +981,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     controller: _nameController,
                     label: 'Customer Name',
                     hint: 'Enter customer name',
+                    inputFormatters: [TitleCaseTextInputFormatter()],
                     onChanged: (val) {
                       ref.read(billingProvider.notifier).setTemporaryCustomer(val, _phoneController.text);
                     },
@@ -1210,6 +1226,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               controller: _newProductNameController,
               label: 'Product Name',
               hint: 'e.g. Gold Bangle Plain',
+              inputFormatters: [TitleCaseTextInputFormatter()],
             ),
             const SizedBox(height: 12),
             Row(
@@ -1766,11 +1783,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           makingChargeValue: _saveDetailsToInventory ? (double.tryParse(_newProductMakingChargeController.text) ?? 0.0) : 0.0,
           isActive: true,
         );
-        await ref.read(productsProvider.notifier).addProduct(product);
-        final updatedList = ref.read(productsProvider).value ?? [];
-        if (updatedList.isNotEmpty) {
-          selected = updatedList.firstWhere((p) => p.name.toLowerCase() == name.toLowerCase(), orElse: () => updatedList.first);
-        }
+        final savedProduct = await ref.read(productsProvider.notifier).addProduct(product);
+        selected = savedProduct;
         // Cleanup inline product form
         _newProductNameController.clear();
         _newProductStockController.text = '10';

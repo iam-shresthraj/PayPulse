@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 class Formatters {
   Formatters._();
@@ -36,5 +37,40 @@ class Formatters {
           return word[0].toUpperCase() + word.substring(1).toLowerCase();
         })
         .join(' ');
+  }
+}
+
+class TitleCaseTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    final StringBuffer buffer = StringBuffer();
+    bool capitalizeNext = true;
+
+    for (int i = 0; i < newValue.text.length; i++) {
+      final String char = newValue.text[i];
+      if (char == ' ' || char == '.' || char == '-' || char == '/') {
+        buffer.write(char);
+        capitalizeNext = true;
+      } else if (capitalizeNext) {
+        buffer.write(char.toUpperCase());
+        capitalizeNext = false;
+      } else {
+        buffer.write(char.toLowerCase());
+      }
+    }
+
+    final String formattedText = buffer.toString();
+    return TextEditingValue(
+      text: formattedText,
+      selection: newValue.selection.copyWith(
+        baseOffset: newValue.selection.baseOffset.clamp(0, formattedText.length),
+        extentOffset: newValue.selection.extentOffset.clamp(0, formattedText.length),
+      ),
+    );
   }
 }

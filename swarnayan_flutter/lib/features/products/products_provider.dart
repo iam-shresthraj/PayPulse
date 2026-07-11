@@ -95,7 +95,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
     }
   }
 
-  Future<void> addProduct(Product product) async {
+  Future<Product> addProduct(Product product) async {
     try {
       var payload = _unmapProduct(product);
       if (product.serialNumber == null || product.serialNumber!.trim().isEmpty) {
@@ -106,6 +106,7 @@ class ProductsNotifier extends StateNotifier<AsyncValue<List<Product>>> {
       final newProd = _mapProduct(data);
       final list = state.value ?? [];
       state = AsyncValue.data([newProd, ...list]);
+      return newProd;
     } catch (e) {
       await loadProducts();
       rethrow;

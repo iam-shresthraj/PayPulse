@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -24,6 +25,7 @@ class GlassInput extends StatefulWidget {
   final void Function(String)? onFieldSubmitted;
   final EdgeInsets? contentPadding;
   final TextAlign textAlign;
+  final List<TextInputFormatter>? inputFormatters;
 
   const GlassInput({
     super.key,
@@ -44,6 +46,7 @@ class GlassInput extends StatefulWidget {
     this.onFieldSubmitted,
     this.contentPadding,
     this.textAlign = TextAlign.start,
+    this.inputFormatters,
   });
 
   @override
@@ -102,6 +105,7 @@ class _GlassInputState extends State<GlassInput> {
       obscureText: widget.obscureText,
       readOnly: widget.readOnly,
       maxLines: widget.maxLines,
+      inputFormatters: widget.inputFormatters,
       validator: widget.validator,
       onChanged: widget.onChanged,
       onTap: widget.onTap,

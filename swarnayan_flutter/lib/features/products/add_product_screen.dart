@@ -310,6 +310,7 @@ class _AddProductScreenState extends ConsumerState<AddProductScreen> {
                       controller: _nameController,
                       label: 'Product Name',
                       hint: 'Enter product name',
+                      inputFormatters: [TitleCaseTextInputFormatter()],
                       validator: (v) => Validators.validateRequired(v, 'Product Name'),
                       onFieldSubmitted: (_) => _categoryFocusNode.requestFocus(),
                     ),

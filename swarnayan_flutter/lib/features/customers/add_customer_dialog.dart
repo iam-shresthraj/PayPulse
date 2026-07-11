@@ -281,6 +281,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       label: 'Full Name',
                       hint: 'Enter customer name',
                       prefixIcon:  Icon(Icons.person_outline_rounded, color: AppColors.primary),
+                      inputFormatters: [TitleCaseTextInputFormatter()],
                       validator: (v) => Validators.validateRequired(v, 'Name'),
                       onFieldSubmitted: (_) => _mobileFocusNode.requestFocus(),
                     ),

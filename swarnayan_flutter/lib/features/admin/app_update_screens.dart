@@ -13,6 +13,7 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/primary_button.dart';
 import 'platform_settings_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// ────────────────────────────────────────────────────────────────────────────
 /// 1. User side: Download App Screen

@@ -12,6 +12,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/primary_button.dart';
 import 'platform_settings_provider.dart';
+import 'package:intl/intl.dart';
 
 /// ────────────────────────────────────────────────────────────────────────────
 /// 1. User side: Download App Screen
@@ -234,9 +235,53 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
   bool _isUploadingApk = false;
   bool _isSaving = false;
 
+  List<Map<String, dynamic>> _releases = [];
+  bool _isLoadingReleases = true;
+
+  Future<void> _loadPreviousReleases() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('notifications')
+          .select()
+          .like('title', 'New App Update Available: v%')
+          .order('created_at', ascending: false);
+      if (mounted) {
+        setState(() {
+          _releases = List<Map<String, dynamic>>.from(response);
+          _isLoadingReleases = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading releases: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingReleases = false;
+        });
+      }
+    }
+  }
+
+  String _formatDate(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      return DateFormat('dd MMM yyyy').format(dt);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _extractVersion(String title) {
+    const prefix = 'New App Update Available: ';
+    if (title.startsWith(prefix)) {
+      return title.substring(prefix.length);
+    }
+    return title;
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadPreviousReleases();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final settings = ref.read(platformSettingsProvider).asData?.value;
       if (settings != null) {
@@ -353,6 +398,7 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('App Settings saved successfully!')),
         );
+        _loadPreviousReleases();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save settings: $error')),
@@ -363,6 +409,35 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
   }
 
   Widget _buildPreviousReleasesCard() {
+    if (_isLoadingReleases) {
+      return GlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    final releasesToShow = _releases.isNotEmpty
+        ? _releases
+        : [
+            {
+              'title': 'New App Update Available: v0.9.9',
+              'body': 'Fixed decimal precision on invoice PDFs and added dynamic spacing controls for print margins.',
+              'created_at': '2026-07-02T12:00:00Z',
+            },
+            {
+              'title': 'New App Update Available: v0.9.5',
+              'body': 'Introduced system branding custom themes, enhanced dark mode contrast, and optimized product search filters.',
+              'created_at': '2026-06-18T12:00:00Z',
+            },
+            {
+              'title': 'New App Update Available: v0.9.0',
+              'body': 'Initial release of core billing engine, store-wise accounting records, and client access management systems.',
+              'created_at': '2026-05-25T12:00:00Z',
+            },
+          ];
+
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -379,23 +454,26 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildReleaseHistoryItem(
-            version: 'v0.9.9',
-            date: '02 Jul 2026',
-            log: 'Fixed decimal precision on invoice PDFs and added dynamic spacing controls for print margins.',
-          ),
-          const Divider(height: 24, thickness: 0.5, color: Colors.white24),
-          _buildReleaseHistoryItem(
-            version: 'v0.9.5',
-            date: '18 Jun 2026',
-            log: 'Introduced system branding custom themes, enhanced dark mode contrast, and optimized product search filters.',
-          ),
-          const Divider(height: 24, thickness: 0.5, color: Colors.white24),
-          _buildReleaseHistoryItem(
-            version: 'v0.9.0',
-            date: '25 May 2026',
-            log: 'Initial release of core billing engine, store-wise accounting records, and client access management systems.',
-          ),
+          ...List.generate(releasesToShow.length, (index) {
+            final item = releasesToShow[index];
+            final title = item['title']?.toString() ?? '';
+            final version = _extractVersion(title);
+            final log = item['body']?.toString() ?? '';
+            final createdAtRaw = item['created_at']?.toString() ?? '';
+            final date = _formatDate(createdAtRaw);
+
+            return Column(
+              children: [
+                _buildReleaseHistoryItem(
+                  version: version,
+                  date: date,
+                  log: log,
+                ),
+                if (index < releasesToShow.length - 1)
+                  const Divider(height: 24, thickness: 0.5, color: Colors.white24),
+              ],
+            );
+          }),
         ],
       ),
     );

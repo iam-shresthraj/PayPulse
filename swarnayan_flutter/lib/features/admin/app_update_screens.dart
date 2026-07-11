@@ -396,9 +396,36 @@ class _AdminAppUpdateScreenState extends ConsumerState<AdminAppUpdateScreen> {
 
       final error = await ref.read(platformSettingsProvider.notifier).updateSettings(updated);
       if (error == null) {
+        if (current.appVersion != updated.appVersion ||
+            current.appApkUrl != updated.appApkUrl ||
+            current.appUpdateLog != updated.appUpdateLog) {
+          try {
+            final existing = await Supabase.instance.client
+                .from('notifications')
+                .select('id, body')
+                .eq('title', 'New App Update Available: v${updated.appVersion}')
+                .maybeSingle();
+
+            if (existing == null) {
+              await Supabase.instance.client.from('notifications').insert({
+                'title': 'New App Update Available: v${updated.appVersion}',
+                'body': updated.appUpdateLog,
+                'target_role': 'ALL',
+              });
+            } else if (existing['body'] != updated.appUpdateLog) {
+              await Supabase.instance.client
+                  .from('notifications')
+                  .update({'body': updated.appUpdateLog})
+                  .eq('id', existing['id']);
+            }
+          } catch (e) {
+            debugPrint('Error handling release notification: $e');
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('App Settings saved successfully!')),
         );
+        await Future.delayed(const Duration(milliseconds: 300));
         _loadPreviousReleases();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

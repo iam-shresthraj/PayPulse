@@ -33,7 +33,10 @@ class WhatsAppHelper {
     final String invoiceNumber = invoice.invoiceNumber ?? 'N/A';
     final String totalAmount = invoice.finalPayable.toStringAsFixed(2);
     final String balanceDue = invoice.balanceDue.toStringAsFixed(2);
-    final String firstName = _toPascalCase(customer.name);
+    final String rawName = customer.name.isNotEmpty && customer.name.toLowerCase() != 'client'
+        ? customer.name
+        : (invoice.tempCustomerName?.isNotEmpty == true ? invoice.tempCustomerName! : 'Customer');
+    final String firstName = _toPascalCase(rawName);
 
     final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'PayPulse';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';

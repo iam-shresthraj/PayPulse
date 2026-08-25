@@ -165,6 +165,75 @@ class PdfHelper {
 
     final double totalMakingCharge = invoice.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
 
+    // Determine effective customer details combining customer and invoice fallback fields
+    final String effName = (customer.name.trim().isNotEmpty && customer.name.trim().toLowerCase() != 'client')
+        ? customer.name.trim()
+        : (invoice.tempCustomerName != null && invoice.tempCustomerName!.trim().isNotEmpty
+            ? invoice.tempCustomerName!.trim()
+            : (customer.name.trim().isNotEmpty && customer.name.trim().toLowerCase() != 'client'
+                ? customer.name.trim()
+                : ''));
+
+    final String effMobile = customer.mobile.trim().isNotEmpty
+        ? customer.mobile.trim()
+        : (invoice.tempCustomerMobile != null && invoice.tempCustomerMobile!.trim().isNotEmpty
+            ? invoice.tempCustomerMobile!.trim()
+            : '');
+
+    final String effAddr = (customer.address != null && customer.address!.trim().isNotEmpty)
+        ? customer.address!.trim()
+        : (invoice.tempCustomerAddress != null && invoice.tempCustomerAddress!.trim().isNotEmpty
+            ? invoice.tempCustomerAddress!.trim()
+            : '');
+
+    final String effCity = (customer.city != null && customer.city!.trim().isNotEmpty)
+        ? customer.city!.trim()
+        : (invoice.tempCustomerCity != null && invoice.tempCustomerCity!.trim().isNotEmpty
+            ? invoice.tempCustomerCity!.trim()
+            : '');
+
+    final String effState = (customer.state != null && customer.state!.trim().isNotEmpty)
+        ? customer.state!.trim()
+        : (invoice.tempCustomerState != null && invoice.tempCustomerState!.trim().isNotEmpty
+            ? invoice.tempCustomerState!.trim()
+            : '');
+
+    final String effPincode = (customer.pincode != null && customer.pincode!.trim().isNotEmpty)
+        ? customer.pincode!.trim()
+        : (invoice.tempCustomerPincode != null && invoice.tempCustomerPincode!.trim().isNotEmpty
+            ? invoice.tempCustomerPincode!.trim()
+            : '');
+
+    final String? effEmail = (customer.email != null && customer.email!.trim().isNotEmpty)
+        ? customer.email!.trim()
+        : null;
+
+    final String? effPan = (customer.panCard != null && customer.panCard!.trim().isNotEmpty)
+        ? customer.panCard!.trim()
+        : null;
+
+    final String? effGst = (customer.gstNumber != null && customer.gstNumber!.trim().isNotEmpty)
+        ? customer.gstNumber!.trim()
+        : null;
+
+    final String? effNote = (customer.additionalNote != null && customer.additionalNote!.trim().isNotEmpty)
+        ? customer.additionalNote!.trim()
+        : null;
+
+    final addressParts = <String>[];
+    if (effAddr.isNotEmpty) addressParts.add(effAddr);
+    if (effCity.isNotEmpty && !effAddr.toLowerCase().contains(effCity.toLowerCase())) addressParts.add(effCity);
+    if (effState.isNotEmpty && !effAddr.toLowerCase().contains(effState.toLowerCase())) addressParts.add(effState);
+    String fullAddress = addressParts.join(', ');
+    if (effPincode.isNotEmpty && !fullAddress.contains(effPincode)) {
+      fullAddress += (fullAddress.isNotEmpty ? ' - ' : '') + effPincode;
+    }
+
+    String formattedCustPhone = effMobile;
+    if (formattedCustPhone.length == 10 && !formattedCustPhone.startsWith('+')) {
+      formattedCustPhone = '+91 $formattedCustPhone';
+    }
+
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -278,49 +347,56 @@ class PdfHelper {
                           style: pw.TextStyle(font: fontBold, fontSize: 9, color: PdfColors.grey600),
                         ),
                         pw.SizedBox(height: 3),
-                        if (customer.name.isNotEmpty && customer.name.toLowerCase() != 'client')
-                          pw.Text(
-                            customer.name,
-                            style: pw.TextStyle(font: fontBold, fontSize: 11),
-                          ),
-                        if (customer.mobile.isNotEmpty)
+                        pw.Text(
+                          effName.isNotEmpty ? effName : 'Cash / Counter Customer',
+                          style: pw.TextStyle(font: fontBold, fontSize: 11),
+                        ),
+                        if (formattedCustPhone.isNotEmpty)
                           pw.Padding(
-                            padding: const pw.EdgeInsets.only(top: 1),
+                            padding: const pw.EdgeInsets.only(top: 1.5),
                             child: pw.Text(
-                              'Mobile: ${customer.mobile}',
+                              'Phone: $formattedCustPhone',
                               style: pw.TextStyle(font: fontData, fontSize: 9),
                             ),
                           ),
-                        if (customer.email != null && customer.email!.isNotEmpty)
+                        if (effEmail != null)
                           pw.Padding(
-                            padding: const pw.EdgeInsets.only(top: 1),
+                            padding: const pw.EdgeInsets.only(top: 1.5),
                             child: pw.Text(
-                              'Email: ${customer.email!}',
+                              'Email: $effEmail',
                               style: pw.TextStyle(font: fontData, fontSize: 9),
                             ),
                           ),
-                        if (customer.address != null && customer.address!.isNotEmpty)
+                        if (fullAddress.isNotEmpty)
                           pw.Padding(
-                            padding: const pw.EdgeInsets.only(top: 1),
+                            padding: const pw.EdgeInsets.only(top: 1.5),
                             child: pw.Text(
-                              'Address: ${customer.address!}${customer.city != null && customer.city!.isNotEmpty ? ', ${customer.city!}' : ''}${customer.state != null && customer.state!.isNotEmpty ? ', ${customer.state!}' : ''}${customer.pincode != null && customer.pincode!.isNotEmpty ? ' - ${customer.pincode!}' : ''}',
+                              'Address: $fullAddress',
                               style: pw.TextStyle(font: fontData, fontSize: 9),
                             ),
                           ),
-                        if (customer.panCard != null && customer.panCard!.isNotEmpty)
+                        if (effPan != null)
                           pw.Padding(
                             padding: const pw.EdgeInsets.only(top: 2),
                             child: pw.Text(
-                              'PAN Card: ${customer.panCard!}',
+                              'PAN Card: $effPan',
                               style: pw.TextStyle(font: fontBold, fontSize: 9),
                             ),
                           ),
-                        if (customer.gstNumber != null && customer.gstNumber!.isNotEmpty)
+                        if (effGst != null)
                           pw.Padding(
                             padding: const pw.EdgeInsets.only(top: 2),
                             child: pw.Text(
-                              'GSTIN: ${customer.gstNumber!}',
+                              'GSTIN: $effGst',
                               style: pw.TextStyle(font: fontBold, fontSize: 9),
+                            ),
+                          ),
+                        if (effNote != null)
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.only(top: 2),
+                            child: pw.Text(
+                              'Note: $effNote',
+                              style: pw.TextStyle(font: fontData, fontSize: 8.5, color: PdfColors.grey700),
                             ),
                           ),
                       ],

@@ -192,12 +192,96 @@ class HomeScreen extends ConsumerWidget {
           );
         },
         loading: () => _buildDashboardSkeleton(),
-        error: (err, _) => Center(
-          child: Text(
-            'Error loading stats: $err',
-            style: AppTextStyles.bodyMd.copyWith(color: AppColors.error),
-          ),
-        ),
+        error: (err, _) {
+          final errStr = err.toString();
+          final isJwtFuture = errStr.contains('JWT issued at future') || errStr.contains('PGRST303');
+          final isAuthError = isJwtFuture || errStr.contains('Unauthorized') || errStr.contains('JWT');
+
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 40.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isJwtFuture ? Icons.access_time_filled_rounded : Icons.error_outline_rounded,
+                      size: 40,
+                      color: AppColors.error,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    isJwtFuture
+                        ? 'Device Time Desynchronized'
+                        : 'Failed to Load Dashboard',
+                    style: AppTextStyles.titleMd.copyWith(
+                      color: AppColors.onBackground,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isJwtFuture
+                        ? 'Your device clock is ahead of server time. Please enable "Set Time Automatically" in your phone Settings, or sign in again.'
+                        : 'An error occurred while fetching dashboard statistics: $errStr',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.onSurfaceMuted,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          ref.invalidate(invoicesProvider);
+                          ref.invalidate(customersProvider);
+                          ref.invalidate(dailyRatesProvider);
+                        },
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('Retry'),
+                      ),
+                      if (isAuthError)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.onBackground,
+                            side: BorderSide(color: AppColors.border),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => ref.read(authProvider.notifier).logout(),
+                          icon: const Icon(Icons.logout_rounded, size: 18),
+                          label: const Text('Sign In Again'),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -213,16 +297,16 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           const ChartSkeleton(),
           const SizedBox(height: 20),
-          Row(
-            children: const [
+          const Row(
+            children: [
               Expanded(child: StatCardSkeleton()),
               SizedBox(width: 12),
               Expanded(child: StatCardSkeleton()),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: const [
+          const Row(
+            children: [
               Expanded(child: StatCardSkeleton()),
               SizedBox(width: 12),
               Expanded(child: StatCardSkeleton()),
@@ -1111,9 +1195,17 @@ class HomeScreen extends ConsumerWidget {
           final inv = entry.value;
 
           final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
-          final customer = customerIndex != -1
+          final Customer customer = customerIndex != -1
               ? customers[customerIndex] as Customer
-              : Customer(id: inv.customerId ?? '', name: 'Client', mobile: '', address: '');
+              : Customer(
+                  id: inv.customerId ?? '',
+                  name: (inv.tempCustomerName != null && inv.tempCustomerName!.isNotEmpty) ? inv.tempCustomerName! : 'Customer',
+                  mobile: inv.tempCustomerMobile ?? '',
+                  address: inv.tempCustomerAddress ?? '',
+                  pincode: inv.tempCustomerPincode,
+                  city: inv.tempCustomerCity,
+                  state: inv.tempCustomerState,
+                );
           final customerName = customer.name;
 
           final String badgeStatus = inv.balanceDue <= 0 ? 'PAID' : 'PARTIAL';
@@ -1248,8 +1340,35 @@ class HomeScreen extends ConsumerWidget {
                   style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, letterSpacing: 1.0),
                 ),
                 const SizedBox(height: 6),
-                Text(customer.name, style: AppTextStyles.cardTitle),
-                Text(customer.mobile, style: AppTextStyles.cardSubtitle),
+                Text(
+                  customer.name.isNotEmpty ? customer.name : 'Customer',
+                  style: AppTextStyles.cardTitle,
+                ),
+                if (customer.mobile.isNotEmpty)
+                  Text(customer.mobile, style: AppTextStyles.cardSubtitle),
+                if (customer.address != null && customer.address!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '${customer.address!}${customer.city != null && customer.city!.isNotEmpty ? ', ${customer.city!}' : ''}${customer.state != null && customer.state!.isNotEmpty ? ', ${customer.state!}' : ''}${customer.pincode != null && customer.pincode!.isNotEmpty ? ' - ${customer.pincode!}' : ''}',
+                      style: AppTextStyles.cardSubtitle,
+                    ),
+                  ),
+                if (customer.email != null && customer.email!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('Email: ${customer.email!}', style: AppTextStyles.cardSubtitle),
+                  ),
+                if (customer.panCard != null && customer.panCard!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('PAN: ${customer.panCard!}', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceDim)),
+                  ),
+                if (customer.gstNumber != null && customer.gstNumber!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('GSTIN: ${customer.gstNumber!}', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceDim)),
+                  ),
                 const SizedBox(height: 16),
                 Text(
                   'ITEMS',

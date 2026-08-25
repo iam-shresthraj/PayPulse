@@ -20,6 +20,26 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
 
   final _client = Supabase.instance.client;
 
+  Customer _mapCustomerFromDb(Map<String, dynamic> data) {
+    return Customer(
+      id: data['id'],
+      mobile: data['mobile'] ?? '',
+      name: data['name'] ?? '',
+      email: data['email'],
+      address: data['address'],
+      pincode: data['pincode'],
+      city: data['city'],
+      state: data['state'],
+      panCard: data['pan_card'],
+      gstNumber: data['gst_number'],
+      additionalNote: data['additional_note'],
+      totalPurchaseAmount: (data['total_purchase_amount'] as num?)?.toDouble() ?? 0.0,
+      totalInvoices: data['total_invoices'] ?? 0,
+      lastVisitDate: data['last_visit_date'] != null ? DateTime.parse(data['last_visit_date']) : null,
+      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : null,
+    );
+  }
+
   Invoice _mapInvoice(Map<String, dynamic> data) {
     final itemsList = (data['items'] as List?) ?? [];
     final items = itemsList.map((item) => InvoiceItem.fromJson(Map<String, dynamic>.from(item))).toList();
@@ -710,14 +730,47 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
     try {
       final customersList = _ref.read(customersProvider).value ?? [];
       final customerIndex = customersList.indexWhere((c) => c.id == invoice.customerId);
-      final Customer customer = customerIndex != -1 
-          ? customersList[customerIndex]
-          : Customer(
-              id: '',
-              name: invoice.tempCustomerName ?? 'Customer',
+      Customer customer;
+      if (customerIndex != -1) {
+        customer = customersList[customerIndex];
+      } else if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
+        try {
+          final custDoc = await _client.from('customers').select().eq('id', invoice.customerId!).maybeSingle();
+          if (custDoc != null) {
+            customer = _mapCustomerFromDb(custDoc);
+          } else {
+            customer = Customer(
+              id: invoice.customerId ?? '',
+              name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
               mobile: invoice.tempCustomerMobile ?? '',
               address: invoice.tempCustomerAddress ?? '',
+              pincode: invoice.tempCustomerPincode,
+              city: invoice.tempCustomerCity,
+              state: invoice.tempCustomerState,
             );
+          }
+        } catch (_) {
+          customer = Customer(
+            id: invoice.customerId ?? '',
+            name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
+            mobile: invoice.tempCustomerMobile ?? '',
+            address: invoice.tempCustomerAddress ?? '',
+            pincode: invoice.tempCustomerPincode,
+            city: invoice.tempCustomerCity,
+            state: invoice.tempCustomerState,
+          );
+        }
+      } else {
+        customer = Customer(
+          id: '',
+          name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
+          mobile: invoice.tempCustomerMobile ?? '',
+          address: invoice.tempCustomerAddress ?? '',
+          pincode: invoice.tempCustomerPincode,
+          city: invoice.tempCustomerCity,
+          state: invoice.tempCustomerState,
+        );
+      }
 
       await _ref.read(companyProvider.notifier).loadCompanySettings();
       final companySettings = _ref.read(companyProvider).value;

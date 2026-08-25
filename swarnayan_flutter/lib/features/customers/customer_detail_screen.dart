@@ -508,8 +508,35 @@ class CustomerDetailScreen extends ConsumerWidget {
                   style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10, letterSpacing: 1.0),
                 ),
                 const SizedBox(height: 6),
-                Text(customer.name, style: AppTextStyles.cardTitle),
-                Text(customer.mobile, style: AppTextStyles.cardSubtitle),
+                Text(
+                  customer.name.isNotEmpty ? customer.name : 'Customer',
+                  style: AppTextStyles.cardTitle,
+                ),
+                if (customer.mobile.isNotEmpty)
+                  Text(customer.mobile, style: AppTextStyles.cardSubtitle),
+                if (customer.address != null && customer.address!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '${customer.address!}${customer.city != null && customer.city!.isNotEmpty ? ', ${customer.city!}' : ''}${customer.state != null && customer.state!.isNotEmpty ? ', ${customer.state!}' : ''}${customer.pincode != null && customer.pincode!.isNotEmpty ? ' - ${customer.pincode!}' : ''}',
+                      style: AppTextStyles.cardSubtitle,
+                    ),
+                  ),
+                if (customer.email != null && customer.email!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('Email: ${customer.email!}', style: AppTextStyles.cardSubtitle),
+                  ),
+                if (customer.panCard != null && customer.panCard!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('PAN: ${customer.panCard!}', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceDim)),
+                  ),
+                if (customer.gstNumber != null && customer.gstNumber!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('GSTIN: ${customer.gstNumber!}', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceDim)),
+                  ),
                 const SizedBox(height: 16),
                 Text(
                   'ITEMS',

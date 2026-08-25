@@ -46,10 +46,13 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
       customer = customers[customerIndex];
     } else {
       customer = Customer(
-        id: '',
-        name: invoice.tempCustomerName ?? 'Customer',
+        id: invoice.customerId ?? '',
+        name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
         mobile: invoice.tempCustomerMobile ?? '',
         address: invoice.tempCustomerAddress ?? '',
+        pincode: invoice.tempCustomerPincode,
+        city: invoice.tempCustomerCity,
+        state: invoice.tempCustomerState,
         totalPurchaseAmount: 0.0,
         totalInvoices: 0,
       );
@@ -594,13 +597,17 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                               IconButton(
                                                 icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                                                 onPressed: () async {
-                                                  final customer = customerIndex != -1 
-                                                      ? customers[customerIndex] 
-                                                      : Customer(
-                                                          name: inv.tempCustomerName ?? 'Customer',
-                                                          mobile: inv.tempCustomerMobile ?? '',
-                                                          address: inv.tempCustomerAddress ?? '',
-                                                        );
+                                                   final customer = customerIndex != -1 
+                                                       ? customers[customerIndex] 
+                                                       : Customer(
+                                                           id: inv.customerId ?? '',
+                                                           name: (inv.tempCustomerName != null && inv.tempCustomerName!.isNotEmpty) ? inv.tempCustomerName! : 'Customer',
+                                                           mobile: inv.tempCustomerMobile ?? '',
+                                                           address: inv.tempCustomerAddress ?? '',
+                                                           pincode: inv.tempCustomerPincode,
+                                                           city: inv.tempCustomerCity,
+                                                           state: inv.tempCustomerState,
+                                                         );
                                                   final company = ref.read(companyProvider).value;
                                                   await WhatsAppHelper.shareInvoice(
                                                     invoice: inv,

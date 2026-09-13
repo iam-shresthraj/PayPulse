@@ -791,10 +791,12 @@ class PdfHelper {
     );
   }
 
+  static const PdfColor tableHeaderBg = PdfColor.fromInt(0xffd4d4d4);
+
   static pw.Widget _tableHeaderCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.center}) {
     return pw.Container(
       decoration: const pw.BoxDecoration(
-        color: PdfColors.grey200,
+        color: tableHeaderBg,
         border: pw.Border(
           bottom: pw.BorderSide(color: darkColor, width: 0.5),
         ),
@@ -807,7 +809,7 @@ class PdfHelper {
               : pw.Alignment.center,
       child: pw.Text(
         text,
-        style: pw.TextStyle(font: font, fontSize: 7.5),
+        style: pw.TextStyle(font: font, fontSize: 7.5, color: darkColor),
         textAlign: align,
       ),
     );
@@ -824,7 +826,7 @@ class PdfHelper {
               : pw.Alignment.centerLeft,
       child: pw.Text(
         text.isEmpty ? ' ' : text,
-        style: pw.TextStyle(font: font, fontSize: 7.5),
+        style: pw.TextStyle(font: font, fontSize: 7.5, color: darkColor),
         textAlign: align,
       ),
     );

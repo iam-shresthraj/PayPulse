@@ -143,6 +143,9 @@ class PdfHelper {
       onLayout: (PdfPageFormat format) async => doc.save(),
       name: docTitle,
     );
+
+    // Restore tab title after print dialog has opened/closed (title already captured by browser)
+    updateBrowserTitle('PayPulse');
   }
 
   static Future<void> downloadInvoicePdf({
@@ -158,6 +161,11 @@ class PdfHelper {
       company: company,
     );
     await FileSaverHelper.savePdfFile(pdfBytes, '$docTitle.pdf');
+
+    // Restore tab title after download has been triggered
+    Future.delayed(const Duration(seconds: 3), () {
+      updateBrowserTitle('PayPulse');
+    });
   }
 
   static Future<Uint8List> generateInvoicePdfBytes({

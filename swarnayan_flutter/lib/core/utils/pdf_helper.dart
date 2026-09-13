@@ -76,6 +76,8 @@ class PdfHelper {
     decimalDigits: 2,
   );
 
+  static const PdfColor darkColor = PdfColor.fromInt(0xff1f1f1f);
+
   /// Generates the standardized invoice title/file name:
   /// "{Invoice number} - {Customer name}"
   static String getInvoiceDocumentTitle({
@@ -305,7 +307,7 @@ class PdfHelper {
                           style: pw.TextStyle(
                             font: fontItalic,
                             fontSize: 9,
-                            color: PdfColors.grey700,
+                            color: darkColor,
                           ),
                         ),
                         pw.Text(
@@ -313,7 +315,7 @@ class PdfHelper {
                           style: pw.TextStyle(
                             font: fontData,
                             fontSize: 8.5,
-                            color: PdfColors.grey700,
+                            color: darkColor,
                           ),
                         ),
                         pw.SizedBox(height: 4),
@@ -371,7 +373,7 @@ class PdfHelper {
               ),
 
               pw.SizedBox(height: 8),
-              pw.Divider(thickness: 1, color: PdfColors.grey400),
+              pw.Divider(thickness: 1, color: darkColor),
               pw.SizedBox(height: 6),
 
               // Customer Details block
@@ -384,7 +386,7 @@ class PdfHelper {
                       children: [
                         pw.Text(
                           'BILLED TO:',
-                          style: pw.TextStyle(font: fontBold, fontSize: 9, color: PdfColors.grey600),
+                          style: pw.TextStyle(font: fontBold, fontSize: 9, color: darkColor),
                         ),
                         pw.SizedBox(height: 3),
                         pw.Text(
@@ -436,7 +438,7 @@ class PdfHelper {
                             padding: const pw.EdgeInsets.only(top: 2),
                             child: pw.Text(
                               'Note: $effNote',
-                              style: pw.TextStyle(font: fontData, fontSize: 8.5, color: PdfColors.grey700),
+                              style: pw.TextStyle(font: fontData, fontSize: 8.5, color: darkColor),
                             ),
                           ),
                       ],
@@ -450,11 +452,11 @@ class PdfHelper {
               // Items Table
               pw.Table(
                 border: const pw.TableBorder(
-                  top: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  left: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  right: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  verticalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  top: pw.BorderSide(color: darkColor, width: 0.5),
+                  bottom: pw.BorderSide(color: darkColor, width: 0.5),
+                  left: pw.BorderSide(color: darkColor, width: 0.5),
+                  right: pw.BorderSide(color: darkColor, width: 0.5),
+                  verticalInside: pw.BorderSide(color: darkColor, width: 0.5),
                   horizontalInside: pw.BorderSide.none,
                 ),
                 columnWidths: {
@@ -542,7 +544,7 @@ class PdfHelper {
                       children: [
                         pw.Text(
                           'PAYMENT DETAILS:',
-                          style: pw.TextStyle(font: fontBold, fontSize: 9, color: PdfColors.grey600),
+                          style: pw.TextStyle(font: fontBold, fontSize: 9, color: darkColor),
                         ),
                         pw.SizedBox(height: 4),
                         if (invoice.payments.where((pay) => pay.amount > 0).isNotEmpty) ...[
@@ -582,7 +584,7 @@ class PdfHelper {
                           ),
                         ],
                         pw.SizedBox(height: 4),
-                        pw.Divider(thickness: 0.5, color: PdfColors.grey300),
+                        pw.Divider(thickness: 0.5, color: darkColor),
                         pw.SizedBox(height: 4),
                         pw.Row(
                           children: [
@@ -615,7 +617,7 @@ class PdfHelper {
                         pw.SizedBox(height: 10),
                         pw.Text(
                           'AMOUNT IN WORDS:',
-                          style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey600),
+                          style: pw.TextStyle(font: fontBold, fontSize: 8, color: darkColor),
                         ),
                         pw.SizedBox(height: 2),
                         pw.Text(
@@ -655,7 +657,7 @@ class PdfHelper {
                           _summaryRow('Roundoff:', _currencyFormat.format(invoice.finalPayable.roundToDouble() - (invoice.netAmount - (invoice.oldGold?.metalValue ?? 0))), fontData, fontData),
 
                         pw.SizedBox(height: 3),
-                        pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+                        pw.Divider(thickness: 0.5, color: darkColor),
                         pw.SizedBox(height: 3),
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -684,7 +686,7 @@ class PdfHelper {
                 pw.Center(
                   child: pw.Text(
                     'This is a computer-generated invoice and does not require a physical signature.',
-                    style: pw.TextStyle(font: fontItalic, fontSize: 8.5, color: PdfColors.grey700),
+                    style: pw.TextStyle(font: fontItalic, fontSize: 8.5, color: darkColor),
                   ),
                 )
               else
@@ -736,7 +738,7 @@ class PdfHelper {
               pw.SizedBox(height: 12),
 
               // Footer Declarations (Anchored cleanly at bottom)
-              pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+              pw.Divider(thickness: 0.5, color: darkColor),
               pw.SizedBox(height: 5),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -753,7 +755,7 @@ class PdfHelper {
                       ...cTerms.asMap().entries.map((entry) {
                         return pw.Text(
                           '${entry.key + 1}. ${entry.value}',
-                          style: pw.TextStyle(font: fontData, fontSize: 6.5, color: PdfColors.grey700),
+                          style: pw.TextStyle(font: fontData, fontSize: 6.5, color: darkColor),
                         );
                       }),
                     ],
@@ -777,7 +779,7 @@ class PdfHelper {
         children: [
           pw.Text(
             label,
-            style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey700),
+            style: pw.TextStyle(font: fontBold, fontSize: 8, color: darkColor),
           ),
           pw.SizedBox(width: 6),
           pw.Text(
@@ -794,7 +796,7 @@ class PdfHelper {
       decoration: const pw.BoxDecoration(
         color: PdfColors.grey200,
         border: pw.Border(
-          bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+          bottom: pw.BorderSide(color: darkColor, width: 0.5),
         ),
       ),
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -836,7 +838,7 @@ class PdfHelper {
         children: [
           pw.Text(
             label,
-            style: pw.TextStyle(font: fontLabel, fontSize: 8.5, color: PdfColors.grey700),
+            style: pw.TextStyle(font: fontLabel, fontSize: 8.5, color: darkColor),
           ),
           pw.Text(
             value,

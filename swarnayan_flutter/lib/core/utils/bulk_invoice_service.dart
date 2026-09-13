@@ -10,6 +10,7 @@ import '../../models/company_settings.dart';
 import '../../models/customer.dart';
 import '../../models/invoice.dart';
 import 'pdf_helper.dart';
+import 'file_saver_helper.dart';
 
 class BulkInvoiceParseResult {
   final List<Invoice> invoices;
@@ -308,23 +309,32 @@ class BulkInvoiceService {
   static Future<String?> saveOrShareZip(Uint8List zipBytes, {String? defaultFileName}) async {
     final fileName = defaultFileName ?? 'Swarnayan_Invoices_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.zip';
 
+    if (kIsWeb) {
+      if (fileName.toLowerCase().endsWith('.csv')) {
+        await FileSaverHelper.saveCsvFile(zipBytes, fileName);
+      } else {
+        await FileSaverHelper.saveZipFile(zipBytes, fileName);
+      }
+      return fileName;
+    }
+
     try {
-      if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
         final String? outputFile = await FilePicker.saveFile(
           dialogTitle: 'Save Invoices ZIP Archive',
           fileName: fileName,
           type: FileType.custom,
-          allowedExtensions: ['zip'],
+          allowedExtensions: ['zip', 'csv'],
         );
 
         if (outputFile != null) {
-          final file = File(outputFile.endsWith('.zip') ? outputFile : '$outputFile.zip');
+          final file = File(outputFile.endsWith('.zip') || outputFile.endsWith('.csv') ? outputFile : '$outputFile.zip');
           await file.writeAsBytes(zipBytes);
           return file.path;
         }
         return null;
       } else {
-        // Mobile / Android / iOS / Web fallback
+        // Mobile / Android / iOS fallback
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/$fileName');
         await file.writeAsBytes(zipBytes);
@@ -332,17 +342,21 @@ class BulkInvoiceService {
         // Try SharePlus for mobile download
         await Share.shareXFiles(
           [XFile(file.path)],
-          subject: 'Swarnayan Invoices Bulk ZIP',
+          subject: 'Swarnayan Invoices Bulk Export',
         );
         return file.path;
       }
     } catch (e) {
-      debugPrint('Error saving zip file: $e');
-      // Fallback save to temporary directory
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$fileName');
-      await file.writeAsBytes(zipBytes);
-      return file.path;
+      debugPrint('Error saving bulk export file: $e');
+      if (!kIsWeb) {
+        try {
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/$fileName');
+          await file.writeAsBytes(zipBytes);
+          return file.path;
+        } catch (_) {}
+      }
+      return null;
     }
   }
 

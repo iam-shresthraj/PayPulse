@@ -100,7 +100,23 @@ class _BulkInvoiceScreenState extends ConsumerState<BulkInvoiceScreen> {
     final sample = BulkInvoiceService.getSampleCsvTemplate();
     final bytes = Uint8List.fromList(utf8.encode(sample));
     try {
-      if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      if (kIsWeb) {
+        await BulkInvoiceService.saveOrShareZip(
+          bytes,
+          defaultFileName: 'sample_invoices_template.csv',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Sample CSV template downloaded.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
         final outputFile = await FilePicker.saveFile(
           dialogTitle: 'Save Sample Invoice CSV Template',
           fileName: 'sample_invoices_template.csv',
@@ -289,7 +305,9 @@ class _BulkInvoiceScreenState extends ConsumerState<BulkInvoiceScreen> {
             if (savedPath != null) ...[
               const SizedBox(height: 12),
               Text(
-                'File location: $savedPath',
+                kIsWeb
+                    ? 'ZIP Archive downloaded: $savedPath (saved to your browser downloads)'
+                    : 'File location: $savedPath',
                 style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceDim),
               ),
             ],

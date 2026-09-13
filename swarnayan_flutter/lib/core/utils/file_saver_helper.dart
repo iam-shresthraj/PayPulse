@@ -9,4 +9,12 @@ class FileSaverHelper {
   static Future<void> savePdfFile(List<int> bytes, String fileName) async {
     await saveFileImpl(bytes, fileName, 'application/pdf');
   }
+
+  static Future<void> saveZipFile(List<int> bytes, String fileName) async {
+    await saveFileImpl(bytes, fileName, 'application/zip');
+  }
+
+  static Future<void> saveCsvFile(List<int> bytes, String fileName) async {
+    await saveFileImpl(bytes, fileName, 'text/csv');
+  }
 }

@@ -1,10 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/invoice.dart';
-import '../../models/customer.dart';
-import '../../core/utils/pdf_helper.dart';
 import '../../core/utils/formatters.dart';
 import '../products/products_provider.dart';
 import '../customers/customers_provider.dart';
@@ -19,26 +16,6 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
   }
 
   final _client = Supabase.instance.client;
-
-  Customer _mapCustomerFromDb(Map<String, dynamic> data) {
-    return Customer(
-      id: data['id'],
-      mobile: data['mobile'] ?? '',
-      name: data['name'] ?? '',
-      email: data['email'],
-      address: data['address'],
-      pincode: data['pincode'],
-      city: data['city'],
-      state: data['state'],
-      panCard: data['pan_card'],
-      gstNumber: data['gst_number'],
-      additionalNote: data['additional_note'],
-      totalPurchaseAmount: (data['total_purchase_amount'] as num?)?.toDouble() ?? 0.0,
-      totalInvoices: data['total_invoices'] ?? 0,
-      lastVisitDate: data['last_visit_date'] != null ? DateTime.parse(data['last_visit_date']) : null,
-      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : null,
-    );
-  }
 
   Invoice _mapInvoice(Map<String, dynamic> data) {
     final itemsList = (data['items'] as List?) ?? [];
@@ -88,7 +65,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         rateSilver: (data['rates_snapshot_silver'] as num?)?.toDouble() ?? 0.0,
       ),
       deletedAt: data['deleted_at'] != null ? DateTime.parse(data['deleted_at']) : null,
-      pdfBase64: data['pdf_base64'],
+      pdfBase64: null, // Always rendered dynamically with the latest layout
     );
   }
 
@@ -190,6 +167,13 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
 
       final invoices = (data as List).map((item) => _mapInvoice(item)).toList();
       state = AsyncValue.data(invoices);
+
+      // Asynchronously wipe legacy base64 PDF blobs from database to reduce storage
+      _client
+          .from('invoices')
+          .update({'pdf_base64': null})
+          .not('pdf_base64', 'is', null)
+          .then((_) {}, onError: (_) {});
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -344,7 +328,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }).eq('id', cancelledInvoice.customerId!);
       }
       
-      final invoiceWithPdf = await _generateAndSavePdf(cancelledInvoice);
+      final invoiceWithPdf = cancelledInvoice;
 
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
@@ -544,7 +528,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .single();
       final restoredInvoice = _mapInvoice(data);
       
-      final restoredWithPdf = await _generateAndSavePdf(restoredInvoice);
+      final restoredWithPdf = restoredInvoice;
       
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
@@ -637,7 +621,6 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .single();
           
       final updatedInvoice = _mapInvoice(data);
-      final updatedWithPdf = await _generateAndSavePdf(updatedInvoice);
       
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
@@ -646,12 +629,12 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       final index = list.indexWhere((inv) => inv.id == id);
       if (index != -1) {
         final updatedList = List<Invoice>.from(list);
-        updatedList[index] = updatedWithPdf;
+        updatedList[index] = updatedInvoice;
         state = AsyncValue.data(updatedList);
       } else {
         await loadInvoices();
       }
-      return updatedWithPdf;
+      return updatedInvoice;
     } catch (e) {
       await loadInvoices();
       rethrow;
@@ -763,74 +746,6 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .eq('id', settingsData['id']);
           
     } catch (_) {}
-  }
-
-  Future<Invoice> _generateAndSavePdf(Invoice invoice) async {
-    try {
-      final customersList = _ref.read(customersProvider).value ?? [];
-      final customerIndex = customersList.indexWhere((c) => c.id == invoice.customerId);
-      Customer customer;
-      if (customerIndex != -1) {
-        customer = customersList[customerIndex];
-      } else if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
-        try {
-          final custDoc = await _client.from('customers').select().eq('id', invoice.customerId!).maybeSingle();
-          if (custDoc != null) {
-            customer = _mapCustomerFromDb(custDoc);
-          } else {
-            customer = Customer(
-              id: invoice.customerId ?? '',
-              name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
-              mobile: invoice.tempCustomerMobile ?? '',
-              address: invoice.tempCustomerAddress ?? '',
-              pincode: invoice.tempCustomerPincode,
-              city: invoice.tempCustomerCity,
-              state: invoice.tempCustomerState,
-            );
-          }
-        } catch (_) {
-          customer = Customer(
-            id: invoice.customerId ?? '',
-            name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
-            mobile: invoice.tempCustomerMobile ?? '',
-            address: invoice.tempCustomerAddress ?? '',
-            pincode: invoice.tempCustomerPincode,
-            city: invoice.tempCustomerCity,
-            state: invoice.tempCustomerState,
-          );
-        }
-      } else {
-        customer = Customer(
-          id: '',
-          name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
-          mobile: invoice.tempCustomerMobile ?? '',
-          address: invoice.tempCustomerAddress ?? '',
-          pincode: invoice.tempCustomerPincode,
-          city: invoice.tempCustomerCity,
-          state: invoice.tempCustomerState,
-        );
-      }
-
-      await _ref.read(companyProvider.notifier).loadCompanySettings();
-      final companySettings = _ref.read(companyProvider).value;
-
-      final pdfBytes = await PdfHelper.generateInvoicePdfBytes(
-        invoice: invoice,
-        customer: customer,
-        company: companySettings,
-      );
-      final pdfBase64 = base64Encode(pdfBytes);
-      
-      await _client
-          .from('invoices')
-          .update({'pdf_base64': pdfBase64})
-          .eq('id', invoice.id!);
-          
-      return invoice.copyWith(pdfBase64: pdfBase64);
-    } catch (e) {
-      debugPrint('Failed to save PDF to database: $e');
-      return invoice;
-    }
   }
 }
 

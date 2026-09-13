@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -81,16 +80,7 @@ class PdfHelper {
     required Customer customer,
     CompanySettings? company,
   }) async {
-    if (invoice.pdfBase64 != null && invoice.pdfBase64!.isNotEmpty) {
-      try {
-        final bytes = base64Decode(invoice.pdfBase64!);
-        await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async => bytes,
-          name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
-        );
-        return;
-      } catch (_) {}
-    }
+    // Always render with the latest invoice layout in real-time
     final doc = await buildInvoiceDocument(
       invoice: invoice,
       customer: customer,
@@ -326,8 +316,8 @@ class PdfHelper {
                         height: 45,
                         child: pw.BarcodeWidget(
                           barcode: pw.Barcode.qrCode(),
-                          data: company?.logoUrl.isNotEmpty == true && !company!.logoUrl.contains('maps.app.goo.gl')
-                              ? company!.logoUrl
+                          data: (company != null && company.logoUrl.isNotEmpty && !company.logoUrl.contains('maps.app.goo.gl'))
+                              ? company.logoUrl
                               : 'https://bit.ly/swarnayan-jewellers-feedback',
                           width: 45,
                           height: 45,

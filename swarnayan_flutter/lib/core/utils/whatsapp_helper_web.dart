@@ -73,7 +73,7 @@ Here is your invoice summary:
 
 *Please share your feedback* : $cFeedback
 
-$cAddressLine
+Address: $cAddressLine
 Phone: $cPhone''';
   }
 

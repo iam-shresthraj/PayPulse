@@ -504,6 +504,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text('Download PDF'),
+                  onPressed: () {
+                    PdfHelper.downloadInvoicePdf(
+                      invoice: savedInvoice,
+                      customer: customer,
+                      company: company,
+                    );
+                  },
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

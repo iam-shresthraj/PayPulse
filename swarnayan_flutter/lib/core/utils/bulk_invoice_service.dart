@@ -290,11 +290,7 @@ class BulkInvoiceService {
           company: companySettings,
         );
 
-        final cleanCust = (customer.name.trim().isNotEmpty && customer.name != 'Counter Customer')
-            ? '_${customer.name.replaceAll(RegExp(r'[^\w\-]'), '_')}'
-            : '';
-        final fileName = '${invNo.replaceAll(RegExp(r'[^\w\-]'), '_')}$cleanCust.pdf';
-
+        final fileName = '${PdfHelper.getInvoiceDocumentTitle(invoice: invoice, customer: customer)}.pdf';
         archive.addFile(ArchiveFile(fileName, pdfBytes.length, pdfBytes));
       } catch (e) {
         debugPrint('Failed to generate PDF for invoice $invNo: $e');

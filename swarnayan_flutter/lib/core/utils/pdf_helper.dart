@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../../models/company_settings.dart';
+import 'file_saver_helper.dart';
 
 String numberToRupeesWords(double amount) {
   final intAmount = amount.floor();
@@ -75,11 +76,38 @@ class PdfHelper {
     decimalDigits: 2,
   );
 
+  /// Generates the standardized invoice title/file name:
+  /// "{Invoice number} - {Customer name}"
+  static String getInvoiceDocumentTitle({
+    required Invoice invoice,
+    required Customer customer,
+  }) {
+    final String invNo = (invoice.invoiceNumber != null && invoice.invoiceNumber!.trim().isNotEmpty)
+        ? invoice.invoiceNumber!.trim()
+        : (invoice.id ?? 'INV');
+
+    String custName = customer.name.trim();
+    if (custName.isEmpty || custName.toLowerCase() == 'counter customer') {
+      if (invoice.tempCustomerName != null && invoice.tempCustomerName!.trim().isNotEmpty) {
+        custName = invoice.tempCustomerName!.trim();
+      } else {
+        custName = 'Customer';
+      }
+    }
+
+    // Clean characters prohibited in Windows, macOS, Linux file systems: \ / : * ? " < > |
+    final cleanInv = invNo.replaceAll(RegExp(r'[\\/:*?"<>|]'), '-').trim();
+    final cleanCust = custName.replaceAll(RegExp(r'[\\/:*?"<>|]'), ' ').trim();
+
+    return '$cleanInv - $cleanCust';
+  }
+
   static Future<void> generateAndPrintInvoice({
     required Invoice invoice,
     required Customer customer,
     CompanySettings? company,
   }) async {
+    final docTitle = getInvoiceDocumentTitle(invoice: invoice, customer: customer);
     // Always render with the latest invoice layout in real-time
     final doc = await buildInvoiceDocument(
       invoice: invoice,
@@ -88,8 +116,22 @@ class PdfHelper {
     );
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: '${invoice.invoiceNumber ?? invoice.id} - ${customer.name}.pdf',
+      name: '$docTitle.pdf',
     );
+  }
+
+  static Future<void> downloadInvoicePdf({
+    required Invoice invoice,
+    required Customer customer,
+    CompanySettings? company,
+  }) async {
+    final docTitle = getInvoiceDocumentTitle(invoice: invoice, customer: customer);
+    final pdfBytes = await generateInvoicePdfBytes(
+      invoice: invoice,
+      customer: customer,
+      company: company,
+    );
+    await FileSaverHelper.savePdfFile(pdfBytes, '$docTitle.pdf');
   }
 
   static Future<Uint8List> generateInvoicePdfBytes({

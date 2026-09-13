@@ -39,6 +39,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   final Set<String> _selectedStatusFilters = {'ALL'};
   final Set<String> _selectedSearchFields = {'ALL'};
   bool _isCardView = false;
+  bool _isExporting = false;
 
   static const List<({String key, String label})> _statusScopes = [
     (key: 'ALL', label: 'All Statuses'),
@@ -364,270 +365,280 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // --- Export Methods ---
 
-  Future<void> _exportToCsv(String companyName) async {
-    final buffer = StringBuffer();
-    // Complete Database CSV Schema
-    buffer.writeln('Invoice No.,Date,Customer Name,Phone,Address,Particulars,Purity,Gross Wt (gm),Net Wt (gm),Making Charge (₹),Gross Amt (₹),Discount (₹),Taxable Amt (₹),CGST (₹),SGST (₹),Total Tax (₹),Net Amt (₹),By Cash (₹),By Card (₹),By UPI (₹),Total Paid (₹),Dues (₹),Status');
-
-    for (final inv in _filteredInvoices) {
-      final invNo = inv.invoiceNumber ?? inv.id ?? '';
-      final date = DateFormat('dd/MM/yyyy').format(inv.invoiceDate);
-      final custName = _escapeCsv(_getCustomerName(inv));
-      final phone = _escapeCsv(_getCustomerPhone(inv));
-      final address = _escapeCsv(_getCustomerAddress(inv));
-      final products = _escapeCsv(_getProductDetails(inv));
-      final purity = _escapeCsv(_getPurity(inv));
-      final grossWt = _getTotalGrossWeight(inv).toStringAsFixed(3);
-      final netWt = _getTotalNetWeight(inv).toStringAsFixed(3);
-      final makingCharge = inv.items.fold<double>(0, (s, i) => s + i.makingChargeTotal).toStringAsFixed(2);
-      final grossAmt = inv.grossAmount.toStringAsFixed(2);
-      final discount = (inv.couponDiscount + inv.manualDiscount).toStringAsFixed(2);
-      final taxable = inv.taxableAmount.toStringAsFixed(2);
-      final cgst = inv.cgst.toStringAsFixed(2);
-      final sgst = inv.sgst.toStringAsFixed(2);
-      final totalTax = inv.totalTax.toStringAsFixed(2);
-      final netAmt = inv.netAmount.toStringAsFixed(2);
-
-      final cash = _getCashPaid(inv).toStringAsFixed(2);
-      final card = _getCardPaid(inv).toStringAsFixed(2);
-      final upi = _getUpiPaid(inv).toStringAsFixed(2);
-      final totalPaid = inv.totalAmountPaid.toStringAsFixed(2);
-      final dues = inv.balanceDue.toStringAsFixed(2);
-      final status = _getInvoiceStatus(inv);
-
-      buffer.writeln('$invNo,$date,$custName,$phone,$address,$products,$purity,$grossWt,$netWt,$makingCharge,$grossAmt,$discount,$taxable,$cgst,$sgst,$totalTax,$netAmt,$cash,$card,$upi,$totalPaid,$dues,$status');
-    }
-
-    final bytes = utf8.encode(buffer.toString());
-    await FileSaverHelper.saveCsvFile(
-      bytes,
-      'PayPulse_${companyName.replaceAll(' ', '_')}_Invoices_Database_${DateFormat('dd-MM-yyyy').format(DateTime.now())}.csv',
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Exported ${_filteredInvoices.length} records as CSV database file.'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
+  String _getReportFileName(String companyName, String extension) {
+    final cleanCompany = companyName.trim().replaceAll(RegExp(r'[\\/:*?"<>| ]'), '_');
+    final startStr = DateFormat('dd-MM-yyyy').format(_startDate);
+    final endStr = DateFormat('dd-MM-yyyy').format(_endDate);
+    final dateRangeStr = startStr == endStr ? startStr : '${startStr}_to_$endStr';
+    return '${cleanCompany}_Report_$dateRangeStr.$extension';
   }
 
-  void _exportToExcel(String companyName) {
-    final excel = Excel.createExcel();
-    final sheetName = excel.sheets.keys.first;
-    final Sheet sheet = excel[sheetName];
+  Future<void> _exportToCsv(String companyName) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      final buffer = StringBuffer();
+      // Complete Database CSV Schema
+      buffer.writeln('Invoice No.,Date,Customer Name,Phone,Address,Particulars,Purity,Gross Wt (gm),Net Wt (gm),Making Charge (₹),Gross Amt (₹),Discount (₹),Taxable Amt (₹),CGST (₹),SGST (₹),Total Tax (₹),Net Amt (₹),By Cash (₹),By Card (₹),By UPI (₹),Total Paid (₹),Dues (₹),Status');
 
-    // Title Row
-    sheet.appendRow([TextCellValue('$companyName Invoice Database Report')]);
-    
-    // Subtitle Date Row
-    final dateRangeStr = 'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)} | Total Records: ${_filteredInvoices.length}';
-    sheet.appendRow([TextCellValue(dateRangeStr)]);
-    sheet.appendRow([]); // empty buffer row
+      for (final inv in _filteredInvoices) {
+        final invNo = inv.invoiceNumber ?? inv.id ?? '';
+        final date = DateFormat('dd/MM/yyyy').format(inv.invoiceDate);
+        final custName = _escapeCsv(_getCustomerName(inv));
+        final phone = _escapeCsv(_getCustomerPhone(inv));
+        final address = _escapeCsv(_getCustomerAddress(inv));
+        final products = _escapeCsv(_getProductDetails(inv));
+        final purity = _escapeCsv(_getPurity(inv));
+        final grossWt = _getTotalGrossWeight(inv).toStringAsFixed(3);
+        final netWt = _getTotalNetWeight(inv).toStringAsFixed(3);
+        final makingCharge = inv.items.fold<double>(0, (s, i) => s + i.makingChargeTotal).toStringAsFixed(2);
+        final grossAmt = inv.grossAmount.toStringAsFixed(2);
+        final discount = (inv.couponDiscount + inv.manualDiscount).toStringAsFixed(2);
+        final taxable = inv.taxableAmount.toStringAsFixed(2);
+        final cgst = inv.cgst.toStringAsFixed(2);
+        final sgst = inv.sgst.toStringAsFixed(2);
+        final totalTax = inv.totalTax.toStringAsFixed(2);
+        final netAmt = inv.netAmount.toStringAsFixed(2);
 
-    // Table Header
-    final headers = [
-      'Invoice No',
-      'Date',
-      'Customer Name',
-      'Phone',
-      'Address',
-      'Particulars',
-      'Purity',
-      'Gross Wt (gm)',
-      'Net Wt (gm)',
-      'Making Charge (₹)',
-      'Gross Amount (₹)',
-      'Discount (₹)',
-      'Taxable Amount (₹)',
-      'CGST (₹)',
-      'SGST (₹)',
-      'Total Tax (₹)',
-      'Net Amount (₹)',
-      'Cash (₹)',
-      'Card (₹)',
-      'UPI (₹)',
-      'Total Paid (₹)',
-      'Dues (₹)',
-      'Status',
-    ].map((h) => TextCellValue(h)).toList();
-    sheet.appendRow(headers);
+        final cash = _getCashPaid(inv).toStringAsFixed(2);
+        final card = _getCardPaid(inv).toStringAsFixed(2);
+        final upi = _getUpiPaid(inv).toStringAsFixed(2);
+        final totalPaid = inv.totalAmountPaid.toStringAsFixed(2);
+        final dues = inv.balanceDue.toStringAsFixed(2);
+        final status = _getInvoiceStatus(inv);
 
-    // Data Rows
-    for (final inv in _filteredInvoices) {
-      final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
-      final discountSum = inv.couponDiscount + inv.manualDiscount;
-      sheet.appendRow([
-        TextCellValue(inv.invoiceNumber ?? inv.id ?? ''),
-        TextCellValue(DateFormat('dd/MM/yyyy').format(inv.invoiceDate)),
-        TextCellValue(_getCustomerName(inv)),
-        TextCellValue(_getCustomerPhone(inv)),
-        TextCellValue(_getCustomerAddress(inv)),
-        TextCellValue(_getProductDetails(inv)),
-        TextCellValue(_getPurity(inv)),
-        DoubleCellValue(_getTotalGrossWeight(inv)),
-        DoubleCellValue(_getTotalNetWeight(inv)),
-        DoubleCellValue(makingChargeSum),
-        DoubleCellValue(inv.grossAmount),
-        DoubleCellValue(discountSum),
-        DoubleCellValue(inv.taxableAmount),
-        DoubleCellValue(inv.cgst),
-        DoubleCellValue(inv.sgst),
-        DoubleCellValue(inv.totalTax),
-        DoubleCellValue(inv.netAmount),
-        DoubleCellValue(_getCashPaid(inv)),
-        DoubleCellValue(_getCardPaid(inv)),
-        DoubleCellValue(_getUpiPaid(inv)),
-        DoubleCellValue(inv.totalAmountPaid),
-        DoubleCellValue(inv.balanceDue),
-        TextCellValue(_getInvoiceStatus(inv)),
-      ]);
-    }
+        buffer.writeln('$invNo,$date,$custName,$phone,$address,$products,$purity,$grossWt,$netWt,$makingCharge,$grossAmt,$discount,$taxable,$cgst,$sgst,$totalTax,$netAmt,$cash,$card,$upi,$totalPaid,$dues,$status');
+      }
 
-    final bytes = excel.save();
-    if (bytes != null) {
-      FileSaverHelper.saveExcelFile(
-        bytes,
-        '${companyName.replaceAll(' ', '_')}_Invoice_Report_${DateFormat('dd-MM-yyyy').format(DateTime.now())}.xlsx',
-      );
+      final bytes = utf8.encode(buffer.toString());
+      final fileName = _getReportFileName(companyName, 'csv');
+      await FileSaverHelper.saveCsvFile(bytes, fileName);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Exported ${_filteredInvoices.length} records to Excel.'),
+            content: Text('Exported ${_filteredInvoices.length} records as CSV database file.'),
             backgroundColor: AppColors.success,
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _exportToExcel(String companyName) async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    try {
+      final excel = Excel.createExcel();
+      final sheetName = excel.sheets.keys.first;
+      final Sheet sheet = excel[sheetName];
+
+      // Title Row
+      sheet.appendRow([TextCellValue('$companyName Invoice Database Report')]);
+      
+      // Subtitle Date Row reflecting the defined period
+      final dateRangeStr = 'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)} | Generated: ${DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now())} | Total Records: ${_filteredInvoices.length}';
+      sheet.appendRow([TextCellValue(dateRangeStr)]);
+      sheet.appendRow([]); // empty buffer row
+
+      // Table Header
+      final headers = [
+        'Invoice No',
+        'Date',
+        'Customer Name',
+        'Phone',
+        'Address',
+        'Particulars',
+        'Purity',
+        'Gross Wt (gm)',
+        'Net Wt (gm)',
+        'Making Charge (₹)',
+        'Gross Amount (₹)',
+        'Discount (₹)',
+        'Taxable Amount (₹)',
+        'CGST (₹)',
+        'SGST (₹)',
+        'Total Tax (₹)',
+        'Net Amount (₹)',
+        'Cash (₹)',
+        'Card (₹)',
+        'UPI (₹)',
+        'Total Paid (₹)',
+        'Dues (₹)',
+        'Status',
+      ].map((h) => TextCellValue(h)).toList();
+      sheet.appendRow(headers);
+
+      // Data Rows
+      for (final inv in _filteredInvoices) {
+        final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
+        final discountSum = inv.couponDiscount + inv.manualDiscount;
+        sheet.appendRow([
+          TextCellValue(inv.invoiceNumber ?? inv.id ?? ''),
+          TextCellValue(DateFormat('dd/MM/yyyy').format(inv.invoiceDate)),
+          TextCellValue(_getCustomerName(inv)),
+          TextCellValue(_getCustomerPhone(inv)),
+          TextCellValue(_getCustomerAddress(inv)),
+          TextCellValue(_getProductDetails(inv)),
+          TextCellValue(_getPurity(inv)),
+          DoubleCellValue(_getTotalGrossWeight(inv)),
+          DoubleCellValue(_getTotalNetWeight(inv)),
+          DoubleCellValue(makingChargeSum),
+          DoubleCellValue(inv.grossAmount),
+          DoubleCellValue(discountSum),
+          DoubleCellValue(inv.taxableAmount),
+          DoubleCellValue(inv.cgst),
+          DoubleCellValue(inv.sgst),
+          DoubleCellValue(inv.totalTax),
+          DoubleCellValue(inv.netAmount),
+          DoubleCellValue(_getCashPaid(inv)),
+          DoubleCellValue(_getCardPaid(inv)),
+          DoubleCellValue(_getUpiPaid(inv)),
+          DoubleCellValue(inv.totalAmountPaid),
+          DoubleCellValue(inv.balanceDue),
+          TextCellValue(_getInvoiceStatus(inv)),
+        ]);
+      }
+
+      final bytes = excel.save();
+      if (bytes != null) {
+        final fileName = _getReportFileName(companyName, 'xlsx');
+        await FileSaverHelper.saveExcelFile(bytes, fileName);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Exported ${_filteredInvoices.length} records to Excel.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
   Future<void> _exportToPdf(String companyName) async {
-    final doc = pw.Document();
-    pw.Font fontData;
-    pw.Font fontBold;
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
     try {
-      fontData = await PdfGoogleFonts.poppinsRegular();
-      fontBold = await PdfGoogleFonts.poppinsBold();
-    } catch (_) {
-      fontData = pw.Font.helvetica();
-      fontBold = pw.Font.helveticaBold();
-    }
+      final doc = pw.Document();
+      pw.Font fontData;
+      pw.Font fontBold;
+      try {
+        fontData = await PdfGoogleFonts.poppinsRegular();
+        fontBold = await PdfGoogleFonts.poppinsBold();
+      } catch (_) {
+        fontData = pw.Font.helvetica();
+        fontBold = pw.Font.helveticaBold();
+      }
 
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(20),
-        build: (pw.Context context) {
-          return [
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.landscape,
+          margin: const pw.EdgeInsets.all(20),
+          header: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text(
-                      '$companyName — Invoice Database Report',
-                      style: pw.TextStyle(font: fontBold, fontSize: 16),
+                      '$companyName — Invoices Database Report',
+                      style: pw.TextStyle(font: fontBold, fontSize: 16, color: PdfColors.amber900),
                     ),
-                    pw.SizedBox(height: 2),
                     pw.Text(
-                      'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)} | Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-                      style: pw.TextStyle(font: fontData, fontSize: 8, color: PdfColors.grey700),
+                      'Page ${context.pageNumber} of ${context.pagesCount}',
+                      style: pw.TextStyle(font: fontData, fontSize: 10, color: PdfColors.grey700),
                     ),
                   ],
                 ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Text(
-                      'Total Invoices: ${_filteredInvoices.length} | Total Wt: ${_totalWeight.toStringAsFixed(3)} g',
-                      style: pw.TextStyle(font: fontBold, fontSize: 8),
-                    ),
-                    pw.Text(
-                      'Net Sales: Rs. ${_totalNetSales.toStringAsFixed(2)} | Dues: Rs. ${_totalDues.toStringAsFixed(2)}',
-                      style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey800),
-                    ),
-                  ],
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)} | Generated: ${DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now())} | Total Records: ${_filteredInvoices.length}',
+                  style: pw.TextStyle(font: fontData, fontSize: 9, color: PdfColors.grey600),
                 ),
+                pw.Divider(thickness: 1, color: PdfColors.amber900),
+                pw.SizedBox(height: 6),
               ],
-            ),
-            pw.SizedBox(height: 12),
-            pw.TableHelper.fromTextArray(
-              headers: [
-                'Invoice No',
-                'Date',
-                'Customer',
-                'Phone',
-                'Particulars & Purity',
-                'Net Wt (g)',
-                'Gross (Rs)',
-                'Taxable (Rs)',
-                'GST (Rs)',
-                'Net Amt (Rs)',
-                'Payment Mode',
-                'Paid (Rs)',
-                'Dues (Rs)',
-                'Status',
-              ],
-              columnWidths: {
-                0: const pw.FixedColumnWidth(45), // Invoice No
-                1: const pw.FixedColumnWidth(40), // Date
-                2: const pw.FixedColumnWidth(60), // Customer
-                3: const pw.FixedColumnWidth(45), // Phone
-                4: const pw.FixedColumnWidth(110), // Particulars & Purity
-                5: const pw.FixedColumnWidth(35), // Net Wt
-                6: const pw.FixedColumnWidth(45), // Gross
-                7: const pw.FixedColumnWidth(45), // Taxable
-                8: const pw.FixedColumnWidth(40), // GST
-                9: const pw.FixedColumnWidth(50), // Net Amt
-                10: const pw.FixedColumnWidth(65), // Payment Mode
-                11: const pw.FixedColumnWidth(45), // Paid
-                12: const pw.FixedColumnWidth(40), // Dues
-                13: const pw.FixedColumnWidth(35), // Status
-              },
-              data: _filteredInvoices.map((inv) {
-                return [
-                  inv.invoiceNumber ?? inv.id ?? '',
-                  DateFormat('dd/MM/yy').format(inv.invoiceDate),
-                  _getCustomerName(inv),
-                  _getCustomerPhone(inv),
-                  '${_getProductDetails(inv)} [${_getPurity(inv)}]',
-                  _getTotalNetWeight(inv).toStringAsFixed(3),
-                  inv.grossAmount.toStringAsFixed(2),
-                  inv.taxableAmount.toStringAsFixed(2),
-                  inv.totalTax.toStringAsFixed(2),
-                  inv.netAmount.toStringAsFixed(2),
-                  _getPaymentBreakdown(inv),
-                  inv.totalAmountPaid.toStringAsFixed(2),
-                  inv.balanceDue.toStringAsFixed(2),
-                  _getInvoiceStatus(inv),
-                ];
-              }).toList(),
-              headerStyle: pw.TextStyle(font: fontBold, fontSize: 6.0),
-              cellStyle: pw.TextStyle(font: fontData, fontSize: 5.5),
-              border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-              cellAlignment: pw.Alignment.centerLeft,
-              headerAlignment: pw.Alignment.centerLeft,
-            ),
-          ];
-        },
-      ),
-    );
-    final bytes = await doc.save();
-    await FileSaverHelper.savePdfFile(
-      bytes,
-      '${companyName.replaceAll(' ', '_')}_Invoice_Report_${DateFormat('dd-MM-yyyy').format(DateTime.now())}.pdf',
-    );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Exported ${_filteredInvoices.length} records to PDF.'),
-          backgroundColor: AppColors.success,
+            );
+          },
+          build: (pw.Context context) {
+            return [
+              pw.TableHelper.fromTextArray(
+                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                headers: [
+                  'Inv No',
+                  'Date',
+                  'Customer',
+                  'Phone',
+                  'Particulars',
+                  'Purity',
+                  'Net Wt',
+                  'Gross (₹)',
+                  'Tax (₹)',
+                  'Net (₹)',
+                  'Paid (₹)',
+                  'Dues (₹)',
+                  'Status',
+                ],
+                headerStyle: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.amber900),
+                cellStyle: pw.TextStyle(font: fontData, fontSize: 7),
+                cellAlignment: pw.Alignment.centerLeft,
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(45),
+                  1: const pw.FixedColumnWidth(45),
+                  2: const pw.FixedColumnWidth(75),
+                  3: const pw.FixedColumnWidth(55),
+                  4: const pw.FlexColumnWidth(2),
+                  5: const pw.FixedColumnWidth(35),
+                  6: const pw.FixedColumnWidth(40),
+                  7: const pw.FixedColumnWidth(50),
+                  8: const pw.FixedColumnWidth(45),
+                  9: const pw.FixedColumnWidth(50),
+                  10: const pw.FixedColumnWidth(48),
+                  11: const pw.FixedColumnWidth(45),
+                  12: const pw.FixedColumnWidth(42),
+                },
+                data: _filteredInvoices.map((inv) {
+                  return [
+                    inv.invoiceNumber ?? inv.id ?? '',
+                    DateFormat('dd/MM/yy').format(inv.invoiceDate),
+                    _getCustomerName(inv),
+                    _getCustomerPhone(inv),
+                    _getProductDetails(inv),
+                    _getPurity(inv),
+                    _getTotalNetWeight(inv).toStringAsFixed(3),
+                    inv.grossAmount.toStringAsFixed(2),
+                    inv.totalTax.toStringAsFixed(2),
+                    inv.netAmount.toStringAsFixed(2),
+                    inv.totalAmountPaid.toStringAsFixed(2),
+                    inv.balanceDue.toStringAsFixed(2),
+                    _getInvoiceStatus(inv),
+                  ];
+                }).toList(),
+              ),
+            ];
+          },
         ),
       );
+      final bytes = await doc.save();
+      final fileName = _getReportFileName(companyName, 'pdf');
+      await FileSaverHelper.savePdfFile(bytes, fileName);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Exported ${_filteredInvoices.length} records to PDF.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -851,12 +862,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       onPressed: () => Navigator.pop(ctx),
                       child: const Text('Close'),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        PdfHelper.downloadInvoicePdf(
+                          invoice: inv,
+                          customer: customer,
+                          company: company,
+                        );
+                      },
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: const Text('Download PDF'),
+                    ),
+                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
@@ -1707,7 +1737,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
+                              if (_isExporting) ...[
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                ),
+                                const SizedBox(width: 4),
+                                Text('Downloading...', style: AppTextStyles.bodySm.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                const SizedBox(width: 8),
+                              ],
                               // CSV (Database Dump)
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
@@ -1716,7 +1757,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                                onPressed: () => _exportToCsv(companyName),
+                                onPressed: _isExporting ? null : () => _exportToCsv(companyName),
                                 icon: const Icon(Icons.dataset_rounded, size: 16),
                                 label: const Text('Export CSV (DB)'),
                               ),
@@ -1728,7 +1769,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                                onPressed: () => _exportToExcel(companyName),
+                                onPressed: _isExporting ? null : () => _exportToExcel(companyName),
                                 icon: const Icon(Icons.grid_on_rounded, size: 16),
                                 label: const Text('Export XLSX'),
                               ),
@@ -1740,7 +1781,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                                onPressed: () => _exportToPdf(companyName),
+                                onPressed: _isExporting ? null : () => _exportToPdf(companyName),
                                 icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
                                 label: const Text('Export PDF'),
                               ),
@@ -1875,6 +1916,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                       icon: const Icon(Icons.visibility_outlined, size: 18),
                                                       tooltip: 'View Details',
                                                       onPressed: () => _showInvoiceDetailsDialog(inv, companyState.value),
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(Icons.download_outlined, size: 18),
+                                                      tooltip: 'Download Invoice PDF',
+                                                      onPressed: () {
+                                                        PdfHelper.downloadInvoicePdf(
+                                                          invoice: inv,
+                                                          customer: _resolveCustomer(inv),
+                                                          company: companyState.value,
+                                                        );
+                                                      },
                                                     ),
                                                     IconButton(
                                                       icon: const Icon(Icons.print_outlined, size: 18),

@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swarnayan_flutter/core/utils/formatters.dart';
+import 'package:swarnayan_flutter/core/utils/pdf_helper.dart';
+import 'package:swarnayan_flutter/models/invoice.dart';
+import 'package:swarnayan_flutter/models/customer.dart';
 
 void main() {
   group('Invoice Numbering & Sequential Increment Tests', () {
@@ -46,6 +49,56 @@ void main() {
       expect(nextCounter, 647);
       final nextInvoiceNumber = Formatters.formatInvoiceNumber(nextCounter);
       expect(nextInvoiceNumber, 'S-000647');
+    });
+
+    test('PdfHelper.getInvoiceDocumentTitle formats as "{Invoice number} - {Customer name}"', () {
+      final title1 = PdfHelper.getInvoiceDocumentTitle(
+        invoice: Invoice(
+          id: '1',
+          invoiceNumber: 'S-000646',
+          items: const [],
+          grossAmount: 0,
+          taxableAmount: 0,
+          cgst: 0,
+          sgst: 0,
+          totalTax: 0,
+          netAmount: 0,
+          finalPayable: 0,
+          payments: const [],
+          totalAmountPaid: 0,
+          balanceDue: 0,
+          invoiceDate: DateTime(2026, 5, 23),
+          status: 'PAID',
+          ratesSnapshot: const RatesSnapshot(rateGold22K: 6850, rateGold18K: 5610, rateSilver: 82.4),
+        ),
+        customer: const Customer(id: 'c1', name: 'SONALI CHAUHAN', mobile: '9999999999'),
+      );
+      expect(title1, 'S-000646 - SONALI CHAUHAN');
+
+      // Test fallback to tempCustomerName
+      final title2 = PdfHelper.getInvoiceDocumentTitle(
+        invoice: Invoice(
+          id: '2',
+          invoiceNumber: 'S-000647',
+          tempCustomerName: 'RAHUL SHARMA',
+          items: const [],
+          grossAmount: 0,
+          taxableAmount: 0,
+          cgst: 0,
+          sgst: 0,
+          totalTax: 0,
+          netAmount: 0,
+          finalPayable: 0,
+          payments: const [],
+          totalAmountPaid: 0,
+          balanceDue: 0,
+          invoiceDate: DateTime(2026, 5, 23),
+          status: 'PAID',
+          ratesSnapshot: const RatesSnapshot(rateGold22K: 6850, rateGold18K: 5610, rateSilver: 82.4),
+        ),
+        customer: const Customer(id: '', name: '', mobile: ''),
+      );
+      expect(title2, 'S-000647 - RAHUL SHARMA');
     });
   });
 }

@@ -453,7 +453,7 @@ class MoreScreen extends ConsumerWidget {
                     },
                   ),
 
-                if (showRecords)
+                if (showRecords) ...[
                   _buildMenuItem(
                     icon: Icons.book_rounded,
                     label: 'Record Book',
@@ -461,6 +461,14 @@ class MoreScreen extends ConsumerWidget {
                     index: 3,
                     onTap: () => context.push('/more/records'),
                   ),
+                  _buildMenuItem(
+                    icon: Icons.receipt_long_rounded,
+                    label: 'Bulk Invoice Generator',
+                    subtitle: 'Upload CSV, generate ZIP & download',
+                    index: 4,
+                    onTap: () => context.push('/billing/bulk'),
+                  ),
+                ],
                 if (showCoupons)
                   _buildMenuItem(
                     icon: Icons.local_offer_rounded,

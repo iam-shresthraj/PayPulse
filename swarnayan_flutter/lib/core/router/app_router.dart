@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/billing/billing_screen.dart';
+import '../../features/billing/bulk_invoice_screen.dart';
 import '../../features/customers/customers_screen.dart';
 import '../../features/customers/customer_detail_screen.dart';
 import '../../features/customers/add_customer_dialog.dart';
@@ -186,6 +187,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               const BillingScreen(),
               state,
             ),
+            routes: [
+              GoRoute(
+                path: 'bulk',
+                pageBuilder: (context, state) => _buildSlidePage(
+                  const BulkInvoiceScreen(),
+                  state,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/customers',
@@ -267,6 +277,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'records',
                 pageBuilder: (context, state) => _buildPage(
                   const RecordBookScreen(),
+                  state,
+                ),
+              ),
+              GoRoute(
+                path: 'bulk-invoices',
+                pageBuilder: (context, state) => _buildSlidePage(
+                  const BulkInvoiceScreen(),
                   state,
                 ),
               ),

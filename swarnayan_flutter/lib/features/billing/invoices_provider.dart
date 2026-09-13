@@ -126,7 +126,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       'rates_snapshot_gold_22k': invoice.ratesSnapshot.rateGold22K,
       'rates_snapshot_gold_18k': invoice.ratesSnapshot.rateGold18K,
       'rates_snapshot_silver': invoice.ratesSnapshot.rateSilver,
-      'pdf_base64': invoice.pdfBase64,
+      'pdf_base64': null, // Store invoice purely as text/JSON to save database storage
     };
   }
 
@@ -148,34 +148,35 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .isFilter('deleted_at', null);
 
       final Set<int> usedCounters = {};
-      for (final inv in activeInvoicesData) {
-        final String? invNum = inv['invoice_number'];
-        if (invNum != null) {
-          final counter = _parseCounter(invNum, settingsData);
-          if (counter != null) {
-            usedCounters.add(counter);
+      final regex = RegExp('^${RegExp.escape(prefix)}${RegExp.escape(separator)}(\\d+)\$');
+
+      for (final row in activeInvoicesData) {
+        final numStr = row['invoice_number'] as String?;
+        if (numStr != null) {
+          final match = regex.firstMatch(numStr);
+          if (match != null) {
+            final counter = int.tryParse(match.group(1)!);
+            if (counter != null) {
+              usedCounters.add(counter);
+            }
           }
         }
       }
 
-      // Find the lowest available counter (starting from 645)
-      int nextCounter = 645;
-      while (usedCounters.contains(nextCounter)) {
-        nextCounter++;
+      // Find the smallest missing positive integer
+      int smallestGap = 1;
+      while (usedCounters.contains(smallestGap)) {
+        smallestGap++;
       }
 
-      // Update the settings counter to the max of (current, nextCounter)
-      final int currentMax = usedCounters.isEmpty ? 0 : usedCounters.reduce((a, b) => a > b ? a : b);
-      final int newSettingsCounter = nextCounter > currentMax ? nextCounter : currentMax;
-      await _client
-          .from('company_settings')
-          .update({'invoice_current_counter': newSettingsCounter})
-          .eq('id', settingsData['id']);
-          
-      final formattedCounter = nextCounter.toString().padLeft(padding, '0');
-      return '$prefix$separator$formattedCounter';
+      final paddedNumber = smallestGap.toString().padLeft(padding, '0');
+      return '$prefix$separator$paddedNumber';
     }
-    return 'S-${DateTime.now().millisecondsSinceEpoch}';
+    
+    final count = await _client
+        .from('invoices')
+        .count(CountOption.exact);
+    return 'INV-${(count + 1).toString().padLeft(4, '0')}';
   }
 
   Future<void> loadInvoices() async {
@@ -186,7 +187,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .select()
           .isFilter('deleted_at', null)
           .order('invoice_date', ascending: false);
-          
+
       final invoices = (data as List).map((item) => _mapInvoice(item)).toList();
       state = AsyncValue.data(invoices);
     } catch (e, stack) {
@@ -208,7 +209,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       var payload = _unmapInvoice(invoice);
       payload['invoice_number'] = invoiceNum;
       
-      // 3. Save to database
+      // 3. Save to database as lightweight text
       final data = await _client.from('invoices').insert(payload).select().single();
       final savedInvoice = _mapInvoice(data);
 
@@ -252,14 +253,52 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       // Trigger reload for products and customers so they get updated stock/spend values
       _ref.read(productsProvider.notifier).loadProducts();
       _ref.read(customersProvider.notifier).loadCustomers();
-      // 6. Generate and save PDF Base64 to database
-      final finalInvoice = await _generateAndSavePdf(savedInvoice);
 
+      // Store invoice details purely as text in the database (consumes minimal storage, no heavy base64 PDF)
       final list = state.value ?? [];
-      state = AsyncValue.data([finalInvoice, ...list]);
-      return finalInvoice;
+      state = AsyncValue.data([savedInvoice, ...list]);
+      return savedInvoice;
     } catch (e) {
       await loadInvoices();
+      rethrow;
+    }
+  }
+
+  Future<List<Invoice>> bulkAddInvoices(List<Invoice> invoices) async {
+    if (invoices.isEmpty) return [];
+    try {
+      final List<Map<String, dynamic>> payloads = [];
+      for (final inv in invoices) {
+        final payload = _unmapInvoice(inv);
+        payload['invoice_number'] = inv.invoiceNumber;
+        payload['pdf_base64'] = null; // Store purely as text to save database space
+        payloads.add(payload);
+      }
+
+      final List<Invoice> savedInvoices = [];
+      // Insert in chunks of 50 for stability
+      for (int i = 0; i < payloads.length; i += 50) {
+        final chunk = payloads.sublist(i, (i + 50).clamp(0, payloads.length));
+        final data = await _client.from('invoices').insert(chunk).select();
+        final mapped = (data as List).map((d) => _mapInvoice(d)).toList();
+        savedInvoices.addAll(mapped);
+      }
+
+      await loadInvoices();
+      return savedInvoices;
+    } catch (e) {
+      debugPrint('Error during bulkAddInvoices: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> bulkDeleteInvoices(List<String> invoiceIds) async {
+    if (invoiceIds.isEmpty) return;
+    try {
+      await _client.from('invoices').delete().inFilter('id', invoiceIds);
+      await loadInvoices();
+    } catch (e) {
+      debugPrint('Error during bulkDeleteInvoices: $e');
       rethrow;
     }
   }
@@ -638,7 +677,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .ilike('invoice_number', '%$number')
           .isFilter('deleted_at', null);
 
-      if (response != null && response is List && response.isNotEmpty) {
+      if (response.isNotEmpty) {
         for (final item in response) {
           final inv = _mapInvoice(item);
           final invNum = inv.invoiceNumber;

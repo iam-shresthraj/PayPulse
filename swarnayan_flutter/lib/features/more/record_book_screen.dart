@@ -277,6 +277,17 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                     style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
+                TextButton.icon(
+                  onPressed: () => context.push('/billing/bulk'),
+                  icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                  label: const Text('Bulk Generator'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),

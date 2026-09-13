@@ -2074,6 +2074,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   );
                 },
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(8),
+                icon: Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
+                tooltip: 'Bulk Invoice Generator (CSV)',
+                onPressed: () => context.push('/billing/bulk'),
+              ),
             ],
           ),
         ],

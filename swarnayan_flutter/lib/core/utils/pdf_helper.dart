@@ -143,11 +143,6 @@ class PdfHelper {
       onLayout: (PdfPageFormat format) async => doc.save(),
       name: docTitle,
     );
-
-    // Restore web title after print dialog has launched
-    Future.delayed(const Duration(seconds: 4), () {
-      updateBrowserTitle('PayPulse');
-    });
   }
 
   static Future<void> downloadInvoicePdf({
@@ -156,6 +151,7 @@ class PdfHelper {
     CompanySettings? company,
   }) async {
     final docTitle = getInvoiceDocumentTitle(invoice: invoice, customer: customer);
+    updateBrowserTitle(docTitle);
     final pdfBytes = await generateInvoicePdfBytes(
       invoice: invoice,
       customer: customer,
@@ -824,7 +820,7 @@ class PdfHelper {
     );
   }
 
-  static const PdfColor tableHeaderBg = PdfColor.fromInt(0xffd4d4d4);
+  static const PdfColor tableHeaderBg = PdfColor.fromInt(0xff222222);
 
   static pw.Widget _tableHeaderCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.center}) {
     return pw.Container(
@@ -842,7 +838,7 @@ class PdfHelper {
               : pw.Alignment.center,
       child: pw.Text(
         text,
-        style: pw.TextStyle(font: font, fontSize: 7.5, color: darkColor),
+        style: pw.TextStyle(font: font, fontSize: 7.5, color: PdfColors.white),
         textAlign: align,
       ),
     );

@@ -351,6 +351,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       }
 
       final todayRate = ref.read(dailyRatesProvider.notifier).getTodayRate();
+      final companyState = ref.read(companyProvider);
 
       final isEditing = billing.editingInvoice != null;
       final invoiceId = isEditing ? billing.editingInvoice!.id! : 'INV-${DateTime.now().millisecondsSinceEpoch}';
@@ -358,7 +359,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           ? billing.editingInvoice!.invoiceNumber!
           : (billing.customInvoiceNumber != null && billing.customInvoiceNumber!.isNotEmpty)
               ? billing.customInvoiceNumber!
-              : 'INV/${DateTime.now().year}/${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+              : getNextInvoiceNumber(companyState.value);
 
       final List<InvoiceItem> invoiceItems = billing.products.map((bp) {
         return InvoiceItem(
@@ -1901,22 +1902,48 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   }
 
   String getNextInvoiceNumber(CompanySettings? settings) {
-    if (settings == null) return 'SW/XXXXX';
-    final config = settings.invoiceConfig;
-    final nextCounter = config.currentCounter + 1;
-    final padded = nextCounter.toString().padLeft(config.paddingLength, '0');
-    var numStr = '${config.prefix}${config.separator}$padded';
-    if (config.financialYear.isNotEmpty) {
-      numStr = '${config.financialYear}${config.separator}$numStr';
+    final config = settings?.invoiceConfig ??
+        const InvoiceConfig(
+          prefix: 'S',
+          separator: '-',
+          paddingLength: 6,
+          currentCounter: 0,
+        );
+
+    int maxCounter = config.currentCounter;
+    final invoicesState = ref.read(invoicesProvider);
+    if (invoicesState.hasValue && invoicesState.value != null) {
+      for (final inv in invoicesState.value!) {
+        final invNum = inv.invoiceNumber;
+        if (invNum != null && invNum.isNotEmpty) {
+          final c = Formatters.extractInvoiceCounter(
+            invNum,
+            prefix: config.prefix,
+            separator: config.separator,
+            financialYear: config.financialYear,
+            suffix: config.suffix,
+          );
+          if (c != null && c > maxCounter) {
+            maxCounter = c;
+          }
+        }
+      }
     }
-    if (config.suffix.isNotEmpty) {
-      numStr = '$numStr${config.separator}${config.suffix}';
-    }
-    return numStr;
+
+    final nextCounter = maxCounter + 1;
+    return Formatters.formatInvoiceNumber(
+      nextCounter,
+      prefix: config.prefix,
+      separator: config.separator,
+      paddingLength: config.paddingLength,
+      financialYear: config.financialYear,
+      suffix: config.suffix,
+    );
   }
 
   Widget _buildInvoiceMetaSection(BillingState billing) {
     final companyState = ref.watch(companyProvider);
+    ref.watch(invoicesProvider); // Rebuild automatically when new invoice is created/deleted
     final isEditing = billing.editingInvoice != null;
     
     String invoiceTag;

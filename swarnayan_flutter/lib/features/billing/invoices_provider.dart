@@ -112,48 +112,59 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         .from('company_settings')
         .select()
         .maybeSingle();
-        
-    if (settingsData != null) {
-      final prefix = settingsData['invoice_prefix'] ?? 'S';
-      final separator = settingsData['invoice_separator'] ?? '-';
-      final padding = settingsData['invoice_padding_length'] ?? 6;
 
-      // Fetch all active invoice numbers to find gaps
-      final List<dynamic> activeInvoicesData = await _client
-          .from('invoices')
-          .select('invoice_number')
-          .isFilter('deleted_at', null);
+    final prefix = settingsData?['invoice_prefix'] ?? 'S';
+    final separator = settingsData?['invoice_separator'] ?? '-';
+    final padding = settingsData?['invoice_padding_length'] ?? 6;
+    final financialYear = (settingsData?['invoice_financial_year'] ?? '') as String;
+    final suffix = (settingsData?['invoice_suffix'] ?? '') as String;
+    final int settingsCounter = (settingsData?['invoice_current_counter'] as num?)?.toInt() ?? 0;
 
-      final Set<int> usedCounters = {};
-      final regex = RegExp('^${RegExp.escape(prefix)}${RegExp.escape(separator)}(\\d+)\$');
+    // Fetch all active invoice numbers
+    final List<dynamic> activeInvoicesData = await _client
+        .from('invoices')
+        .select('invoice_number')
+        .isFilter('deleted_at', null);
 
-      for (final row in activeInvoicesData) {
-        final numStr = row['invoice_number'] as String?;
-        if (numStr != null) {
-          final match = regex.firstMatch(numStr);
-          if (match != null) {
-            final counter = int.tryParse(match.group(1)!);
-            if (counter != null) {
-              usedCounters.add(counter);
-            }
-          }
+    int maxCounter = settingsCounter;
+
+    for (final row in activeInvoicesData) {
+      final numStr = row['invoice_number'] as String?;
+      if (numStr != null && numStr.isNotEmpty) {
+        final counter = Formatters.extractInvoiceCounter(
+          numStr,
+          prefix: prefix,
+          separator: separator,
+          financialYear: financialYear,
+          suffix: suffix,
+        );
+        if (counter != null && counter > maxCounter) {
+          maxCounter = counter;
         }
       }
-
-      // Find the smallest missing positive integer
-      int smallestGap = 1;
-      while (usedCounters.contains(smallestGap)) {
-        smallestGap++;
-      }
-
-      final paddedNumber = smallestGap.toString().padLeft(padding, '0');
-      return '$prefix$separator$paddedNumber';
     }
-    
-    final count = await _client
-        .from('invoices')
-        .count(CountOption.exact);
-    return 'INV-${(count + 1).toString().padLeft(4, '0')}';
+
+    final nextCounter = maxCounter + 1;
+
+    // Update company settings with the next counter so it stays in sync
+    if (settingsData != null && settingsData['id'] != null) {
+      try {
+        await _client
+            .from('company_settings')
+            .update({'invoice_current_counter': nextCounter})
+            .eq('id', settingsData['id']);
+        _ref.read(companyProvider.notifier).loadCompanySettings();
+      } catch (_) {}
+    }
+
+    return Formatters.formatInvoiceNumber(
+      nextCounter,
+      prefix: prefix,
+      separator: separator,
+      paddingLength: padding,
+      financialYear: financialYear,
+      suffix: suffix,
+    );
   }
 
   Future<void> loadInvoices() async {
@@ -168,6 +179,9 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       final invoices = (data as List).map((item) => _mapInvoice(item)).toList();
       state = AsyncValue.data(invoices);
 
+      // Asynchronously ensure company settings counter matches the highest active invoice
+      _syncCounterFromInvoices(invoices);
+
       // Asynchronously wipe legacy base64 PDF blobs from database to reduce storage
       _client
           .from('invoices')
@@ -179,6 +193,43 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
     }
   }
 
+  Future<void> _syncCounterFromInvoices(List<Invoice> invoices) async {
+    try {
+      final settingsData = await _client.from('company_settings').select().maybeSingle();
+      if (settingsData == null) return;
+      final int currentCounter = (settingsData['invoice_current_counter'] as num?)?.toInt() ?? 0;
+      final prefix = settingsData['invoice_prefix'] ?? 'S';
+      final separator = settingsData['invoice_separator'] ?? '-';
+      final financialYear = (settingsData['invoice_financial_year'] ?? '') as String;
+      final suffix = (settingsData['invoice_suffix'] ?? '') as String;
+
+      int maxCounter = currentCounter;
+      for (final inv in invoices) {
+        final invNum = inv.invoiceNumber;
+        if (invNum != null && invNum.isNotEmpty) {
+          final c = Formatters.extractInvoiceCounter(
+            invNum,
+            prefix: prefix,
+            separator: separator,
+            financialYear: financialYear,
+            suffix: suffix,
+          );
+          if (c != null && c > maxCounter) {
+            maxCounter = c;
+          }
+        }
+      }
+
+      if (maxCounter > currentCounter) {
+        await _client
+            .from('company_settings')
+            .update({'invoice_current_counter': maxCounter})
+            .eq('id', settingsData['id']);
+        _ref.read(companyProvider.notifier).loadCompanySettings();
+      }
+    } catch (_) {}
+  }
+
   Future<Invoice> addInvoice(Invoice invoice) async {
     try {
       final String invoiceNum;
@@ -186,6 +237,10 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           invoice.invoiceNumber!.isNotEmpty &&
           !invoice.invoiceNumber!.startsWith('INV/')) {
         invoiceNum = invoice.invoiceNumber!;
+        final counter = Formatters.extractInvoiceCounter(invoiceNum);
+        if (counter != null) {
+          _updateCompanyCounterIfHigher(counter);
+        }
       } else {
         invoiceNum = await _generateInvoiceNumber();
       }
@@ -388,14 +443,14 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
         }
       }
 
-      // Check if it's the latest active invoice to rollback the counter
-      await _recalculateCurrentCounter();
-
       // Soft delete in DB
       await _client
           .from('invoices')
           .update({'deleted_at': DateTime.now().toIso8601String(), 'status': 'DELETED'})
           .eq('id', id);
+
+      // Check if it's the latest active invoice to rollback the counter
+      await _recalculateCurrentCounter();
       
       // Reload products and customers
       _ref.read(productsProvider.notifier).loadProducts();
@@ -686,41 +741,31 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
     return null;
   }
 
-  int? _parseCounter(String invoiceNum, Map<String, dynamic> settings) {
-    final prefix = (settings['invoice_prefix'] ?? '') as String;
-    final separator = (settings['invoice_separator'] ?? '-') as String;
-    final financialYear = (settings['invoice_financial_year'] ?? '') as String;
-    final suffix = (settings['invoice_suffix'] ?? '') as String;
-    
-    var temp = invoiceNum;
-    // Strip financial year
-    if (financialYear.isNotEmpty && temp.startsWith('$financialYear$separator')) {
-      temp = temp.substring(financialYear.length + separator.length);
-    }
-    // Strip prefix
-    if (prefix.isNotEmpty && temp.startsWith('$prefix$separator')) {
-      temp = temp.substring(prefix.length + separator.length);
-    } else if (prefix.isNotEmpty && temp.startsWith(prefix)) {
-      temp = temp.substring(prefix.length);
-    }
-    // Strip suffix
-    if (suffix.isNotEmpty && temp.endsWith('$separator$suffix')) {
-      temp = temp.substring(0, temp.length - suffix.length - separator.length);
-    }
-    
-    // Clean any remaining separators at the beginning/end
-    if (separator.isNotEmpty) {
-      if (temp.startsWith(separator)) temp = temp.substring(separator.length);
-      if (temp.endsWith(separator)) temp = temp.substring(0, temp.length - separator.length);
-    }
-    
-    return int.tryParse(temp);
+  Future<void> _updateCompanyCounterIfHigher(int counter) async {
+    try {
+      final settingsData = await _client.from('company_settings').select().maybeSingle();
+      if (settingsData != null && settingsData['id'] != null) {
+        final current = (settingsData['invoice_current_counter'] as num?)?.toInt() ?? 0;
+        if (counter > current) {
+          await _client
+              .from('company_settings')
+              .update({'invoice_current_counter': counter})
+              .eq('id', settingsData['id']);
+          _ref.read(companyProvider.notifier).loadCompanySettings();
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _recalculateCurrentCounter() async {
     try {
       final settingsData = await _client.from('company_settings').select().maybeSingle();
       if (settingsData == null) return;
+
+      final prefix = settingsData['invoice_prefix'] ?? 'S';
+      final separator = settingsData['invoice_separator'] ?? '-';
+      final financialYear = (settingsData['invoice_financial_year'] ?? '') as String;
+      final suffix = (settingsData['invoice_suffix'] ?? '') as String;
       
       // Fetch all active invoice numbers
       final List<dynamic> activeInvoicesData = await _client
@@ -731,8 +776,14 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
       int maxCounter = 0;
       for (final inv in activeInvoicesData) {
         final String? invNum = inv['invoice_number'];
-        if (invNum != null) {
-          final counter = _parseCounter(invNum, settingsData);
+        if (invNum != null && invNum.isNotEmpty) {
+          final counter = Formatters.extractInvoiceCounter(
+            invNum,
+            prefix: prefix,
+            separator: separator,
+            financialYear: financialYear,
+            suffix: suffix,
+          );
           if (counter != null && counter > maxCounter) {
             maxCounter = counter;
           }
@@ -744,7 +795,7 @@ class InvoicesNotifier extends StateNotifier<AsyncValue<List<Invoice>>> {
           .from('company_settings')
           .update({'invoice_current_counter': maxCounter})
           .eq('id', settingsData['id']);
-          
+      _ref.read(companyProvider.notifier).loadCompanySettings();
     } catch (_) {}
   }
 }

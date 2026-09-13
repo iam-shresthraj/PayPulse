@@ -38,6 +38,95 @@ class Formatters {
         })
         .join(' ');
   }
+
+  /// Extracts the numeric counter from an invoice number string.
+  /// Handles formats like S-000646, S-646, 646, INV-000646, 2024-25-S-000646, etc.
+  static int? extractInvoiceCounter(
+    String invoiceNum, {
+    String prefix = 'S',
+    String separator = '-',
+    String financialYear = '',
+    String suffix = '',
+  }) {
+    final trimmed = invoiceNum.trim();
+    if (trimmed.isEmpty) return null;
+
+    // 1. Clean match stripping financial year, prefix, suffix, and separator
+    var temp = trimmed;
+    if (financialYear.isNotEmpty && temp.startsWith('$financialYear$separator')) {
+      temp = temp.substring(financialYear.length + separator.length);
+    }
+    if (prefix.isNotEmpty && temp.startsWith('$prefix$separator')) {
+      temp = temp.substring(prefix.length + separator.length);
+    } else if (prefix.isNotEmpty && temp.startsWith(prefix)) {
+      temp = temp.substring(prefix.length);
+    }
+    if (suffix.isNotEmpty && temp.endsWith('$separator$suffix')) {
+      temp = temp.substring(0, temp.length - suffix.length - separator.length);
+    } else if (suffix.isNotEmpty && temp.endsWith(suffix)) {
+      temp = temp.substring(0, temp.length - suffix.length);
+    }
+    if (separator.isNotEmpty) {
+      if (temp.startsWith(separator)) temp = temp.substring(separator.length);
+      if (temp.endsWith(separator)) temp = temp.substring(0, temp.length - separator.length);
+    }
+
+    final directVal = int.tryParse(temp);
+    if (directVal != null && directVal > 0) return directVal;
+
+    // 2. Prefix-aware regex: e.g. S-000646 or S/000646 or S000646
+    if (prefix.isNotEmpty) {
+      final prefixRegex = RegExp(
+        '^.*?${RegExp.escape(prefix)}[-/_ ]*(\\d+)',
+        caseSensitive: false,
+      );
+      final match = prefixRegex.firstMatch(trimmed);
+      if (match != null) {
+        final val = int.tryParse(match.group(1)!);
+        if (val != null && val > 0 && val < 10000000) return val;
+      }
+    }
+
+    // 3. Common prefixes: INV-000646, BILL-646, S-646
+    final invRegex = RegExp(r'(?:INV|BILL|REC|S)[-/_ ]*(\d+)', caseSensitive: false);
+    final invMatch = invRegex.firstMatch(trimmed);
+    if (invMatch != null) {
+      final val = int.tryParse(invMatch.group(1)!);
+      if (val != null && val > 0 && val < 10000000) return val;
+    }
+
+    // 4. Trailing integer sequence, filtering out large epoch timestamps (> 7 digits)
+    final trailingDigits = RegExp(r'(\d+)(?!.*\d)').firstMatch(trimmed);
+    if (trailingDigits != null) {
+      final val = int.tryParse(trailingDigits.group(1)!);
+      if (val != null && val > 0 && val < 10000000) {
+        return val;
+      }
+    }
+
+    return null;
+  }
+
+  /// Formats an invoice counter into the configured invoice string.
+  /// Example: counter 647, prefix 'S', separator '-', paddingLength 6 -> 'S-000647'
+  static String formatInvoiceNumber(
+    int counter, {
+    String prefix = 'S',
+    String separator = '-',
+    int paddingLength = 6,
+    String financialYear = '',
+    String suffix = '',
+  }) {
+    final padded = counter.toString().padLeft(paddingLength, '0');
+    var numStr = '$prefix$separator$padded';
+    if (financialYear.isNotEmpty) {
+      numStr = '$financialYear$separator$numStr';
+    }
+    if (suffix.isNotEmpty) {
+      numStr = '$numStr$separator$suffix';
+    }
+    return numStr;
+  }
 }
 
 class TitleCaseTextInputFormatter extends TextInputFormatter {

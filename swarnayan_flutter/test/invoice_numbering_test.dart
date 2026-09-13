@@ -99,6 +99,31 @@ void main() {
         customer: const Customer(id: '', name: '', mobile: ''),
       );
       expect(title2, 'S-000647 - RAHUL SHARMA');
+
+      // Test generic customer name ('Walk-in Customer') overridden by real tempCustomerName
+      final title3 = PdfHelper.getInvoiceDocumentTitle(
+        invoice: Invoice(
+          id: '3',
+          invoiceNumber: 'S-000648',
+          tempCustomerName: 'PRIYA SINGH',
+          items: const [],
+          grossAmount: 0,
+          taxableAmount: 0,
+          cgst: 0,
+          sgst: 0,
+          totalTax: 0,
+          netAmount: 0,
+          finalPayable: 0,
+          payments: const [],
+          totalAmountPaid: 0,
+          balanceDue: 0,
+          invoiceDate: DateTime(2026, 5, 23),
+          status: 'PAID',
+          ratesSnapshot: const RatesSnapshot(rateGold22K: 6850, rateGold18K: 5610, rateSilver: 82.4),
+        ),
+        customer: const Customer(id: '', name: 'Walk-in Customer', mobile: ''),
+      );
+      expect(title3, 'S-000648 - PRIYA SINGH');
     });
   });
 }

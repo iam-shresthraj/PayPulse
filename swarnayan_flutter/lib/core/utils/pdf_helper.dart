@@ -7,6 +7,7 @@ import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../../models/company_settings.dart';
 import 'file_saver_helper.dart';
+import 'title_helper.dart';
 
 String numberToRupeesWords(double amount) {
   final intAmount = amount.floor();
@@ -88,13 +89,31 @@ class PdfHelper {
         ? invoice.invoiceNumber!.trim()
         : (invoice.id ?? 'INV');
 
-    String custName = customer.name.trim();
-    if (custName.isEmpty || custName.toLowerCase() == 'counter customer') {
-      if (invoice.tempCustomerName != null && invoice.tempCustomerName!.trim().isNotEmpty) {
-        custName = invoice.tempCustomerName!.trim();
-      } else {
-        custName = 'Customer';
-      }
+    // Robust customer name resolution
+    final rawCustName = customer.name.trim();
+    final rawTempName = invoice.tempCustomerName?.trim() ?? '';
+
+    bool isGeneric(String s) {
+      final l = s.toLowerCase();
+      return l.isEmpty ||
+          l == 'client' ||
+          l == 'customer' ||
+          l == 'counter customer' ||
+          l == 'walk-in customer' ||
+          l == 'cash / counter customer';
+    }
+
+    String custName = '';
+    if (!isGeneric(rawCustName)) {
+      custName = rawCustName;
+    } else if (!isGeneric(rawTempName)) {
+      custName = rawTempName;
+    } else if (rawCustName.isNotEmpty) {
+      custName = rawCustName;
+    } else if (rawTempName.isNotEmpty) {
+      custName = rawTempName;
+    } else {
+      custName = 'Customer';
     }
 
     // Clean characters prohibited in Windows, macOS, Linux file systems: \ / : * ? " < > |
@@ -110,6 +129,10 @@ class PdfHelper {
     CompanySettings? company,
   }) async {
     final docTitle = getInvoiceDocumentTitle(invoice: invoice, customer: customer);
+
+    // Update browser title so native browser print dialog suggests "{Invoice number} - {Customer name}"
+    updateBrowserTitle(docTitle);
+
     // Always render with the latest invoice layout in real-time
     final doc = await buildInvoiceDocument(
       invoice: invoice,
@@ -118,8 +141,13 @@ class PdfHelper {
     );
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: '$docTitle.pdf',
+      name: docTitle,
     );
+
+    // Restore web title after print dialog has launched
+    Future.delayed(const Duration(seconds: 4), () {
+      updateBrowserTitle('PayPulse');
+    });
   }
 
   static Future<void> downloadInvoicePdf({
@@ -157,14 +185,19 @@ class PdfHelper {
     CompanySettings? company,
     bool forWhatsApp = false,
   }) async {
-    final doc = pw.Document();
+    final docTitle = getInvoiceDocumentTitle(invoice: invoice, customer: customer);
+    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
+
+    final doc = pw.Document(
+      title: docTitle,
+      author: cName,
+      creator: 'PayPulse',
+      subject: 'Tax Invoice - $docTitle',
+    );
 
     final fontData = await PdfGoogleFonts.poppinsRegular();
     final fontBold = await PdfGoogleFonts.poppinsBold();
     final fontItalic = await PdfGoogleFonts.poppinsItalic();
-
-    // Dynamically retrieve company details with Patna settings as fallback
-    final String cName = company?.companyName.isNotEmpty == true ? company!.companyName : 'Swarnayan Jewellers';
     final String cTagline = company?.tagline.isNotEmpty == true ? company!.tagline : 'Trusted Hallmark Jewellery Destination';
     final String cNotes = company?.notes.isNotEmpty == true ? company!.notes : 'Offering Gold, Silver & Diamond Collections';
     final String cPhone = company?.mobile.isNotEmpty == true ? company!.mobile : '7903111274';

@@ -1471,6 +1471,28 @@ class HomeScreen extends ConsumerWidget {
                     ],
                     Expanded(
                       child: OutlinedButton.icon(
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: const Text('DOWNLOAD'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          final company = ref.read(companyProvider).value;
+                          PdfHelper.downloadInvoicePdf(
+                            invoice: inv,
+                            customer: customer,
+                            company: company,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
                         icon: const Icon(Icons.print_rounded, size: 18),
                         label: const Text('PRINT'),
                         style: OutlinedButton.styleFrom(

@@ -66,6 +66,33 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
     );
   }
 
+  void _downloadInvoice(Invoice invoice) {
+    final customers = ref.read(customersProvider).value ?? [];
+    final customerIndex = customers.indexWhere((c) => c.id == invoice.customerId);
+    Customer customer;
+    if (customerIndex != -1) {
+      customer = customers[customerIndex];
+    } else {
+      customer = Customer(
+        id: invoice.customerId ?? '',
+        name: (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) ? invoice.tempCustomerName! : 'Customer',
+        mobile: invoice.tempCustomerMobile ?? '',
+        address: invoice.tempCustomerAddress ?? '',
+        pincode: invoice.tempCustomerPincode,
+        city: invoice.tempCustomerCity,
+        state: invoice.tempCustomerState,
+        totalPurchaseAmount: 0.0,
+        totalInvoices: 0,
+      );
+    }
+    final company = ref.read(companyProvider).value;
+    PdfHelper.downloadInvoicePdf(
+      invoice: invoice,
+      customer: customer,
+      company: company,
+    );
+  }
+
   void _cancelInvoice(Invoice invoice) {
     showDialog(
       context: context,
@@ -602,11 +629,16 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                         ),
                                         Row(
                                             children: [
-                                              IconButton(
-                                                icon:  Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
-                                                onPressed: () => _printInvoice(inv),
-                                                tooltip: 'Print PDF',
-                                              ),
+                                               IconButton(
+                                                 icon:  Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+                                                 onPressed: () => _downloadInvoice(inv),
+                                                 tooltip: 'Download PDF',
+                                               ),
+                                               IconButton(
+                                                 icon:  Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
+                                                 onPressed: () => _printInvoice(inv),
+                                                 tooltip: 'Print PDF',
+                                               ),
                                               IconButton(
                                                 icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                                                 onPressed: () async {

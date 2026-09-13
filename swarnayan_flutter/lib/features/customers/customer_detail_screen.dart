@@ -319,6 +319,18 @@ class CustomerDetailScreen extends ConsumerWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
+                                      icon:  Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+                                      onPressed: () {
+                                        final company = ref.read(companyProvider).value;
+                                        PdfHelper.downloadInvoicePdf(
+                                          invoice: inv,
+                                          customer: customer,
+                                          company: company,
+                                        );
+                                      },
+                                      tooltip: 'Download PDF',
+                                    ),
+                                    IconButton(
                                       icon:  Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
                                       onPressed: () {
                                         final company = ref.read(companyProvider).value;
@@ -640,6 +652,28 @@ class CustomerDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                     ],
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: const Text('DOWNLOAD'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          final company = ref.read(companyProvider).value;
+                          PdfHelper.downloadInvoicePdf(
+                            invoice: inv,
+                            customer: customer,
+                            company: company,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.print_rounded, size: 18),

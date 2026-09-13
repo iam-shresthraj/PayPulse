@@ -239,6 +239,14 @@ class PdfHelper {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         build: (pw.Context context) {
+          // Calculate used height by items to ensure default 10-12 product list space (approx 230pt)
+          final double usedItemsHeight = invoice.items.fold<double>(
+            0.0,
+            (sum, item) => sum + (item.huidNumber != null && item.huidNumber!.isNotEmpty ? 28.0 : 18.0),
+          );
+          const double defaultTableBoxHeight = 230.0;
+          final double fillerBoxHeight = (defaultTableBoxHeight - usedItemsHeight).clamp(0.0, defaultTableBoxHeight);
+
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -409,7 +417,14 @@ class PdfHelper {
 
               // Items Table
               pw.Table(
-                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                border: const pw.TableBorder(
+                  top: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  left: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  right: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  verticalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  horizontalInside: pw.BorderSide.none,
+                ),
                 columnWidths: {
                   0: const pw.FlexColumnWidth(2.5), // Name/Details
                   1: const pw.FlexColumnWidth(0.8), // HSN
@@ -470,11 +485,14 @@ class PdfHelper {
                       ],
                     );
                   }),
-                  // Default empty rows to maintain 10-12 product list space
-                  ...List.generate(
-                    (11 - invoice.items.length).clamp(0, 11),
-                    (_) => _emptyTableRow(fontData),
-                  ),
+                  // Continuous vertical column dividers extending to the bottom of the table box
+                  if (fillerBoxHeight > 0)
+                    pw.TableRow(
+                      children: List.generate(
+                        8,
+                        (_) => pw.Container(height: fillerBoxHeight),
+                      ),
+                    ),
                 ],
               ),
 
@@ -495,35 +513,51 @@ class PdfHelper {
                           style: pw.TextStyle(font: fontBold, fontSize: 9, color: PdfColors.grey600),
                         ),
                         pw.SizedBox(height: 4),
-                        ...invoice.payments.map((pay) {
-                          if (pay.amount <= 0) return pw.Container();
-                          return pw.Padding(
+                        if (invoice.payments.where((pay) => pay.amount > 0).isNotEmpty) ...[
+                          ...invoice.payments.where((pay) => pay.amount > 0).map((pay) {
+                            final methodName = pay.method.toUpperCase().replaceAll('_', ' ');
+                            return pw.Padding(
+                              padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+                              child: pw.Row(
+                                children: [
+                                  pw.Text(
+                                    '$methodName: ',
+                                    style: pw.TextStyle(font: fontData, fontSize: 8.5),
+                                  ),
+                                  pw.Text(
+                                    _currencyFormat.format(pay.amount),
+                                    style: pw.TextStyle(font: fontBold, fontSize: 8.5),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ] else if (invoice.totalAmountPaid > 0) ...[
+                          pw.Padding(
                             padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
                             child: pw.Row(
                               children: [
                                 pw.Text(
-                                  '${pay.method}:',
+                                  'PAID: ',
                                   style: pw.TextStyle(font: fontData, fontSize: 8.5),
                                 ),
-                                pw.SizedBox(width: 8),
                                 pw.Text(
-                                  _currencyFormat.format(pay.amount),
+                                  _currencyFormat.format(invoice.totalAmountPaid),
                                   style: pw.TextStyle(font: fontBold, fontSize: 8.5),
                                 ),
                               ],
                             ),
-                          );
-                        }),
+                          ),
+                        ],
                         pw.SizedBox(height: 4),
                         pw.Divider(thickness: 0.5, color: PdfColors.grey300),
                         pw.SizedBox(height: 4),
                         pw.Row(
                           children: [
                             pw.Text(
-                              'Total Paid:',
+                              'Total Paid: ',
                               style: pw.TextStyle(font: fontData, fontSize: 8.5),
                             ),
-                            pw.SizedBox(width: 8),
                             pw.Text(
                               _currencyFormat.format(invoice.totalAmountPaid),
                               style: pw.TextStyle(font: fontBold, fontSize: 9.5, color: PdfColors.green800),
@@ -536,10 +570,9 @@ class PdfHelper {
                             child: pw.Row(
                               children: [
                                 pw.Text(
-                                  'Balance Due:',
+                                  'Balance Due: ',
                                   style: pw.TextStyle(font: fontData, fontSize: 8.5, color: PdfColors.red800),
                                 ),
-                                pw.SizedBox(width: 8),
                                 pw.Text(
                                   _currencyFormat.format(invoice.balanceDue),
                                   style: pw.TextStyle(font: fontBold, fontSize: 9.5, color: PdfColors.red800),
@@ -612,9 +645,9 @@ class PdfHelper {
                 ],
               ),
 
-              pw.SizedBox(height: 12),
+              pw.Spacer(),
 
-              // Signature Box (placed cleanly below summary and payments)
+              // Signature Box (placed cleanly below summary and payments matching reference invoice)
               if (forWhatsApp)
                 pw.Center(
                   child: pw.Text(
@@ -643,40 +676,8 @@ class PdfHelper {
                     ),
                     pw.TableRow(
                       children: [
-                        pw.SizedBox(height: 25), // Signing area
-                        pw.SizedBox(height: 25),
-                      ],
-                    ),
-                    pw.TableRow(
-                      children: [
-                        pw.Container(
-                          alignment: pw.Alignment.center,
-                          child: pw.Container(
-                            width: 140,
-                            decoration: const pw.BoxDecoration(
-                              border: pw.Border(
-                                bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
-                              ),
-                            ),
-                          ),
-                        ),
-                        pw.Container(
-                          alignment: pw.Alignment.center,
-                          child: pw.Container(
-                            width: 140,
-                            decoration: const pw.BoxDecoration(
-                              border: pw.Border(
-                                bottom: pw.BorderSide(width: 0.5, color: PdfColors.grey600),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    pw.TableRow(
-                      children: [
-                        pw.SizedBox(height: 3),
-                        pw.SizedBox(height: 3),
+                        pw.SizedBox(height: 35), // Signing area
+                        pw.SizedBox(height: 35),
                       ],
                     ),
                     pw.TableRow(
@@ -685,14 +686,14 @@ class PdfHelper {
                           alignment: pw.Alignment.center,
                           child: pw.Text(
                             'Customer Signature',
-                            style: pw.TextStyle(font: fontBold, fontSize: 8),
+                            style: pw.TextStyle(font: fontBold, fontSize: 8.5),
                           ),
                         ),
                         pw.Container(
                           alignment: pw.Alignment.center,
                           child: pw.Text(
                             'Authorised Signature',
-                            style: pw.TextStyle(font: fontBold, fontSize: 8),
+                            style: pw.TextStyle(font: fontBold, fontSize: 8.5),
                           ),
                         ),
                       ],
@@ -700,7 +701,7 @@ class PdfHelper {
                   ],
                 ),
 
-              pw.Spacer(),
+              pw.SizedBox(height: 12),
 
               // Footer Declarations (Anchored cleanly at bottom)
               pw.Divider(thickness: 0.5, color: PdfColors.grey400),
@@ -758,7 +759,12 @@ class PdfHelper {
 
   static pw.Widget _tableHeaderCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.center}) {
     return pw.Container(
-      color: PdfColors.grey200,
+      decoration: const pw.BoxDecoration(
+        color: PdfColors.grey200,
+        border: pw.Border(
+          bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+        ),
+      ),
       padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       alignment: align == pw.TextAlign.left
           ? pw.Alignment.centerLeft
@@ -769,15 +775,6 @@ class PdfHelper {
         text,
         style: pw.TextStyle(font: font, fontSize: 7.5),
         textAlign: align,
-      ),
-    );
-  }
-
-  static pw.TableRow _emptyTableRow(pw.Font font) {
-    return pw.TableRow(
-      children: List.generate(
-        8,
-        (_) => _tableDataCell(' ', font),
       ),
     );
   }

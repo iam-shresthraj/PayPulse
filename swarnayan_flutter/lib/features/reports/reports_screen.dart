@@ -1740,7 +1740,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               if (_isExporting) ...[
-                                const SizedBox(
+                                SizedBox(
                                   width: 16,
                                   height: 16,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),

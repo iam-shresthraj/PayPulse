@@ -470,10 +470,15 @@ class PdfHelper {
                       ],
                     );
                   }),
+                  // Default empty rows to maintain 10-12 product list space
+                  ...List.generate(
+                    (11 - invoice.items.length).clamp(0, 11),
+                    (_) => _emptyTableRow(fontData),
+                  ),
                 ],
               ),
 
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 8),
 
               // Summary and Payments
               pw.Row(
@@ -542,7 +547,7 @@ class PdfHelper {
                               ],
                             ),
                           ),
-                        pw.SizedBox(height: 12),
+                        pw.SizedBox(height: 10),
                         pw.Text(
                           'AMOUNT IN WORDS:',
                           style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey600),
@@ -607,10 +612,9 @@ class PdfHelper {
                 ],
               ),
 
-              pw.Spacer(),
+              pw.SizedBox(height: 12),
 
-              // Signature Box
-              pw.SizedBox(height: 15),
+              // Signature Box (placed cleanly below summary and payments)
               if (forWhatsApp)
                 pw.Center(
                   child: pw.Text(
@@ -631,16 +635,16 @@ class PdfHelper {
                         pw.Container(
                           alignment: pw.Alignment.center,
                           child: pw.Text(
-                            'For Swarnayan Jewellers',
-                            style: pw.TextStyle(font: fontBold, fontSize: 8),
+                            'For $cName',
+                            style: pw.TextStyle(font: fontBold, fontSize: 8.5),
                           ),
                         ),
                       ],
                     ),
                     pw.TableRow(
                       children: [
-                        pw.SizedBox(height: 30), // Signing area
-                        pw.SizedBox(height: 30),
+                        pw.SizedBox(height: 25), // Signing area
+                        pw.SizedBox(height: 25),
                       ],
                     ),
                     pw.TableRow(
@@ -671,8 +675,8 @@ class PdfHelper {
                     ),
                     pw.TableRow(
                       children: [
-                        pw.SizedBox(height: 4),
-                        pw.SizedBox(height: 4),
+                        pw.SizedBox(height: 3),
+                        pw.SizedBox(height: 3),
                       ],
                     ),
                     pw.TableRow(
@@ -696,11 +700,11 @@ class PdfHelper {
                   ],
                 ),
 
-              pw.SizedBox(height: 8),
+              pw.Spacer(),
 
-              // Footer Declarations
+              // Footer Declarations (Anchored cleanly at bottom)
               pw.Divider(thickness: 0.5, color: PdfColors.grey400),
-              pw.SizedBox(height: 6),
+              pw.SizedBox(height: 5),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -769,11 +773,26 @@ class PdfHelper {
     );
   }
 
+  static pw.TableRow _emptyTableRow(pw.Font font) {
+    return pw.TableRow(
+      children: List.generate(
+        8,
+        (_) => _tableDataCell(' ', font),
+      ),
+    );
+  }
+
   static pw.Widget _tableDataCell(String text, pw.Font font, {pw.TextAlign align = pw.TextAlign.left}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+    return pw.Container(
+      constraints: const pw.BoxConstraints(minHeight: 18),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
+      alignment: align == pw.TextAlign.center
+          ? pw.Alignment.center
+          : align == pw.TextAlign.right
+              ? pw.Alignment.centerRight
+              : pw.Alignment.centerLeft,
       child: pw.Text(
-        text,
+        text.isEmpty ? ' ' : text,
         style: pw.TextStyle(font: font, fontSize: 7.5),
         textAlign: align,
       ),

@@ -99,6 +99,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Feature-wise checks for other routes
+      if (location.startsWith('/billing/bulk') || location.startsWith('/more/bulk-invoices')) {
+        final canManage = user?.canManage ?? false;
+        if (!canManage) return '/';
+      }
+
       if (location.startsWith('/billing')) {
         final accessInvoices = user?.hasAccess('invoices', rolePermissions) ?? true;
         if (!accessInvoices) return '/';

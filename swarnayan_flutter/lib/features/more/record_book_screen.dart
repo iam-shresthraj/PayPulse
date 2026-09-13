@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/invoice.dart';
 import '../../models/customer.dart';
 import '../billing/billing_provider.dart';
+import '../auth/auth_provider.dart';
 import 'company_provider.dart';
 import '../../core/widgets/skeleton_widgets.dart';
 
@@ -277,17 +278,18 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                     style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () => context.push('/billing/bulk'),
-                  icon: const Icon(Icons.receipt_long_rounded, size: 16),
-                  label: const Text('Bulk Generator'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                if (ref.watch(authProvider).user?.canManage ?? false)
+                  TextButton.icon(
+                    onPressed: () => context.push('/billing/bulk'),
+                    icon: const Icon(Icons.folder_zip_rounded, size: 16),
+                    label: const Text('Bulk Generation'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                   ),
-                ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),

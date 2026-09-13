@@ -25,6 +25,7 @@ import '../more/company_provider.dart';
 import '../more/coupons_provider.dart';
 import 'billing_provider.dart';
 import 'invoices_provider.dart';
+import '../auth/auth_provider.dart';
 import '../../core/utils/pdf_helper.dart';
 import '../../core/utils/whatsapp_helper.dart';
 import '../../core/utils/formatters.dart';
@@ -2074,14 +2075,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   );
                 },
               ),
-              const SizedBox(width: 4),
-              IconButton(
-                constraints: const BoxConstraints(),
-                padding: const EdgeInsets.all(8),
-                icon: Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
-                tooltip: 'Bulk Invoice Generator (CSV)',
-                onPressed: () => context.push('/billing/bulk'),
-              ),
+              if (ref.watch(authProvider).user?.canManage ?? false) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                  icon: Icon(Icons.folder_zip_rounded, color: AppColors.primary, size: 20),
+                  tooltip: 'Bulk Generation (CSV)',
+                  onPressed: () => context.push('/billing/bulk'),
+                ),
+              ],
             ],
           ),
         ],

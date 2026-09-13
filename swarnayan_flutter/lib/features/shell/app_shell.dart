@@ -252,6 +252,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
     if (location.startsWith('/admin/branding')) return 105;
     if (location.startsWith('/admin/app-update')) return 106;
     if (location.startsWith('/download')) return 9;
+    if (location.startsWith('/billing/bulk') || location.startsWith('/more/bulk-invoices')) return 10;
     if (location.startsWith('/billing')) return 1;
     if (location.startsWith('/more/rates')) return 7;
     if (location.startsWith('/customers')) return 2;
@@ -342,6 +343,9 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
         break;
       case 7:
         context.go('/more/rates');
+        break;
+      case 10:
+        context.go('/billing/bulk');
         break;
     }
   }
@@ -1121,6 +1125,13 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                       label: 'Record Book',
                       isActive: currentIndex == 5,
                       onTap: () => _onTap(context, 5),
+                    ),
+                  if (canManage)
+                    _buildSidebarItem(
+                      icon: Icons.folder_zip_rounded,
+                      label: 'Bulk Generation',
+                      isActive: currentIndex == 10,
+                      onTap: () => _onTap(context, 10),
                     ),
                   if (user?.hasAccess('staff', rolePermissions) ?? true)
                     _buildSidebarItem(

@@ -70,8 +70,9 @@ class MoreScreen extends ConsumerWidget {
     final showReports = !isWide && canManage && (user?.hasAccess('reports', rolePermissions) ?? true);
     final showSettings = !isWide && isOwner && (user?.hasAccess('settings', rolePermissions) ?? true);
     final showRecords = !isWide && (user?.hasAccess('records', rolePermissions) ?? true);
+    final showBulkGeneration = canManage;
     final showCoupons = user?.hasAccess('coupons', rolePermissions) ?? true;
-    final showBusinessSection = showReports || showSettings || showRecords || showCoupons;
+    final showBusinessSection = showReports || showSettings || showRecords || showCoupons || showBulkGeneration;
 
     final showStaffMgmt = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
     final showPending = canManage && (user?.hasAccess('staff', rolePermissions) ?? true);
@@ -453,7 +454,7 @@ class MoreScreen extends ConsumerWidget {
                     },
                   ),
 
-                if (showRecords) ...[
+                if (showRecords)
                   _buildMenuItem(
                     icon: Icons.book_rounded,
                     label: 'Record Book',
@@ -461,14 +462,14 @@ class MoreScreen extends ConsumerWidget {
                     index: 3,
                     onTap: () => context.push('/more/records'),
                   ),
+                if (showBulkGeneration)
                   _buildMenuItem(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Bulk Invoice Generator',
+                    icon: Icons.folder_zip_rounded,
+                    label: 'Bulk Generation',
                     subtitle: 'Upload CSV, generate ZIP & download',
                     index: 4,
                     onTap: () => context.push('/billing/bulk'),
                   ),
-                ],
                 if (showCoupons)
                   _buildMenuItem(
                     icon: Icons.local_offer_rounded,

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +6,7 @@ import 'package:excel/excel.dart' hide Border;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -12,13 +14,15 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/glass_input.dart';
 import '../../core/utils/file_saver_helper.dart';
-import 'package:go_router/go_router.dart';
+import '../../core/utils/pdf_helper.dart';
+import '../../models/company_settings.dart';
+import '../../models/customer.dart';
+import '../../models/invoice.dart';
 import '../auth/auth_provider.dart';
 import '../admin/admin_reports_view.dart';
 import '../billing/invoices_provider.dart';
 import '../customers/customers_provider.dart';
 import '../more/company_provider.dart';
-import '../../models/invoice.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -34,6 +38,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   bool _hasSearched = false;
   final Set<String> _selectedStatusFilters = {'ALL'};
   final Set<String> _selectedSearchFields = {'ALL'};
+  bool _isCardView = false;
 
   static const List<({String key, String label})> _statusScopes = [
     (key: 'ALL', label: 'All Statuses'),
@@ -46,18 +51,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   static const List<({String key, String label})> _searchScopes = [
     (key: 'ALL', label: 'All Columns'),
     (key: 'invoiceNumber', label: 'Invoice No'),
-    (key: 'customerName', label: 'Customer'),
-    (key: 'productDetails', label: 'Products'),
+    (key: 'customerName', label: 'Customer Name'),
+    (key: 'customerPhone', label: 'Customer Phone'),
+    (key: 'productDetails', label: 'Products / Items'),
+    (key: 'purity', label: 'Purity'),
+    (key: 'netWeight', label: 'Net Weight'),
     (key: 'grossAmount', label: 'Gross Amount'),
     (key: 'couponDiscount', label: 'Discount'),
     (key: 'taxableAmount', label: 'Taxable Amount'),
     (key: 'totalTax', label: 'Total Tax'),
     (key: 'netAmount', label: 'Net Amount'),
+    (key: 'paymentMode', label: 'Payment Mode'),
+    (key: 'dues', label: 'Dues'),
+    (key: 'status', label: 'Status'),
   ];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _performSearch();
+    });
   }
 
   @override
@@ -65,6 +79,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _searchQueryController.dispose();
     super.dispose();
   }
+
+  // --- Calculations for Summary Metrics ---
+  double get _totalGrossSales => _filteredInvoices.fold<double>(0, (sum, inv) => sum + inv.grossAmount);
+  double get _totalGst => _filteredInvoices.fold<double>(0, (sum, inv) => sum + inv.totalTax);
+  double get _totalNetSales => _filteredInvoices.fold<double>(0, (sum, inv) => sum + inv.netAmount);
+  double get _totalPaid => _filteredInvoices.fold<double>(0, (sum, inv) => sum + inv.totalAmountPaid);
+  double get _totalDues => _filteredInvoices.fold<double>(0, (sum, inv) => sum + inv.balanceDue);
+  double get _totalWeight => _filteredInvoices.fold<double>(0, (sum, inv) => sum + _getTotalNetWeight(inv));
 
   void _performSearch() {
     final invoicesState = ref.read(invoicesProvider);
@@ -77,8 +99,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       setState(() {
         _filteredInvoices = invoicesState.value.where((inv) {
           final dateMatch = inv.invoiceDate.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
-                 inv.invoiceDate.isBefore(endOfDay.add(const Duration(seconds: 1))) &&
-                 inv.deletedAt == null;
+              inv.invoiceDate.isBefore(endOfDay.add(const Duration(seconds: 1))) &&
+              inv.deletedAt == null;
           if (!dateMatch) return false;
 
           if (!_selectedStatusFilters.contains('ALL')) {
@@ -96,30 +118,49 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           if (query.isNotEmpty) {
             final custName = _getCustomerName(inv).toLowerCase();
+            final phone = _getCustomerPhone(inv).toLowerCase();
             final invNum = (inv.invoiceNumber ?? inv.id ?? '').toLowerCase();
             final prodDetails = _getProductDetails(inv).toLowerCase();
+            final purity = _getPurity(inv).toLowerCase();
+            final netWt = _getTotalNetWeight(inv).toStringAsFixed(3);
             final grossAmt = inv.grossAmount.toStringAsFixed(2);
-            final discount = inv.couponDiscount.toStringAsFixed(2);
+            final discount = (inv.couponDiscount + inv.manualDiscount).toStringAsFixed(2);
             final taxable = inv.taxableAmount.toStringAsFixed(2);
             final tax = inv.totalTax.toStringAsFixed(2);
             final netAmt = inv.netAmount.toStringAsFixed(2);
+            final paymentMode = _getPaymentBreakdown(inv).toLowerCase();
+            final dues = inv.balanceDue.toStringAsFixed(2);
+            final status = _getInvoiceStatus(inv).toLowerCase();
+
             final matchAny = selectedFields.contains('ALL')
                 ? invNum.contains(query) ||
                     custName.contains(query) ||
+                    phone.contains(query) ||
                     prodDetails.contains(query) ||
+                    purity.contains(query) ||
+                    netWt.contains(query) ||
                     grossAmt.contains(query) ||
                     discount.contains(query) ||
                     taxable.contains(query) ||
                     tax.contains(query) ||
-                    netAmt.contains(query)
+                    netAmt.contains(query) ||
+                    paymentMode.contains(query) ||
+                    dues.contains(query) ||
+                    status.contains(query)
                 : selectedFields.any((field) {
                     switch (field) {
                       case 'invoiceNumber':
                         return invNum.contains(query);
                       case 'customerName':
                         return custName.contains(query);
+                      case 'customerPhone':
+                        return phone.contains(query);
                       case 'productDetails':
                         return prodDetails.contains(query);
+                      case 'purity':
+                        return purity.contains(query);
+                      case 'netWeight':
+                        return netWt.contains(query);
                       case 'grossAmount':
                         return grossAmt.contains(query);
                       case 'couponDiscount':
@@ -130,6 +171,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         return tax.contains(query);
                       case 'netAmount':
                         return netAmt.contains(query);
+                      case 'paymentMode':
+                        return paymentMode.contains(query);
+                      case 'dues':
+                        return dues.contains(query);
+                      case 'status':
+                        return status.contains(query);
                       default:
                         return false;
                     }
@@ -182,8 +229,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           _endDate = picked;
         }
       });
+      _performSearch();
     }
   }
+
+  // --- Helper Methods ---
 
   String _getCustomerName(Invoice invoice) {
     if (invoice.tempCustomerName != null && invoice.tempCustomerName!.isNotEmpty) {
@@ -198,82 +248,365 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
+  String _getCustomerPhone(Invoice invoice) {
+    if (invoice.tempCustomerMobile != null && invoice.tempCustomerMobile!.isNotEmpty) {
+      return invoice.tempCustomerMobile!;
+    }
+    final customers = ref.read(customersProvider).value ?? [];
+    try {
+      final cust = customers.firstWhere((c) => c.id == invoice.customerId);
+      return cust.mobile.isNotEmpty ? cust.mobile : '—';
+    } catch (_) {
+      return '—';
+    }
+  }
+
+  String _getCustomerAddress(Invoice invoice) {
+    final addrParts = [
+      if (invoice.tempCustomerAddress?.isNotEmpty == true) invoice.tempCustomerAddress!,
+      if (invoice.tempCustomerCity?.isNotEmpty == true) invoice.tempCustomerCity!,
+      if (invoice.tempCustomerState?.isNotEmpty == true) invoice.tempCustomerState!,
+      if (invoice.tempCustomerPincode?.isNotEmpty == true) invoice.tempCustomerPincode!,
+    ];
+    if (addrParts.isNotEmpty) return addrParts.join(', ');
+    final customers = ref.read(customersProvider).value ?? [];
+    try {
+      final cust = customers.firstWhere((c) => c.id == invoice.customerId);
+      if (cust.address != null && cust.address!.isNotEmpty) return cust.address!;
+    } catch (_) {}
+    return '—';
+  }
+
+  Customer _resolveCustomer(Invoice invoice) {
+    final customers = ref.read(customersProvider).value ?? [];
+    try {
+      return customers.firstWhere((c) => c.id == invoice.customerId);
+    } catch (_) {
+      return Customer(
+        id: invoice.customerId,
+        name: invoice.tempCustomerName ?? 'Walk-in Customer',
+        mobile: invoice.tempCustomerMobile ?? '',
+        address: invoice.tempCustomerAddress ?? '',
+        city: invoice.tempCustomerCity ?? '',
+        state: invoice.tempCustomerState ?? '',
+        pincode: invoice.tempCustomerPincode ?? '',
+      );
+    }
+  }
+
   String _getProductDetails(Invoice invoice) {
+    if (invoice.items.isEmpty) return '—';
     return invoice.items.map((item) {
       final huidStr = item.huidNumber != null && item.huidNumber!.isNotEmpty ? ' (HUID:${item.huidNumber})' : '';
-      return '${item.productName}$huidStr (${item.purity}, ${item.netWeight}g, x${item.quantity})';
-    }).join(', ');
+      return '${item.productName}$huidStr';
+    }).join('; ');
+  }
+
+  String _getPurity(Invoice invoice) {
+    final purities = invoice.items.map((i) => i.purity.trim()).where((p) => p.isNotEmpty).toSet();
+    if (purities.isEmpty) return '—';
+    return purities.join(', ');
+  }
+
+  double _getTotalNetWeight(Invoice invoice) {
+    return invoice.items.fold<double>(0, (sum, i) => sum + i.netWeight);
+  }
+
+  double _getTotalGrossWeight(Invoice invoice) {
+    return invoice.items.fold<double>(0, (sum, i) => sum + i.grossWeight);
+  }
+
+  double _getCashPaid(Invoice invoice) {
+    return invoice.payments.where((p) => p.method.toUpperCase() == 'CASH').fold<double>(0, (sum, p) => sum + p.amount);
+  }
+
+  double _getCardPaid(Invoice invoice) {
+    return invoice.payments.where((p) => p.method.toUpperCase() == 'CARD').fold<double>(0, (sum, p) => sum + p.amount);
+  }
+
+  double _getUpiPaid(Invoice invoice) {
+    return invoice.payments.where((p) => p.method.toUpperCase().contains('UPI') || p.method.toUpperCase().contains('BANK')).fold<double>(0, (sum, p) => sum + p.amount);
+  }
+
+  String _getPaymentBreakdown(Invoice invoice) {
+    if (invoice.payments.isEmpty) return '—';
+    final parts = <String>[];
+    final cash = _getCashPaid(invoice);
+    final card = _getCardPaid(invoice);
+    final upi = _getUpiPaid(invoice);
+
+    if (cash > 0) parts.add('Cash ₹${cash.toStringAsFixed(cash % 1 == 0 ? 0 : 2)}');
+    if (card > 0) parts.add('Card ₹${card.toStringAsFixed(card % 1 == 0 ? 0 : 2)}');
+    if (upi > 0) parts.add('UPI ₹${upi.toStringAsFixed(upi % 1 == 0 ? 0 : 2)}');
+
+    if (parts.isEmpty) {
+      for (final p in invoice.payments) {
+        if (p.amount > 0) {
+          parts.add('${p.method} ₹${p.amount.toStringAsFixed(p.amount % 1 == 0 ? 0 : 2)}');
+        }
+      }
+    }
+    return parts.isEmpty ? '—' : parts.join('; ');
+  }
+
+  String _getInvoiceStatus(Invoice invoice) {
+    if (invoice.status == 'CANCELLED') return 'CANCELLED';
+    if (invoice.balanceDue <= 0.05) return 'PAID';
+    return 'PARTIAL';
+  }
+
+  String _escapeCsv(String val) {
+    if (val.contains(',') || val.contains('"') || val.contains('\n') || val.contains('\r')) {
+      return '"${val.replaceAll('"', '""')}"';
+    }
+    return val;
+  }
+
+  // --- Export Methods ---
+
+  Future<void> _exportToCsv(String companyName) async {
+    final buffer = StringBuffer();
+    // Complete Database CSV Schema
+    buffer.writeln('Invoice No.,Date,Customer Name,Phone,Address,Particulars,Purity,Gross Wt (gm),Net Wt (gm),Making Charge (₹),Gross Amt (₹),Discount (₹),Taxable Amt (₹),CGST (₹),SGST (₹),Total Tax (₹),Net Amt (₹),By Cash (₹),By Card (₹),By UPI (₹),Total Paid (₹),Dues (₹),Status');
+
+    for (final inv in _filteredInvoices) {
+      final invNo = inv.invoiceNumber ?? inv.id ?? '';
+      final date = DateFormat('dd/MM/yyyy').format(inv.invoiceDate);
+      final custName = _escapeCsv(_getCustomerName(inv));
+      final phone = _escapeCsv(_getCustomerPhone(inv));
+      final address = _escapeCsv(_getCustomerAddress(inv));
+      final products = _escapeCsv(_getProductDetails(inv));
+      final purity = _escapeCsv(_getPurity(inv));
+      final grossWt = _getTotalGrossWeight(inv).toStringAsFixed(3);
+      final netWt = _getTotalNetWeight(inv).toStringAsFixed(3);
+      final makingCharge = inv.items.fold<double>(0, (s, i) => s + i.makingChargeTotal).toStringAsFixed(2);
+      final grossAmt = inv.grossAmount.toStringAsFixed(2);
+      final discount = (inv.couponDiscount + inv.manualDiscount).toStringAsFixed(2);
+      final taxable = inv.taxableAmount.toStringAsFixed(2);
+      final cgst = inv.cgst.toStringAsFixed(2);
+      final sgst = inv.sgst.toStringAsFixed(2);
+      final totalTax = inv.totalTax.toStringAsFixed(2);
+      final netAmt = inv.netAmount.toStringAsFixed(2);
+
+      final cash = _getCashPaid(inv).toStringAsFixed(2);
+      final card = _getCardPaid(inv).toStringAsFixed(2);
+      final upi = _getUpiPaid(inv).toStringAsFixed(2);
+      final totalPaid = inv.totalAmountPaid.toStringAsFixed(2);
+      final dues = inv.balanceDue.toStringAsFixed(2);
+      final status = _getInvoiceStatus(inv);
+
+      buffer.writeln('$invNo,$date,$custName,$phone,$address,$products,$purity,$grossWt,$netWt,$makingCharge,$grossAmt,$discount,$taxable,$cgst,$sgst,$totalTax,$netAmt,$cash,$card,$upi,$totalPaid,$dues,$status');
+    }
+
+    final bytes = utf8.encode(buffer.toString());
+    await FileSaverHelper.saveCsvFile(
+      bytes,
+      'PayPulse_${companyName.replaceAll(' ', '_')}_Invoices_Database_${DateFormat('dd-MM-yyyy').format(DateTime.now())}.csv',
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exported ${_filteredInvoices.length} records as CSV database file.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  void _exportToExcel(String companyName) {
+    final excel = Excel.createExcel();
+    final sheetName = excel.sheets.keys.first;
+    final Sheet sheet = excel[sheetName];
+
+    // Title Row
+    sheet.appendRow([TextCellValue('$companyName Invoice Database Report')]);
+    
+    // Subtitle Date Row
+    final dateRangeStr = 'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)} | Total Records: ${_filteredInvoices.length}';
+    sheet.appendRow([TextCellValue(dateRangeStr)]);
+    sheet.appendRow([]); // empty buffer row
+
+    // Table Header
+    final headers = [
+      'Invoice No',
+      'Date',
+      'Customer Name',
+      'Phone',
+      'Address',
+      'Particulars',
+      'Purity',
+      'Gross Wt (gm)',
+      'Net Wt (gm)',
+      'Making Charge (₹)',
+      'Gross Amount (₹)',
+      'Discount (₹)',
+      'Taxable Amount (₹)',
+      'CGST (₹)',
+      'SGST (₹)',
+      'Total Tax (₹)',
+      'Net Amount (₹)',
+      'Cash (₹)',
+      'Card (₹)',
+      'UPI (₹)',
+      'Total Paid (₹)',
+      'Dues (₹)',
+      'Status',
+    ].map((h) => TextCellValue(h)).toList();
+    sheet.appendRow(headers);
+
+    // Data Rows
+    for (final inv in _filteredInvoices) {
+      final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
+      final discountSum = inv.couponDiscount + inv.manualDiscount;
+      sheet.appendRow([
+        TextCellValue(inv.invoiceNumber ?? inv.id ?? ''),
+        TextCellValue(DateFormat('dd/MM/yyyy').format(inv.invoiceDate)),
+        TextCellValue(_getCustomerName(inv)),
+        TextCellValue(_getCustomerPhone(inv)),
+        TextCellValue(_getCustomerAddress(inv)),
+        TextCellValue(_getProductDetails(inv)),
+        TextCellValue(_getPurity(inv)),
+        DoubleCellValue(_getTotalGrossWeight(inv)),
+        DoubleCellValue(_getTotalNetWeight(inv)),
+        DoubleCellValue(makingChargeSum),
+        DoubleCellValue(inv.grossAmount),
+        DoubleCellValue(discountSum),
+        DoubleCellValue(inv.taxableAmount),
+        DoubleCellValue(inv.cgst),
+        DoubleCellValue(inv.sgst),
+        DoubleCellValue(inv.totalTax),
+        DoubleCellValue(inv.netAmount),
+        DoubleCellValue(_getCashPaid(inv)),
+        DoubleCellValue(_getCardPaid(inv)),
+        DoubleCellValue(_getUpiPaid(inv)),
+        DoubleCellValue(inv.totalAmountPaid),
+        DoubleCellValue(inv.balanceDue),
+        TextCellValue(_getInvoiceStatus(inv)),
+      ]);
+    }
+
+    final bytes = excel.save();
+    if (bytes != null) {
+      FileSaverHelper.saveExcelFile(
+        bytes,
+        '${companyName.replaceAll(' ', '_')}_Invoice_Report_${DateFormat('dd-MM-yyyy').format(DateTime.now())}.xlsx',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Exported ${_filteredInvoices.length} records to Excel.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _exportToPdf(String companyName) async {
     final doc = pw.Document();
-    final fontData = await PdfGoogleFonts.poppinsRegular();
-    final fontBold = await PdfGoogleFonts.poppinsBold();
+    pw.Font fontData;
+    pw.Font fontBold;
+    try {
+      fontData = await PdfGoogleFonts.poppinsRegular();
+      fontBold = await PdfGoogleFonts.poppinsBold();
+    } catch (_) {
+      fontData = pw.Font.helvetica();
+      fontBold = pw.Font.helveticaBold();
+    }
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
-        margin: const pw.EdgeInsets.all(24),
+        margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
           return [
-            pw.Text(
-              '$companyName Report',
-              style: pw.TextStyle(font: fontBold, fontSize: 18),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      '$companyName — Invoice Database Report',
+                      style: pw.TextStyle(font: fontBold, fontSize: 16),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)} | Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                      style: pw.TextStyle(font: fontData, fontSize: 8, color: PdfColors.grey700),
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'Total Invoices: ${_filteredInvoices.length} | Total Wt: ${_totalWeight.toStringAsFixed(3)} g',
+                      style: pw.TextStyle(font: fontBold, fontSize: 8),
+                    ),
+                    pw.Text(
+                      'Net Sales: Rs. ${_totalNetSales.toStringAsFixed(2)} | Dues: Rs. ${_totalDues.toStringAsFixed(2)}',
+                      style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey800),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            pw.SizedBox(height: 4),
-            pw.Text(
-              'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)}',
-              style: pw.TextStyle(font: fontData, fontSize: 10, color: PdfColors.grey700),
-            ),
-            pw.SizedBox(height: 16),
+            pw.SizedBox(height: 12),
             pw.TableHelper.fromTextArray(
               headers: [
                 'Invoice No',
                 'Date',
                 'Customer',
-                'Products',
-                'Making Charge',
-                'Gross',
-                'Discount',
-                'Taxable',
-                'CGST',
-                'SGST',
-                'Total Tax',
-                'Net Amt',
+                'Phone',
+                'Particulars & Purity',
+                'Net Wt (g)',
+                'Gross (Rs)',
+                'Taxable (Rs)',
+                'GST (Rs)',
+                'Net Amt (Rs)',
+                'Payment Mode',
+                'Paid (Rs)',
+                'Dues (Rs)',
+                'Status',
               ],
               columnWidths: {
-                0: const pw.FixedColumnWidth(40), // Invoice No
-                1: const pw.FixedColumnWidth(45), // Date
-                2: const pw.FixedColumnWidth(70), // Customer
-                3: const pw.FixedColumnWidth(130), // Products
-                4: const pw.FixedColumnWidth(55), // Making Charge
-                5: const pw.FixedColumnWidth(45), // Gross
-                6: const pw.FixedColumnWidth(45), // Discount
+                0: const pw.FixedColumnWidth(45), // Invoice No
+                1: const pw.FixedColumnWidth(40), // Date
+                2: const pw.FixedColumnWidth(60), // Customer
+                3: const pw.FixedColumnWidth(45), // Phone
+                4: const pw.FixedColumnWidth(110), // Particulars & Purity
+                5: const pw.FixedColumnWidth(35), // Net Wt
+                6: const pw.FixedColumnWidth(45), // Gross
                 7: const pw.FixedColumnWidth(45), // Taxable
-                8: const pw.FixedColumnWidth(30), // CGST
-                9: const pw.FixedColumnWidth(30), // SGST
-                10: const pw.FixedColumnWidth(45), // Total Tax
-                11: const pw.FixedColumnWidth(45), // Net Amt
+                8: const pw.FixedColumnWidth(40), // GST
+                9: const pw.FixedColumnWidth(50), // Net Amt
+                10: const pw.FixedColumnWidth(65), // Payment Mode
+                11: const pw.FixedColumnWidth(45), // Paid
+                12: const pw.FixedColumnWidth(40), // Dues
+                13: const pw.FixedColumnWidth(35), // Status
               },
               data: _filteredInvoices.map((inv) {
-                final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
                 return [
                   inv.invoiceNumber ?? inv.id ?? '',
-                  DateFormat('dd/MM/yyyy').format(inv.invoiceDate),
+                  DateFormat('dd/MM/yy').format(inv.invoiceDate),
                   _getCustomerName(inv),
-                  _getProductDetails(inv),
-                  makingChargeSum.toStringAsFixed(2),
+                  _getCustomerPhone(inv),
+                  '${_getProductDetails(inv)} [${_getPurity(inv)}]',
+                  _getTotalNetWeight(inv).toStringAsFixed(3),
                   inv.grossAmount.toStringAsFixed(2),
-                  inv.couponDiscount.toStringAsFixed(2),
                   inv.taxableAmount.toStringAsFixed(2),
-                  inv.cgst.toStringAsFixed(2),
-                  inv.sgst.toStringAsFixed(2),
                   inv.totalTax.toStringAsFixed(2),
                   inv.netAmount.toStringAsFixed(2),
+                  _getPaymentBreakdown(inv),
+                  inv.totalAmountPaid.toStringAsFixed(2),
+                  inv.balanceDue.toStringAsFixed(2),
+                  _getInvoiceStatus(inv),
                 ];
               }).toList(),
-              headerStyle: pw.TextStyle(font: fontBold, fontSize: 6.5),
-              cellStyle: pw.TextStyle(font: fontData, fontSize: 6.0),
+              headerStyle: pw.TextStyle(font: fontBold, fontSize: 6.0),
+              cellStyle: pw.TextStyle(font: fontData, fontSize: 5.5),
               border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
               headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
               cellAlignment: pw.Alignment.centerLeft,
@@ -286,66 +619,331 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final bytes = await doc.save();
     await FileSaverHelper.savePdfFile(
       bytes,
-      'PayPulse $companyName Report - ${DateFormat('dd-MM-yyyy').format(DateTime.now())}.pdf',
+      '${companyName.replaceAll(' ', '_')}_Invoice_Report_${DateFormat('dd-MM-yyyy').format(DateTime.now())}.pdf',
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exported ${_filteredInvoices.length} records to PDF.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  // --- Invoice Detail Modal Dialog ---
+
+  void _showInvoiceDetailsDialog(Invoice inv, CompanySettings? company) {
+    final customer = _resolveCustomer(inv);
+    final status = _getInvoiceStatus(inv);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.surfaceContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          side: BorderSide(color: AppColors.glassBorder),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680, maxHeight: 750),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            inv.invoiceNumber ?? inv.id ?? 'Invoice Record',
+                            style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            DateFormat('dd MMMM yyyy, hh:mm a').format(inv.invoiceDate),
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildStatusBadge(status),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+
+                // Scrollable Body
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Customer Card
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('CUSTOMER DETAILS', style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildInfoRow('Name', customer.name),
+                                  ),
+                                  Expanded(
+                                    child: _buildInfoRow('Phone', customer.mobile.isNotEmpty ? customer.mobile : '—'),
+                                  ),
+                                ],
+                              ),
+                              if (customer.address != null && customer.address!.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _buildInfoRow('Address', customer.address!),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Itemized Products
+                        Text('ITEMS & ORNAMENTS', style: AppTextStyles.labelMd.copyWith(color: AppColors.onSurfaceMuted, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainerHigh,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(flex: 3, child: Text('Item', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                    Expanded(flex: 1, child: Text('Purity', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                    Expanded(flex: 2, child: Text('Weight', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                    Expanded(flex: 2, child: Text('Making', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                                    Expanded(flex: 2, child: Text('Total', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                                  ],
+                                ),
+                              ),
+                              if (inv.items.isEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text('No itemized ornaments recorded.', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                )
+                              else
+                                ...inv.items.map((item) => Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 3,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(item.productName, style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+                                                if (item.huidNumber?.isNotEmpty == true)
+                                                  Text('HUID: ${item.huidNumber}', style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                                              ],
+                                            ),
+                                          ),
+                                          Expanded(flex: 1, child: Text(item.purity, style: AppTextStyles.bodyMd)),
+                                          Expanded(flex: 2, child: Text('${item.netWeight.toStringAsFixed(3)} g', style: AppTextStyles.bodyMd)),
+                                          Expanded(flex: 2, child: Text('₹${item.makingChargeTotal.toStringAsFixed(2)}', style: AppTextStyles.bodyMd, textAlign: TextAlign.right)),
+                                          Expanded(flex: 2, child: Text('₹${item.itemTotal.toStringAsFixed(2)}', style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                                        ],
+                                      ),
+                                    )),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Financial & Tax Breakdown
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('FINANCIAL & TAX SUMMARY', style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              _buildAmountRow('Gross Amount', inv.grossAmount),
+                              if (inv.couponDiscount + inv.manualDiscount > 0)
+                                _buildAmountRow('Discount', -(inv.couponDiscount + inv.manualDiscount), color: AppColors.success),
+                              _buildAmountRow('Taxable Amount', inv.taxableAmount),
+                              _buildAmountRow('CGST (1.5%)', inv.cgst),
+                              _buildAmountRow('SGST (1.5%)', inv.sgst),
+                              _buildAmountRow('Total GST (3.0%)', inv.totalTax),
+                              const Divider(height: 16),
+                              _buildAmountRow('Net Total Amount', inv.netAmount, isBold: true, fontSize: 16, color: AppColors.primary),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Payments & Dues
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('PAYMENTS & BALANCE', style: AppTextStyles.labelMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              _buildAmountRow('By Cash', _getCashPaid(inv)),
+                              _buildAmountRow('By Card', _getCardPaid(inv)),
+                              _buildAmountRow('By UPI / Bank', _getUpiPaid(inv)),
+                              const Divider(height: 12),
+                              _buildAmountRow('Total Received', inv.totalAmountPaid, isBold: true, color: AppColors.success),
+                              _buildAmountRow('Outstanding Dues', inv.balanceDue, isBold: true, color: inv.balanceDue > 0 ? AppColors.error : AppColors.onSurfaceMuted),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+
+                // Dialog Actions
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        PdfHelper.generateAndPrintInvoice(
+                          invoice: inv,
+                          customer: customer,
+                          company: company,
+                        );
+                      },
+                      icon: const Icon(Icons.print_rounded, size: 18),
+                      label: const Text('Print / View Invoice'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  void _exportToExcel(String companyName) {
-    final excel = Excel.createExcel();
-    final sheetName = excel.sheets.keys.first;
-    final Sheet sheet = excel[sheetName];
+  Widget _buildInfoRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+        const SizedBox(height: 2),
+        Text(value, style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
 
-    // Title Row
-    sheet.appendRow([TextCellValue('$companyName Report')]);
-    
-    // Subtitle Date Row
-    final dateRangeStr = 'Date Range: ${DateFormat('dd/MM/yyyy').format(_startDate)} to ${DateFormat('dd/MM/yyyy').format(_endDate)}';
-    sheet.appendRow([TextCellValue(dateRangeStr)]);
-    sheet.appendRow([]); // empty buffer row
+  Widget _buildAmountRow(String label, double amount, {bool isBold = false, double fontSize = 14, Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTextStyles.bodyMd.copyWith(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: color)),
+          Text(
+            '₹${amount.toStringAsFixed(2)}',
+            style: AppTextStyles.bodyMd.copyWith(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              fontSize: fontSize,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    // Table Header
-    final headers = [
-      'Invoice No',
-      'Date',
-      'Customer',
-      'Products',
-      'Making Charge (₹)',
-      'Gross Amount (₹)',
-      'Discount (₹)',
-      'Taxable Amount (₹)',
-      'CGST (₹)',
-      'SGST (₹)',
-      'Total Tax (₹)',
-      'Net Amount (₹)',
-    ].map((h) => TextCellValue(h)).toList();
-    sheet.appendRow(headers);
-
-    // Data Row
-    for (final inv in _filteredInvoices) {
-      final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
-      sheet.appendRow([
-        TextCellValue(inv.invoiceNumber ?? inv.id ?? ''),
-        TextCellValue(DateFormat('dd/MM/yyyy').format(inv.invoiceDate)),
-        TextCellValue(_getCustomerName(inv)),
-        TextCellValue(_getProductDetails(inv)),
-        DoubleCellValue(makingChargeSum),
-        DoubleCellValue(inv.grossAmount),
-        DoubleCellValue(inv.couponDiscount),
-        DoubleCellValue(inv.taxableAmount),
-        DoubleCellValue(inv.cgst),
-        DoubleCellValue(inv.sgst),
-        DoubleCellValue(inv.totalTax),
-        DoubleCellValue(inv.netAmount),
-      ]);
+  Widget _buildStatusBadge(String status) {
+    Color bg;
+    Color fg;
+    switch (status) {
+      case 'PAID':
+        bg = AppColors.success.withValues(alpha: 0.15);
+        fg = AppColors.success;
+        break;
+      case 'PARTIAL':
+        bg = Colors.amber.withValues(alpha: 0.2);
+        fg = Colors.amber.shade800;
+        break;
+      case 'CANCELLED':
+        bg = AppColors.error.withValues(alpha: 0.15);
+        fg = AppColors.error;
+        break;
+      default:
+        bg = AppColors.surfaceContainerHigh;
+        fg = AppColors.onSurface;
     }
 
-    final bytes = excel.save();
-    if (bytes != null) {
-      FileSaverHelper.saveExcelFile(
-        bytes,
-        'PayPulse $companyName Report - ${DateFormat('dd-MM-yyyy').format(DateTime.now())}.xlsx',
-      );
-    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: fg.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        status,
+        style: AppTextStyles.labelMd.copyWith(color: fg, fontWeight: FontWeight.bold, fontSize: 11),
+      ),
+    );
   }
 
   Future<void> _pickSearchScopes() async {
@@ -413,8 +1011,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _performSearch();
     }
   }
-
-
 
   Future<void> _pickStatusFilter() async {
     final selected = Set<String>.from(_selectedStatusFilters);
@@ -531,6 +1127,287 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+  // --- Metrics Summary Cards ---
+
+  Widget _buildSummaryMetrics() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmall = constraints.maxWidth < 650;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildMetricCard(
+                'TOTAL INVOICES',
+                '${_filteredInvoices.length}',
+                Icons.receipt_long_rounded,
+                AppColors.primary,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+              _buildMetricCard(
+                'TOTAL WEIGHT',
+                '${_totalWeight.toStringAsFixed(3)} gm',
+                Icons.scale_rounded,
+                Colors.amber.shade700,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+              _buildMetricCard(
+                'GROSS SALES',
+                '₹${_totalGrossSales.toStringAsFixed(2)}',
+                Icons.account_balance_wallet_rounded,
+                Colors.indigo,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+              _buildMetricCard(
+                'GST COLLECTED',
+                '₹${_totalGst.toStringAsFixed(2)}',
+                Icons.percent_rounded,
+                Colors.teal,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+              _buildMetricCard(
+                'NET SALES',
+                '₹${_totalNetSales.toStringAsFixed(2)}',
+                Icons.payments_rounded,
+                AppColors.success,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+              _buildMetricCard(
+                'TOTAL RECEIVED',
+                '₹${_totalPaid.toStringAsFixed(2)}',
+                Icons.price_check_rounded,
+                Colors.teal.shade700,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+              _buildMetricCard(
+                'OUTSTANDING DUES',
+                '₹${_totalDues.toStringAsFixed(2)}',
+                Icons.pending_actions_rounded,
+                _totalDues > 0 ? AppColors.error : AppColors.onSurfaceMuted,
+                isSmall ? (constraints.maxWidth - 12) / 2 : null,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String label, String value, IconData icon, Color color, double? fixedWidth) {
+    return Container(
+      width: fixedWidth,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        mainAxisSize: fixedWidth != null ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, letterSpacing: 0.5),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.bold, color: AppColors.onSurface),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Mobile Card View ---
+
+  Widget _buildMobileCardsList(CompanySettings? company) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: _filteredInvoices.length,
+      itemBuilder: (context, index) {
+        final inv = _filteredInvoices[index];
+        final customerName = _getCustomerName(inv);
+        final customerPhone = _getCustomerPhone(inv);
+        final particulars = _getProductDetails(inv);
+        final purity = _getPurity(inv);
+        final netWt = _getTotalNetWeight(inv);
+        final status = _getInvoiceStatus(inv);
+        final paymentBreakdown = _getPaymentBreakdown(inv);
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          color: AppColors.surfaceContainer,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: AppColors.glassBorder),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => _showInvoiceDetailsDialog(inv, company),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 1: Inv No + Date + Status
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.receipt_rounded, size: 18, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            inv.invoiceNumber ?? inv.id ?? '',
+                            style: AppTextStyles.titleSm.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(inv.invoiceDate),
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatusBadge(status),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Row 2: Customer Name & Phone
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline_rounded, size: 16, color: AppColors.onSurfaceMuted),
+                      const SizedBox(width: 6),
+                      Text(customerName, style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold)),
+                      if (customerPhone != '—') ...[
+                        const SizedBox(width: 10),
+                        Icon(Icons.phone_outlined, size: 14, color: AppColors.onSurfaceMuted),
+                        const SizedBox(width: 4),
+                        Text(customerPhone, style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted)),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Row 3: Particulars, Purity & Weight badges
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.glassBorder),
+                        ),
+                        child: Text(
+                          particulars,
+                          style: AppTextStyles.bodySm,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (purity != '—')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            purity,
+                            style: AppTextStyles.labelSm.copyWith(color: Colors.amber.shade800, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      if (netWt > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${netWt.toStringAsFixed(3)} gm',
+                            style: AppTextStyles.labelSm.copyWith(color: Colors.teal.shade800, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Row 4: Net Amount & Dues
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('NET AMOUNT', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10)),
+                          Text(
+                            '₹${inv.netAmount.toStringAsFixed(2)}',
+                            style: AppTextStyles.titleMd.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('PAYMENT / DUES', style: AppTextStyles.labelSm.copyWith(color: AppColors.onSurfaceMuted, fontSize: 10)),
+                          Row(
+                            children: [
+                              Text(
+                                paymentBreakdown != '—' ? paymentBreakdown : 'Paid: ₹${inv.totalAmountPaid.toStringAsFixed(0)}',
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.success, fontWeight: FontWeight.w600),
+                              ),
+                              if (inv.balanceDue > 0) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Dues: ₹${inv.balanceDue.toStringAsFixed(0)}',
+                                  style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- Main Build ---
+
   @override
   Widget build(BuildContext context) {
     // If the user is a Super Admin, show the Admin Reports view
@@ -578,15 +1455,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    'Reports',
-                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reports & Invoice Database',
+                        style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Filter, view complete invoice records, and export full database',
+                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           Expanded(
             child: SingleChildScrollView(
@@ -708,7 +1594,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               final inputWidget = GlassInput(
                                 controller: _searchQueryController,
                                 label: 'Search Query ($selectedLabel)',
-                                hint: 'Type search text...',
+                                hint: 'Search invoice no, customer, purity, cash, etc...',
                                 prefixIcon: Icon(Icons.search, color: AppColors.primary, size: 20),
                                 suffixIcon: InkWell(
                                   onTap: _pickSearchScopes,
@@ -779,36 +1665,86 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Action Toolbar (Export Buttons)
+                  // Summary Statistics Strip (Matches Swarnayan Invoice DB stats)
+                  if (_hasSearched && _filteredInvoices.isNotEmpty) ...[
+                    _buildSummaryMetrics(),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Action Toolbar (Export Buttons & View Toggle)
                   if (_hasSearched && _filteredInvoices.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.end,
+                        spacing: 10,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () => _exportToExcel(companyName),
-                            icon: const Icon(Icons.grid_on_rounded, size: 18),
-                            label: const Text('Export XLSX'),
+                          // View Switcher (Cards vs Table)
+                          SegmentedButton<bool>(
+                            segments: const [
+                              ButtonSegment<bool>(
+                                value: false,
+                                icon: Icon(Icons.table_chart_rounded, size: 16),
+                                label: Text('Table'),
+                              ),
+                              ButtonSegment<bool>(
+                                value: true,
+                                icon: Icon(Icons.view_agenda_rounded, size: 16),
+                                label: Text('Cards'),
+                              ),
+                            ],
+                            selected: {_isCardView},
+                            onSelectionChanged: (Set<bool> newSelection) {
+                              setState(() {
+                                _isCardView = newSelection.first;
+                              });
+                            },
                           ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () => _exportToPdf(companyName),
-                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                            label: const Text('Export PDF'),
+
+                          // Export Buttons
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              // CSV (Database Dump)
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => _exportToCsv(companyName),
+                                icon: const Icon(Icons.dataset_rounded, size: 16),
+                                label: const Text('Export CSV (DB)'),
+                              ),
+                              // XLSX
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal.shade700,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => _exportToExcel(companyName),
+                                icon: const Icon(Icons.grid_on_rounded, size: 16),
+                                label: const Text('Export XLSX'),
+                              ),
+                              // PDF
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => _exportToPdf(companyName),
+                                icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                                label: const Text('Export PDF'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -816,7 +1752,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Results Grid / Table
+                  // Results Grid / Table / Cards
                   _hasSearched
                       ? (_filteredInvoices.isEmpty
                           ? Padding(
@@ -828,63 +1764,139 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ),
                               ),
                             )
-                          : Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: DataTable(
-                                    headingRowColor: WidgetStateProperty.all(AppColors.surfaceContainerHigh),
-                                    dataRowColor: WidgetStateProperty.all(AppColors.surface),
-                                    dividerThickness: 0.5,
-                                    columns: [
-                                      DataColumn(label: Text('Invoice No', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Date', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Customer', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Products', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Making Chg (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Gross (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Discount (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Taxable (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('CGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('SGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Total Tax (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('Net Amt (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
-                                    ],
-                                    rows: _filteredInvoices.map((inv) {
-                                      final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(Text(inv.invoiceNumber ?? inv.id ?? '', style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(DateFormat('dd/MM/yyyy').format(inv.invoiceDate), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(_getCustomerName(inv), style: AppTextStyles.bodyMd)),
-                                          DataCell(
-                                            Container(
-                                              constraints: const BoxConstraints(maxWidth: 300),
-                                              child: Text(
-                                                _getProductDetails(inv),
-                                                style: AppTextStyles.bodyMd,
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 2,
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(Text(makingChargeSum.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.grossAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.couponDiscount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.taxableAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.cgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.sgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.totalTax.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
-                                          DataCell(Text(inv.netAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold))),
-                                        ],
-                                      );
-                                    }).toList(),
+                          : _isCardView
+                              ? _buildMobileCardsList(companyState.value)
+                              : Card(
+                                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  color: AppColors.surfaceContainer,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                    side: BorderSide(color: AppColors.glassBorder),
                                   ),
-                                ),
-                              ),
-                            ))
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: DataTable(
+                                        headingRowColor: WidgetStateProperty.all(AppColors.surfaceContainerHigh),
+                                        dataRowColor: WidgetStateProperty.all(AppColors.surface),
+                                        dividerThickness: 0.5,
+                                        showCheckboxColumn: false,
+                                        columns: [
+                                          DataColumn(label: Text('Invoice No.', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Date', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Customer Name', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Phone', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Particulars', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Purity', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Net Wt (gm)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Gross Amt (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Making (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Discount (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Taxable (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('CGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('SGST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Total GST (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Net Amt (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Payment Mode', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Paid (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Dues (₹)', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Status', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                          DataColumn(label: Text('Actions', style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.bold))),
+                                        ],
+                                        rows: _filteredInvoices.map((inv) {
+                                          final makingChargeSum = inv.items.fold<double>(0, (sum, item) => sum + item.makingChargeTotal);
+                                          final discountSum = inv.couponDiscount + inv.manualDiscount;
+                                          final status = _getInvoiceStatus(inv);
+
+                                          return DataRow(
+                                            onSelectChanged: (_) => _showInvoiceDetailsDialog(inv, companyState.value),
+                                            cells: [
+                                              DataCell(
+                                                Row(
+                                                  children: [
+                                                    Icon(Icons.receipt_rounded, size: 16, color: AppColors.primary),
+                                                    const SizedBox(width: 6),
+                                                    Text(inv.invoiceNumber ?? inv.id ?? '', style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                                  ],
+                                                ),
+                                              ),
+                                              DataCell(Text(DateFormat('dd/MM/yyyy').format(inv.invoiceDate), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(_getCustomerName(inv), style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600))),
+                                              DataCell(Text(_getCustomerPhone(inv), style: AppTextStyles.bodyMd)),
+                                              DataCell(
+                                                Container(
+                                                  constraints: const BoxConstraints(maxWidth: 220),
+                                                  child: Text(
+                                                    _getProductDetails(inv),
+                                                    style: AppTextStyles.bodyMd,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    maxLines: 2,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.amber.withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(_getPurity(inv), style: AppTextStyles.bodySm.copyWith(color: Colors.amber.shade900, fontWeight: FontWeight.bold)),
+                                                ),
+                                              ),
+                                              DataCell(Text(_getTotalNetWeight(inv).toStringAsFixed(3), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.grossAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(makingChargeSum.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(discountSum.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.taxableAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.cgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.sgst.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.totalTax.toStringAsFixed(2), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.netAmount.toStringAsFixed(2), style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary))),
+                                              DataCell(Text(_getPaymentBreakdown(inv), style: AppTextStyles.bodyMd)),
+                                              DataCell(Text(inv.totalAmountPaid.toStringAsFixed(2), style: AppTextStyles.bodyMd.copyWith(color: AppColors.success, fontWeight: FontWeight.w600))),
+                                              DataCell(
+                                                Text(
+                                                  inv.balanceDue.toStringAsFixed(2),
+                                                  style: AppTextStyles.bodyMd.copyWith(
+                                                    color: inv.balanceDue > 0 ? AppColors.error : AppColors.onSurfaceMuted,
+                                                    fontWeight: inv.balanceDue > 0 ? FontWeight.bold : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(_buildStatusBadge(status)),
+                                              DataCell(
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                                                      tooltip: 'View Details',
+                                                      onPressed: () => _showInvoiceDetailsDialog(inv, companyState.value),
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(Icons.print_outlined, size: 18),
+                                                      tooltip: 'Print Invoice',
+                                                      onPressed: () {
+                                                        PdfHelper.generateAndPrintInvoice(
+                                                          invoice: inv,
+                                                          customer: _resolveCustomer(inv),
+                                                          company: companyState.value,
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                ))
                       : Padding(
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(

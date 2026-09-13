@@ -2060,7 +2060,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     },
                   );
                   if (picked != null) {
-                    ref.read(billingProvider.notifier).setInvoiceDate(picked);
+                    final now = DateTime.now();
+                    final dateWithCurrentTime = DateTime(
+                      picked.year,
+                      picked.month,
+                      picked.day,
+                      now.hour,
+                      now.minute,
+                      now.second,
+                    );
+                    ref.read(billingProvider.notifier).setInvoiceDate(dateWithCurrentTime);
                   }
                 },
                 child: Container(

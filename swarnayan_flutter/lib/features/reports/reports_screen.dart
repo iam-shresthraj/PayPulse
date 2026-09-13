@@ -1489,7 +1489,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Reports & Invoice Database',
+                        'Reports',
                         style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
                       ),
                       Text(
@@ -1556,12 +1556,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          const Spacer(),
-                                          Icon(
-                                            Icons.calendar_today_rounded,
-                                            color: AppColors.primary,
-                                            size: 18,
-                                          ),
+                                          if (!isMobile) ...[
+                                            const Spacer(),
+                                            Icon(
+                                              Icons.calendar_today_rounded,
+                                              color: AppColors.primary,
+                                              size: 18,
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -1602,12 +1604,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          const Spacer(),
-                                          Icon(
-                                            Icons.calendar_today_rounded,
-                                            color: AppColors.primary,
-                                            size: 18,
-                                          ),
+                                          if (!isMobile) ...[
+                                            const Spacer(),
+                                            Icon(
+                                              Icons.calendar_today_rounded,
+                                              color: AppColors.primary,
+                                              size: 18,
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),

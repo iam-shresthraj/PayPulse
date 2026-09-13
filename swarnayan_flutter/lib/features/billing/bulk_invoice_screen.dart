@@ -96,62 +96,6 @@ class _BulkInvoiceScreenState extends ConsumerState<BulkInvoiceScreen> {
     });
   }
 
-  Future<void> _downloadSampleCsv() async {
-    final sample = BulkInvoiceService.getSampleCsvTemplate();
-    final bytes = Uint8List.fromList(utf8.encode(sample));
-    try {
-      if (kIsWeb) {
-        await BulkInvoiceService.saveOrShareZip(
-          bytes,
-          defaultFileName: 'sample_invoices_template.csv',
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Sample CSV template downloaded.'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        }
-        return;
-      }
-
-      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-        final outputFile = await FilePicker.saveFile(
-          dialogTitle: 'Save Sample Invoice CSV Template',
-          fileName: 'sample_invoices_template.csv',
-          type: FileType.custom,
-          allowedExtensions: ['csv'],
-        );
-        if (outputFile != null) {
-          final file = File(outputFile.endsWith('.csv') ? outputFile : '$outputFile.csv');
-          await file.writeAsBytes(bytes);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Sample template saved to: ${file.path}'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-          }
-        }
-      } else {
-        await BulkInvoiceService.saveOrShareZip(
-          bytes,
-          defaultFileName: 'sample_invoices_template.csv',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error downloading template: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> _generateAndDownloadZip() async {
     if (_parseResult == null || _parseResult!.invoices.isEmpty) return;
@@ -368,30 +312,9 @@ class _BulkInvoiceScreenState extends ConsumerState<BulkInvoiceScreen> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Generate Bulk Invoices',
-                        style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Upload CSV, compile PDF invoices, and download as ZIP',
-                        style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _downloadSampleCsv,
-                  icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text('Sample CSV'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    'Generate Bulk Invoices',
+                    style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -413,7 +336,7 @@ class _BulkInvoiceScreenState extends ConsumerState<BulkInvoiceScreen> {
                       color: AppColors.primary.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.folder_zip_rounded, color: AppColors.primary, size: 22),
+                    child: Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -426,7 +349,7 @@ class _BulkInvoiceScreenState extends ConsumerState<BulkInvoiceScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Invoices are rendered dynamically in-memory. If data is accidentally deleted or you only need bulk prints, generate and download directly without cluttering the database.',
+                          'Upload CSV, compile PDF invoices, and download as ZIP. Invoices are rendered dynamically in-memory without cluttering the database.',
                           style: AppTextStyles.bodySm.copyWith(color: AppColors.onSurfaceMuted),
                         ),
                       ],

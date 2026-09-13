@@ -301,22 +301,10 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Sales Invoice Register',
+                    'Record Book',
                     style: AppTextStyles.titleLg.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
-                if (ref.watch(authProvider).user?.canManage ?? false)
-                  TextButton.icon(
-                    onPressed: () => context.push('/billing/bulk'),
-                    icon: const Icon(Icons.folder_zip_rounded, size: 16),
-                    label: const Text('Bulk Generation'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
               ],
             ),
           ).animate().fadeIn(duration: 300.ms),
@@ -430,7 +418,7 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      'Client: $customerName (${inv.items.length} items)',
+                                      '$customerName (${inv.items.length} items)',
                                       style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
                                     ),
                                     const SizedBox(height: 2),
@@ -572,37 +560,54 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                           inv.invoiceNumber ?? 'INV-${inv.invoiceDate.millisecondsSinceEpoch}',
                                           style: AppTextStyles.cardTitle,
                                         ),
-                                        StatusBadge(status: badgeStatus),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            StatusBadge(status: badgeStatus),
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () => _confirmDeleteInvoice(inv),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(2.0),
+                                                child: Icon(
+                                                  Icons.delete_outline_rounded,
+                                                  color: AppColors.error,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          constraints: const BoxConstraints(),
-                                          padding: EdgeInsets.zero,
-                                          icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
-                                          onPressed: () {
-                                            final customers = ref.read(customersProvider).value ?? [];
-                                            final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
-                                            final customer = customerIndex != -1 
-                                                ? customers[customerIndex] 
-                                                : Customer(
-                                                    name: inv.tempCustomerName ?? 'Customer',
-                                                    mobile: inv.tempCustomerMobile ?? '',
-                                                    address: inv.tempCustomerAddress ?? '',
-                                                  );
-                                            ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
-                                            context.go('/billing');
-                                          },
-                                          tooltip: 'Edit Invoice',
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Client: $customerName (${inv.items.length} items)',
-                                          style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
-                                        ),
-                                      ],
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        final customers = ref.read(customersProvider).value ?? [];
+                                        final customerIndex = customers.indexWhere((c) => c.id == inv.customerId);
+                                        final customer = customerIndex != -1 
+                                            ? customers[customerIndex] 
+                                            : Customer(
+                                                name: inv.tempCustomerName ?? 'Customer',
+                                                mobile: inv.tempCustomerMobile ?? '',
+                                                address: inv.tempCustomerAddress ?? '',
+                                              );
+                                        ref.read(billingProvider.notifier).loadInvoiceToEdit(inv, customer);
+                                        context.go('/billing');
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '$customerName (${inv.items.length} items)',
+                                            style: AppTextStyles.bodyLg.copyWith(color: AppColors.onBackground),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -628,44 +633,39 @@ class _RecordBookScreenState extends ConsumerState<RecordBookScreen> {
                                           ],
                                         ),
                                         Row(
-                                            children: [
-                                               IconButton(
-                                                 icon:  Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
-                                                 onPressed: () => _downloadInvoice(inv),
-                                                 tooltip: 'Download PDF',
-                                               ),
-                                               IconButton(
-                                                 icon:  Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
-                                                 onPressed: () => _printInvoice(inv),
-                                                 tooltip: 'Print PDF',
-                                               ),
-                                              IconButton(
-                                                icon:  Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
-                                                onPressed: () async {
-                                                   final customer = customerIndex != -1 
-                                                       ? customers[customerIndex] 
-                                                       : Customer(
-                                                           id: inv.customerId ?? '',
-                                                           name: (inv.tempCustomerName != null && inv.tempCustomerName!.isNotEmpty) ? inv.tempCustomerName! : 'Customer',
-                                                           mobile: inv.tempCustomerMobile ?? '',
-                                                           address: inv.tempCustomerAddress ?? '',
-                                                           pincode: inv.tempCustomerPincode,
-                                                           city: inv.tempCustomerCity,
-                                                           state: inv.tempCustomerState,
-                                                         );
-                                                  final company = ref.read(companyProvider).value;
-                                                  await WhatsAppHelper.shareInvoice(
-                                                    invoice: inv,
-                                                    customer: customer,
-                                                    company: company,
-                                                  );
-                                                },
-                                                tooltip: 'Share on WhatsApp',
-                                              ),
-                                              const SizedBox(width: 8),
+                                          children: [
                                             IconButton(
-                                              icon:  Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
-                                              onPressed: () => _confirmDeleteInvoice(inv),
+                                              icon: Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+                                              onPressed: () => _downloadInvoice(inv),
+                                              tooltip: 'Download PDF',
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.print_rounded, color: AppColors.primary, size: 20),
+                                              onPressed: () => _printInvoice(inv),
+                                              tooltip: 'Print PDF',
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
+                                              onPressed: () async {
+                                                final customer = customerIndex != -1 
+                                                    ? customers[customerIndex] 
+                                                    : Customer(
+                                                        id: inv.customerId ?? '',
+                                                        name: (inv.tempCustomerName != null && inv.tempCustomerName!.isNotEmpty) ? inv.tempCustomerName! : 'Customer',
+                                                        mobile: inv.tempCustomerMobile ?? '',
+                                                        address: inv.tempCustomerAddress ?? '',
+                                                        pincode: inv.tempCustomerPincode,
+                                                        city: inv.tempCustomerCity,
+                                                        state: inv.tempCustomerState,
+                                                      );
+                                                final company = ref.read(companyProvider).value;
+                                                await WhatsAppHelper.shareInvoice(
+                                                  invoice: inv,
+                                                  customer: customer,
+                                                  company: company,
+                                                );
+                                              },
+                                              tooltip: 'Share on WhatsApp',
                                             ),
                                           ],
                                         ),

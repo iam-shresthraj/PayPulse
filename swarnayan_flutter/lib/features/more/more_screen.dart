@@ -70,7 +70,7 @@ class MoreScreen extends ConsumerWidget {
     final showReports = !isWide && canManage && (user?.hasAccess('reports', rolePermissions) ?? true);
     final showSettings = !isWide && isOwner && (user?.hasAccess('settings', rolePermissions) ?? true);
     final showRecords = !isWide && (user?.hasAccess('records', rolePermissions) ?? true);
-    final showBulkGeneration = canManage;
+    final showBulkGeneration = !isWide && canManage;
     final showCoupons = user?.hasAccess('coupons', rolePermissions) ?? true;
     final showBusinessSection = showReports || showSettings || showRecords || showCoupons || showBulkGeneration;
 
